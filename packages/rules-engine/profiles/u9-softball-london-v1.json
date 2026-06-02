@@ -1,0 +1,51 @@
+{
+  "id": "u9-softball-london-v1",
+  "name": "U9 Softball (London)",
+  "description": "Pairs innings, 200 starting score, 4-over batting pairs. Common across Middlesex / London junior Sunday leagues.",
+  "version": 1,
+  "format": "pairs_single_innings",
+  "playersPerSide": { "min": 8, "max": 10, "default": 8 },
+  "oversPerInnings": { "formula": "2 * playersPerSide" },
+  "pairOvers": 4,
+  "startingScore": 200,
+  "wicketPenalty": 5,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": true
+  },
+  "display": {
+    "netRunsFormula": "batRuns - wicketPenalty * wickets",
+    "showStartingScoreInTotal": true,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "symbols": {
+    "dot": ["0", "."],
+    "wicket": "W",
+    "wide": "+",
+    "noBall": "O",
+    "bye": "Δ",
+    "legBye": "v",
+    "runOut": "R",
+    "bowled": "B",
+    "caught": "C",
+    "stumped": "S",
+    "lbw": "L",
+    "hitWicket": "H"
+  }
+}

@@ -1,0 +1,15 @@
+# Cloudflare Workers / D1 — production database for howzzat
+# Local dev: `pnpm cf:dev` or use SQLite via packages/db (see README)
+
+name = "howzzat"
+# Next.js deploy: use @opennextjs/cloudflare (see README). D1 binding below.
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "howzzat"
+database_id = "REPLACE_AFTER_wrangler_d1_create"
+
+[vars]
+ENVIRONMENT = "development"

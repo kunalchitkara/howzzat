@@ -1,0 +1,343 @@
+// SQLite for local dev + Cloudflare D1 in production (same SQL dialect)
+// Migrations: `pnpm db:push` locally; `wrangler d1 migrations apply` for D1
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Organizations & users ───────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams       Team[]
+  memberships OrgMembership[]
+  tournaments Tournament[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrgMembership[]
+  invitesSent TournamentInvite[]
+}
+
+model OrgMembership {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole  @default(COACH)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+enum OrgRole {
+  OWNER
+  MANAGER
+  COACH
+  SCORER
+  VIEWER
+}
+
+// ─── Rules profiles (cloneable templates) ────────────────────────────────────
+
+model RulesProfileTemplate {
+  id          String   @id @default(cuid())
+  builtinId   String?  @unique // e.g. "u9-softball-london-v1" when seeded from engine
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  versions RulesProfileVersion[]
+}
+
+model RulesProfileVersion {
+  id         String   @id @default(cuid())
+  templateId String
+  version    Int
+  configJson String // full RulesProfile JSON
+  createdAt  DateTime @default(now())
+
+  template           RulesProfileTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tournaments        Tournament[]
+  tournamentBindings TournamentRulesBinding[]
+  ruleChangesFrom    RuleChangeRequest[]  @relation("RuleChangeFrom")
+  ruleChangesTo      RuleChangeRequest[]  @relation("RuleChangeTo")
+
+  @@unique([templateId, version])
+}
+
+// ─── Tournaments ─────────────────────────────────────────────────────────────
+
+model Tournament {
+  id                    String           @id @default(cuid())
+  organizationId        String
+  name                  String
+  slug                  String
+  ageGroup              String? // U9, U10, U11
+  seasonLabel           String? // e.g. "Summer 2026"
+  rulesProfileVersionId String
+  plan                  TournamentPlan   @default(FREE)
+  isPublic              Boolean          @default(true)
+  startsOn              DateTime?
+  endsOn                DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  organization        Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rulesProfileVersion RulesProfileVersion      @relation(fields: [rulesProfileVersionId], references: [id])
+  teams               TournamentTeam[]
+  matches             Match[]
+  invites             TournamentInvite[]
+  rulesBindings      TournamentRulesBinding[]
+  ruleChangeRequests RuleChangeRequest[]
+
+  @@unique([organizationId, slug])
+}
+
+enum TournamentPlan {
+  FREE
+  PRO
+}
+
+/** Timeline of which rules version applies from which point in the tournament. */
+model TournamentRulesBinding {
+  id                    String    @id @default(cuid())
+  tournamentId          String
+  rulesProfileVersionId String
+  effectiveFrom         DateTime  @default(now())
+  effectiveFromMatchId  String?
+  notes                 String?
+
+  tournament          Tournament          @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  rulesProfileVersion RulesProfileVersion @relation(fields: [rulesProfileVersionId], references: [id])
+
+  @@index([tournamentId, effectiveFrom])
+}
+
+model RuleChangeRequest {
+  id                   String           @id @default(cuid())
+  tournamentId         String
+  fromVersionId        String
+  toVersionId          String
+  mode                 RuleChangeMode
+  status               RuleChangeStatus @default(PENDING)
+  effectiveFromMatchId String?
+  requestedByUserId    String?
+  appliedAt            DateTime?
+  createdAt            DateTime         @default(now())
+
+  tournament  Tournament          @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  fromVersion RulesProfileVersion @relation("RuleChangeFrom", fields: [fromVersionId], references: [id])
+  toVersion   RulesProfileVersion @relation("RuleChangeTo", fields: [toVersionId], references: [id])
+
+  @@index([tournamentId, status])
+}
+
+enum RuleChangeMode {
+  FUTURE_ONLY
+  BACKFILL
+}
+
+enum RuleChangeStatus {
+  PENDING
+  APPLIED
+  CANCELLED
+}
+
+model TournamentInvite {
+  id           String    @id @default(cuid())
+  tournamentId String
+  email        String
+  role         OrgRole   @default(COACH)
+  teamId       String?
+  token        String    @unique
+  acceptedAt   DateTime?
+  invitedById  String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  invitedBy  User?      @relation(fields: [invitedById], references: [id])
+  team       Team?      @relation(fields: [teamId], references: [id])
+}
+
+// ─── Teams & players ─────────────────────────────────────────────────────────
+
+model Team {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  homeGround     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships      TeamMembership[]
+  tournamentTeams  TournamentTeam[]
+  invites          TournamentInvite[]
+
+  @@unique([organizationId, slug])
+}
+
+model Player {
+  id          String    @id @default(cuid())
+  legalName   String
+  displayName String?
+  dateOfBirth DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  memberships TeamMembership[]
+}
+
+model TeamMembership {
+  id           String   @id @default(cuid())
+  teamId       String
+  playerId     String
+  shirtNumber  Int?
+  seasonLabel  String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, playerId, seasonLabel])
+}
+
+model TournamentTeam {
+  id           String @id @default(cuid())
+  tournamentId String
+  teamId       String
+  publicSlug   String?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  homeMatches Match[]   @relation("HomeTeam")
+  awayMatches Match[]   @relation("AwayTeam")
+
+  @@unique([tournamentId, teamId])
+}
+
+// ─── Matches & ball-by-ball ──────────────────────────────────────────────────
+
+model Match {
+  id              String      @id @default(cuid())
+  tournamentId    String
+  homeTeamId      String
+  awayTeamId      String
+  scheduledAt     DateTime?
+  venue           String?
+  playersPerSide  Int         @default(8)
+  status          MatchStatus @default(SCHEDULED)
+  isOfficial      Boolean     @default(true)
+  resultSummary   String?
+  homeScore       Int?
+  awayScore       Int?
+  winningTeamId   String?
+  marginText      String?
+  rulesVersionId  String? // locked at match start; may differ after rule change backfill
+  publicSlug      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  tournament Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homeTeam     TournamentTeam @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam     TournamentTeam @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  innings      Innings[]
+
+  @@index([tournamentId, scheduledAt])
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  ABANDONED
+  WALKOVER
+}
+
+model Innings {
+  id             String @id @default(cuid())
+  matchId        String
+  battingTeamId  String
+  inningsNumber  Int
+  totalRuns      Int?
+  wickets        Int?
+  oversBowled    Float?
+  rulesVersionId String
+
+  match       Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  deliveries  Delivery[]
+
+  @@unique([matchId, inningsNumber])
+}
+
+model Delivery {
+  id                  String   @id @default(cuid())
+  inningsId           String
+  sequence            Int
+  overNumber          Int
+  ballInOver          Int
+  isLegalBall         Boolean  @default(true)
+  runsOffBat          Int      @default(0)
+  extrasType          String?
+  extrasRuns          Int      @default(0)
+  wicketType          String?
+  strikerId           String
+  nonStrikerId        String
+  bowlerId            String
+  fielderId           String?
+  dismissedBatsmanId  String?
+  rulesVersionId      String // rules used when this ball was scored / replayed
+  createdAt           DateTime @default(now())
+
+  innings Innings @relation(fields: [inningsId], references: [id], onDelete: Cascade)
+
+  @@unique([inningsId, sequence])
+  @@index([inningsId, sequence])
+}
+
+// Materialized stats (regenerated on finalize or rule backfill)
+model PlayerMatchStats {
+  id            String @id @default(cuid())
+  matchId       String
+  playerId      String
+  teamId        String
+  batRuns       Int    @default(0)
+  wicketsLost   Int    @default(0)
+  netRuns       Int    @default(0)
+  ballsFaced    Int    @default(0)
+  fours         Int    @default(0)
+  sixes         Int    @default(0)
+  oversBowled   Float  @default(0)
+  runsConceded  Int    @default(0)
+  wicketsTaken  Int    @default(0)
+  wides         Int    @default(0)
+  noBalls       Int    @default(0)
+  dotBalls      Int    @default(0)
+  catches       Int    @default(0)
+  runOuts       Int    @default(0)
+
+  @@unique([matchId, playerId])
+}

@@ -1,0 +1,374 @@
+# Howzzat
+
+**Ball-by-ball scoring, configurable junior cricket rules, and public team dashboards** — a lightweight alternative to spreadsheet + manual HTML workflows for youth clubs.
+
+Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 starting score, shared county rules), designed to scale to more formats and adult cricket later.
+
+| | |
+|---|---|
+| **Status** | Early development — monorepo scaffold, rules engine, database schema |
+| **Reference** | [edgeware-u9](https://github.com/kunalchitkara/edgeware-u9) — Edgware CC U9 Softball 2026 dashboard (production use today) |
+| **Stack** | Next.js · Expo · TypeScript · Prisma · Cloudflare D1 |
+
+---
+
+## Table of contents
+
+1. [Why Howzzat exists](#why-howzzat-exists)
+2. [What it does](#what-it-does)
+3. [How it compares](#how-it-compares)
+4. [Architecture](#architecture)
+5. [Repository structure](#repository-structure)
+6. [Rules engine & U9 profile](#rules-engine--u9-profile)
+7. [Mid-tournament rule changes](#mid-tournament-rule-changes)
+8. [Data model (overview)](#data-model-overview)
+9. [Getting started](#getting-started)
+10. [Development workflow](#development-workflow)
+11. [Deploying to Cloudflare](#deploying-to-cloudflare)
+12. [Roadmap](#roadmap)
+13. [Migrating from edgeware-u9](#migrating-from-edgeware-u9)
+14. [Contributing & license](#contributing--license)
+
+---
+
+## Why Howzzat exists
+
+Junior club cricket in London often runs on:
+
+- A **Google Sheet** for live ball-by-ball scoring (complex symbols for wides, pairs, wicket penalties)
+- A **Python script** to regenerate a static HTML dashboard after each match
+- A **manual git push** to GitHub Pages for parents to see results
+
+That pipeline works — [edgeware-u9](https://kunalchitkara.github.io/edgeware-u9/) proves it — but it does not scale to multiple clubs, coaches, or tournaments. Howzzat generalises the same **rules-aware stats** (net runs, partnerships, fielding credits, leaderboards) into a multi-tenant product:
+
+- Managers **create tournaments** and invite coaches
+- Scorers record **ball-by-ball** on mobile
+- Parents get **public dashboards** without login
+- **Player history** spans seasons and tournaments
+- **Rules profiles** can be cloned and tweaked per competition
+
+Season 1 goal: **free for London junior leagues** to gain adoption; monetisation per tournament later without redesign.
+
+---
+
+## What it does
+
+### For tournament managers
+
+- Create organisations (clubs) and tournaments (age group, season, slug)
+- Select or **clone** a rules profile (e.g. U9 Softball London)
+- Configure allowed overrides (wicket penalty, wide runs, player count, etc.)
+- Add teams, squads, fixtures, venues
+- Invite coaches/scorers from other clubs
+- Publish **public URLs** for tournament, team, and match pages
+
+### For scorers (mobile app)
+
+- Ball-by-ball entry: runs, dot, wide, no-ball, wicket, run-out, fielder
+- Live innings view driven by the **rules engine** (not hard-coded UI logic)
+- Official vs **practice** matches (practice stats excluded from season tables)
+
+### For parents & players
+
+- Season overview, fixtures, scorecards, player cards, leaderboards
+- Rules guide generated from the active profile
+- No account required for public pages
+
+### Analytics (design target)
+
+| Level | Examples |
+|-------|----------|
+| Match | Full scorecard, partnerships, fall of wickets, bowling figures |
+| Tournament | Leaderboards (runs, wickets, economy, catches, net runs) |
+| Player | Career across tournaments; batting avg, net runs, fielding |
+
+---
+
+## How it compares
+
+| | Spreadsheet + HTML | Generic scoring apps | **Howzzat** |
+|---|-------------------|----------------------|-------------|
+| U9 London pairs rules | Custom sheet + formulas | Rarely supported | **First-class rules profile** |
+| Ball-by-ball | Yes | Varies | Yes |
+| Public dashboard | Manual deploy | Often paid / limited | **Built-in, shareable links** |
+| Multi-club tournament | No | Sometimes | **Yes (invites, RLS planned)** |
+| Player cross-season | Manual | Limited | **Global player entity** |
+| Cost at scale | Free (Sheets) | Subscription | **Cloudflare D1 — low egress** |
+
+Not trying to be ESPNcricinfo — aiming for **Cricbuzz-lite for youth clubs**: fast, readable, correct for local rules.
+
+---
+
+## Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  apps/mobile (Expo)          apps/web (Next.js 15)              │
+│  • Tap-to-score UI           • Manager UI (planned)             │
+│  • Offline queue (planned)   • Public dashboards (planned)      │
+│                              • API routes (/api/*)              │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────┐
+│  packages/rules-engine (pure TypeScript)                          │
+│  • validateDelivery / applyDelivery / replayInnings               │
+│  • Builtin profiles: u9-softball-london-v1                       │
+│  • mergeProfile() for clone + configure                           │
+│  • applyRuleChange() — BACKFILL | FUTURE_ONLY                     │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────┐
+│  packages/db (Prisma)                                            │
+│  • SQLite locally  →  Cloudflare D1 in production (same dialect) │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Design principles**
+
+1. **Deliveries are the source of truth** — every stat is derived by replaying balls through the rules engine.
+2. **Rules never live in React components** — same logic on server, mobile, and tests.
+3. **Rules versions are immutable** — tournaments bind to a version; changes create a new version.
+4. **Public pages are read-heavy** — materialise stats on match complete; cache/ISR in production.
+
+See [docs/architecture.md](./docs/architecture.md) for deployment notes.
+
+---
+
+## Repository structure
+
+```text
+howzzat/
+├── apps/
+│   ├── web/                      # Next.js — web + API
+│   │   └── src/app/              # App Router pages & /api routes
+│   └── mobile/                   # Expo Router — scorer
+│       └── app/                  # index, score (demo tap UI)
+├── packages/
+│   ├── rules-engine/             # Core scoring logic + profiles/*.json
+│   ├── db/                       # Prisma schema, migrations, seed
+│   └── shared/                   # Shared constants & re-exports
+├── docs/
+│   ├── architecture.md
+│   └── rule-changes.md
+├── wrangler.toml                 # Cloudflare D1 binding
+├── turbo.json                    # Turborepo task graph
+└── pnpm-workspace.yaml
+```
+
+---
+
+## Rules engine & U9 profile
+
+### Builtin profile: `u9-softball-london-v1`
+
+Used across many **Middlesex / London junior Sunday leagues**. Matches the conventions documented in [edgeware-u9](https://github.com/kunalchitkara/edgeware-u9).
+
+| Rule | Value |
+|------|--------|
+| Format | Pairs — each team bats once |
+| Players per side | 8–10 (16 or 20 overs) |
+| Pair length | 4 overs per pair |
+| Starting score | **200** (avoids negative totals) |
+| Wicket penalty | **−5** runs (pair continues) |
+| Wide / no-ball (overs 1–n−1) | +2, no rebowl |
+| Last over | Wide/NB +1, rebowl, up to 3 extra balls |
+| Net runs (display) | Bat runs − (5 × wickets) |
+| Run out | Fielder credit; bowler does **not** get a wicket |
+
+Profile JSON: [`packages/rules-engine/profiles/u9-softball-london-v1.json`](./packages/rules-engine/profiles/u9-softball-london-v1.json)
+
+### Clone & configure
+
+Managers duplicate a template → `RulesProfileTemplate` + new `RulesProfileVersion` with merged JSON (`mergeProfile()` in code). Only safe fields are exposed in the UI (planned); raw JSON for power users later.
+
+### Running tests
+
+```bash
+pnpm --filter @howzzat/rules-engine test
+```
+
+Nine unit tests cover starting score, wicket penalty, net runs, and BACKFILL rule changes.
+
+---
+
+## Mid-tournament rule changes
+
+Coaches sometimes need to fix a misconfigured rule mid-season. Howzzat supports two modes ([full doc](./docs/rule-changes.md)):
+
+| Mode | Behaviour |
+|------|-----------|
+| **FUTURE_ONLY** | Deliveries before the change keep their `rulesVersionId`; new balls use the new profile. |
+| **BACKFILL** | Replay **all** deliveries in affected innings with the new profile; update scorecards and `PlayerMatchStats`. |
+
+Preview impact before applying via `apps/web/src/lib/rule-changes.ts` → `previewRuleChange()`.
+
+---
+
+## Data model (overview)
+
+| Entity | Purpose |
+|--------|---------|
+| `Organization` | Club (e.g. Edgware CC) |
+| `Tournament` | Competition + age group + active rules version |
+| `RulesProfileTemplate` / `RulesProfileVersion` | Cloneable, versioned rules JSON |
+| `TournamentRulesBinding` | Timeline when a version became active |
+| `RuleChangeRequest` | BACKFILL or FUTURE_ONLY change workflow |
+| `Team` / `Player` / `TeamMembership` | Squad; players persist across tournaments |
+| `Match` / `Innings` / `Delivery` | Ball-by-ball storage |
+| `PlayerMatchStats` | Materialised aggregates (regenerated on finalize / backfill) |
+
+Schema: [`packages/db/prisma/schema.prisma`](./packages/db/prisma/schema.prisma)
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- **Node.js** 20+
+- **pnpm** 9+ (`npm install -g pnpm` or Corepack)
+- For mobile: **Expo Go** on your phone or iOS Simulator / Android emulator
+
+### Install
+
+```bash
+git clone https://github.com/kunalchitkara/howzzat.git
+cd howzzat
+pnpm install
+```
+
+### Database (local SQLite)
+
+```bash
+cp packages/db/.env.example packages/db/.env
+pnpm db:generate
+pnpm db:push
+pnpm --filter @howzzat/db exec prisma db seed
+```
+
+Seeds the `u9-softball-london-v1` template into the database.
+
+### Run web
+
+```bash
+pnpm dev:web
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+| Endpoint | Description |
+|----------|-------------|
+| `/` | Landing + builtin profiles list |
+| `/api/health` | Service health JSON |
+| `/api/profiles` | Builtin rules profiles JSON |
+
+### Run mobile scorer (demo)
+
+```bash
+pnpm dev:mobile
+```
+
+Scan the QR code with Expo Go. **Score** tab is a minimal tap UI (0–6, wicket) wired to the rules engine.
+
+### Run all tests
+
+```bash
+pnpm test
+```
+
+---
+
+## Development workflow
+
+```bash
+# Build everything
+pnpm build
+
+# Format
+pnpm format
+
+# Prisma Studio (inspect local DB)
+pnpm db:studio
+```
+
+### Adding a new builtin rules profile
+
+1. Add `packages/rules-engine/profiles/your-profile-v1.json`
+2. Register in `packages/rules-engine/src/profiles.ts`
+3. Add tests in `packages/rules-engine/src/`
+4. Extend `packages/db/prisma/seed.ts` if it should ship as a public template
+
+### Environment variables
+
+| Location | Variable | Purpose |
+|----------|----------|---------|
+| `packages/db/.env` | `DATABASE_URL` | `file:./prisma/dev.db` locally |
+
+Production D1 uses Wrangler bindings — no connection string in the app bundle.
+
+---
+
+## Deploying to Cloudflare
+
+Howzzat targets **low cost at scale** (free tier for clubs, minimal ops burn):
+
+1. **Create D1 database**
+
+   ```bash
+   npx wrangler d1 create howzzat
+   ```
+
+   Copy `database_id` into [`wrangler.toml`](./wrangler.toml).
+
+2. **Apply schema** — export from Prisma or maintain SQL migrations under `packages/db/d1-migrations/` (TODO).
+
+3. **Deploy Next.js** — use [@opennextjs/cloudflare](https://opennext.cloudflare.net/) so API routes and D1 share the edge.
+
+Until production deploy is wired, local development uses SQLite with the same Prisma schema.
+
+---
+
+## Roadmap
+
+| Phase | Deliverable | Status |
+|-------|-------------|--------|
+| **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
+| **1** | Auth, org/tournament CRUD, invite coaches | 🔲 |
+| **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🔲 |
+| **3** | Public dashboards (parity with edgeware-u9) | 🔲 |
+| **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |
+| **5** | Live scoring (SSE / Realtime), D1 production | 🔲 |
+| **6** | Monetisation (per-tournament Pro), custom domains | 🔲 |
+
+---
+
+## Migrating from edgeware-u9
+
+The [edgeware-u9](https://github.com/kunalchitkara/edgeware-u9) repo remains the **2026 Edgware archive**. Migration plan:
+
+1. Import completed match tabs (M2, M4, …) from Google Sheets → `Delivery` rows.
+2. Assert totals match the existing dashboard (golden tests).
+3. Point public URLs to Howzzat team/tournament pages.
+4. Retire `gen_dashboard.py` for new matches.
+
+Tooling: `tooling/import-edgeware/` (planned).
+
+---
+
+## Contributing & license
+
+This project is in active early development. Issues and PRs welcome for:
+
+- Rules engine correctness (especially London U9 variants)
+- Scorer UX on real match-day devices
+- Accessibility of public dashboards
+
+**License:** TBD — intended **free for junior clubs** in the 2026 London season.
+
+---
+
+## Acknowledgements
+
+Born from weekend scoring at **Edgware Cricket Club** U9 Softball — thanks to coaches, parents, and players who validated the stats model on the boundary.
+
+**Howzzat** — because every parent asks the same question after a dot ball. 🏏

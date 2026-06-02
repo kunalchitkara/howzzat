@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Howzzat",
+    "slug": "howzzat",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "howzzat",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.howzzat.scorer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B4169"
+      },
+      "package": "com.howzzat.scorer"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

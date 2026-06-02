@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build
+dist
+.next
+.turbo
+out
+expo-env.d.ts
+
+# Env
+.env
+.env.*
+!.env.example
+
+# DB (local dev SQLite)
+**/*.db
+**/*.db-journal
+packages/db/prisma/dev.db
+packages/db/prisma/prisma/
+
+# Cloudflare
+.wrangler
+.dev.vars
+
+# OS / IDE
+.DS_Store
+*.log
+.idea
+.vscode
+
+# Expo
+apps/mobile/.expo
+apps/mobile/dist
+
+# Test
+coverage
