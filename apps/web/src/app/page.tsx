@@ -63,11 +63,11 @@ export default function HomePage() {
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Developers</h2>
         <p style={{ marginBottom: 8 }}>
           <Link href="/api/health">API health</Link> ·{" "}
-          <Link href="/api/profiles">Rules profiles JSON</Link>
+          <Link href="/api/v1/organizations">Organizations API</Link> ·{" "}
+          <Link href="/api/v1/rules/profiles">Rules profiles</Link>
         </p>
         <p style={{ fontSize: "0.85rem", color: "#666" }}>
-          Monorepo: <code>apps/web</code> (Next.js) · <code>apps/mobile</code> (Expo) ·{" "}
-          <code>packages/rules-engine</code>
+          Full REST docs: <code>docs/api.md</code> in the repo
         </p>
       </section>
     </main>

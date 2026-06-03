@@ -34,7 +34,7 @@ importers:
         version: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       expo-router:
         specifier: ~5.0.7
-        version: 5.0.7(6sccct2x727taa2r7zywilqfsu)
+        version: 5.0.7(lps3it3btemgg5slphog2qx4fi)
       expo-status-bar:
         specifier: ~2.2.3
         version: 2.2.3(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -81,6 +81,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
+      zod:
+        specifier: ^3.25.42
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.15.21
@@ -4246,6 +4249,9 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
 snapshots:
 
   '@0no-co/graphql.web@1.2.0': {}
@@ -6837,7 +6843,7 @@ snapshots:
     dependencies:
       invariant: 2.2.4
 
-  expo-router@5.0.7(6sccct2x727taa2r7zywilqfsu):
+  expo-router@5.0.7(lps3it3btemgg5slphog2qx4fi):
     dependencies:
       '@expo/metro-runtime': 5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))
       '@expo/server': 0.6.3
@@ -6847,7 +6853,7 @@ snapshots:
       '@react-navigation/native-stack': 7.16.0(@react-navigation/native@7.2.5(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-safe-area-context@5.4.0(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-screens@4.10.0(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       client-only: 0.0.1
       expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
-      expo-constants: 17.1.8(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))
+      expo-constants: 56.0.16(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))
       expo-linking: 56.0.13(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       invariant: 2.2.4
       react-fast-compare: 3.2.2
@@ -8579,3 +8585,5 @@ snapshots:
       '@speed-highlight/core': 1.2.15
       cookie: 1.1.1
       youch-core: 0.3.3
+
+  zod@3.25.76: {}
