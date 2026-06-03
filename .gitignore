@@ -34,5 +34,7 @@ packages/db/prisma/prisma/
 apps/mobile/.expo
 apps/mobile/dist
 
-# Test
-coverage
+# Test databases
+**/*.db
+**/*.db-journal
+apps/web/.test-db.db

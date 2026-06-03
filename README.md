@@ -273,7 +273,9 @@ Scan the QR code with Expo Go. **Score** tab is a minimal tap UI (0–6, wicket)
 ### Run all tests
 
 ```bash
-pnpm test
+pnpm test              # all tests (rules-engine + web)
+pnpm test:unit         # rules engine only
+pnpm test:api          # services + API routes
 ```
 
 ---

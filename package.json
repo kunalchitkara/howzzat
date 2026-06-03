@@ -8,6 +8,8 @@
     "dev:mobile": "turbo run dev --filter=@howzzat/mobile",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:unit": "pnpm --filter @howzzat/rules-engine test",
+    "test:api": "pnpm --filter @howzzat/web test",
     "db:generate": "turbo run db:generate --filter=@howzzat/db",
     "db:push": "turbo run db:push --filter=@howzzat/db",
     "db:studio": "turbo run db:studio --filter=@howzzat/db",
