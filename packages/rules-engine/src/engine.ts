@@ -68,47 +68,45 @@ export function applyDelivery(
   }
 
   let runsDelta = event.runsOffBat;
-  let batRunsDelta = event.runsOffBat;
+  let batRunsDelta = 0;
   let extrasDelta = 0;
   let wicketsDelta = 0;
 
-  if (event.extrasType === "wide" || event.extrasType === "wide_runs") {
+  const isWide =
+    event.extrasType === "wide" || event.extrasType === "wide_runs";
+  const isNoBall =
+    event.extrasType === "no_ball" || event.extrasType === "no_ball_runs";
+
+  if (isWide) {
     const rule = getExtraRule(
       profile,
       "wide",
       event.overNumber,
       state.config.totalOvers,
     );
-    const wideRuns = rule.runs + (event.extrasType === "wide_runs" ? event.extrasRuns : 0);
-    extrasDelta += wideRuns;
-    runsDelta += wideRuns - (event.extrasType === "wide_runs" ? 0 : 0);
-    if (event.extrasType === "wide") {
-      extrasDelta = rule.runs;
-      runsDelta = event.runsOffBat + rule.runs;
-      batRunsDelta = event.runsOffBat;
-    }
-  }
-
-  if (event.extrasType === "no_ball" || event.extrasType === "no_ball_runs") {
+    const byeRuns =
+      event.extrasType === "wide_runs" ? event.extrasRuns : 0;
+    extrasDelta += rule.runs + byeRuns;
+    runsDelta = rule.runs + byeRuns;
+    batRunsDelta = 0;
+  } else if (isNoBall) {
     const rule = getExtraRule(
       profile,
       "noBall",
       event.overNumber,
       state.config.totalOvers,
     );
-    if (event.extrasType === "no_ball") {
-      extrasDelta += rule.runs;
-      runsDelta = event.runsOffBat + rule.runs;
-      batRunsDelta = event.runsOffBat;
-    } else {
-      extrasDelta += rule.runs + event.extrasRuns;
-      runsDelta += rule.runs + event.extrasRuns;
-    }
-  }
-
-  if (event.extrasType === "bye" || event.extrasType === "leg_bye") {
+    const extraRuns =
+      event.extrasType === "no_ball_runs" ? event.extrasRuns : 0;
+    extrasDelta += rule.runs + extraRuns;
+    runsDelta = rule.runs + extraRuns + event.runsOffBat;
+    batRunsDelta = event.runsOffBat;
+  } else if (event.extrasType === "bye" || event.extrasType === "leg_bye") {
     extrasDelta += event.extrasRuns;
-    runsDelta += event.extrasRuns;
+    runsDelta = event.extrasRuns;
+    batRunsDelta = 0;
+  } else {
+    batRunsDelta = event.runsOffBat;
   }
 
   if (event.wicketType) {

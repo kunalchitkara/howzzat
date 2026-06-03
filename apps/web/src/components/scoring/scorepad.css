@@ -1,0 +1,251 @@
+.sp-wrap {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #eef2f7;
+  padding-bottom: 32px;
+}
+
+.sp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--dk), var(--md));
+  color: #fff;
+  padding: 16px;
+}
+
+.sp-header h1 {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.sp-header p {
+  font-size: 0.78rem;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.sp-header-links a {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.sp-scoreboard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--md);
+  color: #fff;
+  padding: 16px;
+}
+
+.sp-score-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.sp-score-main {
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.sp-score-wkts {
+  font-size: 1.2rem;
+  opacity: 0.85;
+}
+
+.sp-score-meta {
+  font-size: 0.78rem;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.sp-vs {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  text-align: right;
+}
+
+.sp-card {
+  background: #fff;
+  margin: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.sp-card h2 {
+  font-size: 0.95rem;
+  color: var(--dk);
+  margin-bottom: 8px;
+}
+
+.sp-card h3 {
+  font-size: 0.85rem;
+  color: var(--dk);
+  margin-bottom: 8px;
+}
+
+.sp-muted {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.sp-error {
+  margin: 12px;
+  padding: 10px 12px;
+  background: #fdecea;
+  color: var(--red);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.sp-banner {
+  margin: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.sp-banner.done {
+  background: var(--lt);
+  color: var(--dk);
+}
+
+.sp-banner a {
+  color: var(--md);
+  font-weight: 700;
+}
+
+.sp-players {
+  display: grid;
+  gap: 10px;
+}
+
+.sp-players label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.sp-players select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.sp-pad {
+  margin: 0 12px;
+}
+
+.sp-runs,
+.sp-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.sp-key {
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  min-width: 64px;
+  height: 64px;
+  font-size: 1.4rem;
+}
+
+.sp-key:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sp-key.run {
+  background: #fff;
+  color: var(--dk);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.sp-key.extra {
+  background: var(--lt);
+  color: var(--dk);
+  font-size: 0.85rem;
+  min-width: 88px;
+  height: 48px;
+}
+
+.sp-key.wicket {
+  background: var(--red);
+  color: #fff;
+  font-size: 0.95rem;
+  min-width: 100px;
+  height: 48px;
+}
+
+.sp-wicket-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.sp-wicket-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.sp-wicket-panel select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.sp-btn {
+  margin-top: 10px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--grey, #f0f2f7);
+  color: var(--dk);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sp-btn.primary {
+  background: var(--md);
+  color: #fff;
+}
+
+.sp-btn:disabled {
+  opacity: 0.5;
+}
+
+.sp-roster-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.sp-roster ul {
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.sp-roster li {
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}

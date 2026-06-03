@@ -41,6 +41,8 @@ export interface RulesDismissals {
   fielderCredits: string[];
   runOutNoBowlerWicket: boolean;
   pairContinuesAfterWicket: boolean;
+  /** London U9 pairs: swap strike after each wicket (pair continues batting). */
+  rotateStrikeAfterWicket?: boolean;
 }
 
 export interface RulesDisplay {
@@ -65,6 +67,8 @@ export interface DeliveryEvent {
     | "leg_bye"
     | "wide_runs"
     | "no_ball_runs";
+  /** For wide_runs / no_ball_runs when extrasRuns are byes vs leg byes */
+  extrasRunsType?: "bye" | "leg_bye";
   extrasRuns: number;
   wicketType?:
     | "bowled"

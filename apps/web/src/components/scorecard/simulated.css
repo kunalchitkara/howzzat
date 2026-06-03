@@ -1,0 +1,49 @@
+.sim-toolbar {
+  max-width: 680px;
+  margin: 12px auto 0;
+  padding: 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--md);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sim-btn.secondary {
+  background: var(--dk);
+}
+
+.sim-seed-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sim-seed-form input {
+  width: 100px;
+  padding: 9px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.sim-error {
+  max-width: 680px;
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  background: #fdecea;
+  color: var(--red);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}

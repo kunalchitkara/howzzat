@@ -17,21 +17,28 @@ pnpm test:api
 
 ## Coverage
 
-### `@howzzat/rules-engine` (22 tests)
+### `@howzzat/rules-engine` (~36 tests)
 
 | File | Covers |
 |------|--------|
 | `engine.test.ts` | Starting score, dot/runs/wicket, net runs, finalize, BACKFILL |
 | `engine.extras.test.ts` | Wides, no-balls, byes, last-over wide, validation, replay |
 | `profiles.test.ts` | mergeProfile, 8/10 player configs, clamping |
+| `strike.test.ts` | Odd runs, end of over, U9 wicket rotation, double rotation |
+| `simulator.test.ts` | Random match generation through engine |
 
-### `@howzzat/web` (26 tests)
+### `@howzzat/web` (~45 tests)
 
 | File | Covers |
 |------|--------|
-| `tests/unit/` | Slug helpers, Zod validations, ApiError, DB connectivity |
+| `tests/unit/ball-label.test.ts` | Over headings (1st Over), ball labels (0.1, …) |
+| `tests/unit/ball-by-ball.test.ts` | Strike tracking, partnership team score, over summaries |
+| `tests/unit/scorecard-aggregate.test.ts` | Batting/bowling/fielding/partnership aggregates |
+| `tests/unit/simulated-scorecard.test.ts` | Full simulated match scorecard + both innings BBB |
+| `tests/unit/` | Slug helpers, ball position, HTTP helpers |
 | `tests/services/crud.test.ts` | Orgs, teams, tournaments, rules clone, public slug |
 | `tests/services/scoring.test.ts` | Match create, deliveries, scorecard, finalize |
+| `tests/services/scoring-context.test.ts` | Live scoring context API |
 | `tests/services/rule-changes.test.ts` | BACKFILL + FUTURE_ONLY preview and apply |
 | `tests/api/v1.test.ts` | Full HTTP flow via Next.js route handlers |
 

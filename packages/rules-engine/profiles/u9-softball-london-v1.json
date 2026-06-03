@@ -26,7 +26,8 @@
     "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
     "fielderCredits": ["caught", "run_out"],
     "runOutNoBowlerWicket": true,
-    "pairContinuesAfterWicket": true
+    "pairContinuesAfterWicket": true,
+    "rotateStrikeAfterWicket": true
   },
   "display": {
     "netRunsFormula": "batRuns - wicketPenalty * wickets",

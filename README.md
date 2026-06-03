@@ -6,7 +6,7 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
 
 | | |
 |---|---|
-| **Status** | Early development — monorepo scaffold, rules engine, database schema |
+| **Status** | Active development — rules engine, scorecard UI, live scorer, match simulator |
 | **Reference** | [edgeware-u9](https://github.com/kunalchitkara/edgeware-u9) — Edgware CC U9 Softball 2026 dashboard (production use today) |
 | **Stack** | Next.js · Expo · TypeScript · Prisma · Cloudflare D1 |
 
@@ -104,14 +104,17 @@ Not trying to be ESPNcricinfo — aiming for **Cricbuzz-lite for youth clubs**: 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  apps/mobile (Expo)          apps/web (Next.js 15)              │
-│  • Tap-to-score UI           • Manager UI (planned)             │
-│  • Offline queue (planned)   • Public dashboards (planned)      │
-│                              • API routes (/api/*)              │
+│  • Tap-to-score UI           • Cricbuzz-style scorecards ✅      │
+│  • Offline queue (planned)   • Live ScorePad scorer ✅           │
+│                              • Match simulator + demos ✅        │
+│                              • API routes (/api/v1/*) ✅         │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼─────────────────────────────────┐
 │  packages/rules-engine (pure TypeScript)                          │
 │  • validateDelivery / applyDelivery / replayInnings               │
+│  • Strike rotation (odd runs, end of over, U9 wicket swap)       │
+│  • Match simulator (simulateMatch)                               │
 │  • Builtin profiles: u9-softball-london-v1                       │
 │  • mergeProfile() for clone + configure                           │
 │  • applyRuleChange() — BACKFILL | FUTURE_ONLY                     │
@@ -149,6 +152,9 @@ howzzat/
 │   └── shared/                   # Shared constants & re-exports
 ├── docs/
 │   ├── architecture.md
+│   ├── scorecard-and-scoring.md
+│   ├── testing.md
+│   ├── api.md
 │   └── rule-changes.md
 ├── wrangler.toml                 # Cloudflare D1 binding
 ├── turbo.json                    # Turborepo task graph
@@ -173,6 +179,7 @@ Used across many **Middlesex / London junior Sunday leagues**. Matches the conve
 | Wide / no-ball (overs 1–n−1) | +2, no rebowl |
 | Last over | Wide/NB +1, rebowl, up to 3 extra balls |
 | Net runs (display) | Bat runs − (5 × wickets) |
+| Strike after wicket | Yes (pair continues batting) |
 | Run out | Fielder credit; bowler does **not** get a wicket |
 
 Profile JSON: [`packages/rules-engine/profiles/u9-softball-london-v1.json`](./packages/rules-engine/profiles/u9-softball-london-v1.json)
@@ -187,7 +194,9 @@ Managers duplicate a template → `RulesProfileTemplate` + new `RulesProfileVers
 pnpm --filter @howzzat/rules-engine test
 ```
 
-Nine unit tests cover starting score, wicket penalty, net runs, and BACKFILL rule changes.
+Nine unit tests cover starting score, wicket penalty, net runs, extras, strike rotation, simulator, and BACKFILL rule changes.
+
+See [docs/scorecard-and-scoring.md](./docs/scorecard-and-scoring.md) for scorecard UI, ball-by-ball, live scoring, and partnership rules.
 
 ---
 
@@ -256,11 +265,20 @@ pnpm dev:web
 
 Open [http://localhost:3000](http://localhost:3000)
 
+| Page | Description |
+|------|-------------|
+| `/` | Landing + links to demos |
+| `/demo/scorecard` | Sample Edgware-style scorecard |
+| `/demo/simulated` | Simulated full U9 match (scorecard + ball-by-ball) |
+| `/match/demo-score/score` | Live scorer demo (run seed first) |
+
 | Endpoint | Description |
 |----------|-------------|
-| `/` | Landing + builtin profiles list |
 | `/api/health` | Service health JSON |
 | `/api/profiles` | Builtin rules profiles JSON |
+| `/api/v1/matches/:id/scorecard` | Computed scorecard + ball-by-ball |
+| `/api/v1/matches/:id/scoring` | Live scoring context |
+| `/api/demo/simulated?seed=N` | Regenerate simulated match JSON |
 
 ### Run mobile scorer (demo)
 
@@ -336,8 +354,8 @@ Until production deploy is wired, local development uses SQLite with the same Pr
 |-------|-------------|--------|
 | **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
 | **1** | Auth, org/tournament CRUD, invite coaches | 🔲 |
-| **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🔲 |
-| **3** | Public dashboards (parity with edgeware-u9) | 🔲 |
+| **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🟡 ScorePad + API |
+| **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball UI |
 | **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |
 | **5** | Live scoring (SSE / Realtime), D1 production | 🔲 |
 | **6** | Monetisation (per-tournament Pro), custom domains | 🔲 |

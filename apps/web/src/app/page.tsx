@@ -3,10 +3,17 @@ import {
   getBuiltinProfile,
   listBuiltinProfiles,
 } from "@howzzat/rules-engine";
+import { prisma } from "@/lib/db";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
   const profiles = listBuiltinProfiles();
   const u9 = getBuiltinProfile("u9-softball-london-v1");
+  const demoMatch = await prisma.match.findFirst({
+    where: { publicSlug: "demo-score" },
+    select: { id: true },
+  });
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -57,11 +64,35 @@ export default function HomePage() {
           background: "#fff",
           borderRadius: 12,
           padding: "1.5rem",
+          marginBottom: "1rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        }}
+      >
+        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Try it</h2>
+        <p style={{ marginBottom: 8 }}>
+          <Link href="/demo/scorecard">Scorecard demo (Hayes vs Edgware M4)</Link>
+          {" · "}
+          <Link href="/demo/simulated">Simulated match</Link>
+          {demoMatch && (
+            <>
+              {" · "}
+              <Link href={`/match/${demoMatch.id}/score`}>Live demo scorer</Link>
+            </>
+          )}
+        </p>
+      </section>
+
+      <section
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          padding: "1.5rem",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Developers</h2>
         <p style={{ marginBottom: 8 }}>
+          <Link href="/demo/scorecard">Scorecard demo (Edgware M4)</Link> ·{" "}
           <Link href="/api/health">API health</Link> ·{" "}
           <Link href="/api/v1/organizations">Organizations API</Link> ·{" "}
           <Link href="/api/v1/rules/profiles">Rules profiles</Link>

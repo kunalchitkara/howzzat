@@ -65,6 +65,16 @@ describe("extras scoring", () => {
     expect(state.batRuns).toBe(0);
   });
 
+  it("wide with byes credits team only", () => {
+    const state = applyDelivery(
+      baseState(),
+      ball({ overNumber: 1, extrasType: "wide_runs", extrasRuns: 2 }),
+      profile,
+    );
+    expect(state.totalRuns).toBe(204);
+    expect(state.batRuns).toBe(0);
+  });
+
   it("adds no-ball with bat runs", () => {
     const state = applyDelivery(
       baseState(),
@@ -78,6 +88,21 @@ describe("extras scoring", () => {
     );
     expect(state.totalRuns).toBe(206); // 200 + 2 NB + 4 bat
     expect(state.batRuns).toBe(4);
+  });
+
+  it("no-ball with byes does not credit batsman", () => {
+    const state = applyDelivery(
+      baseState(),
+      ball({
+        overNumber: 1,
+        extrasType: "no_ball_runs",
+        extrasRuns: 3,
+        runsOffBat: 0,
+      }),
+      profile,
+    );
+    expect(state.totalRuns).toBe(205); // 200 + 2 + 3
+    expect(state.batRuns).toBe(0);
   });
 
   it("adds bye runs without bat credit", () => {

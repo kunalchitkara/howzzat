@@ -14,15 +14,28 @@
 ## Request flow
 
 ```text
-Expo scorer  ──POST /api/...──►  Next.js API routes
+Expo scorer  ──POST /api/v1/...──►  Next.js API routes
                                       │
                                       ▼
                                Prisma → D1 (prod) / SQLite (dev)
                                       │
                                rules-engine replay / validate
+                                      │
+                               scorecard aggregate + ball-by-ball build
 ```
 
-Public dashboards: Next.js SSR/ISR reading materialized stats.
+Public dashboards: Next.js SSR reading computed scorecards (materialized stats on finalize planned).
+
+## Web app modules
+
+| Path | Role |
+|------|------|
+| `apps/web/src/lib/scorecard/` | Aggregate deliveries → scorecard + ball-by-ball views |
+| `apps/web/src/components/scorecard/` | ScorecardView, InningsPanel, BallByBallPanel |
+| `apps/web/src/components/scoring/` | ScorePad live scorer |
+| `apps/web/src/lib/services/scoring.ts` | Scoring context + delivery persistence |
+
+See [scorecard-and-scoring.md](./scorecard-and-scoring.md) for UI behaviour, strike rotation, and partnership scoring.
 
 ## Rules profiles
 
@@ -30,6 +43,8 @@ Public dashboards: Next.js SSR/ISR reading materialized stats.
 2. **Clone** — manager copies template → new `RulesProfileTemplate` + `RulesProfileVersion`
 3. **Configure** — JSON overrides merged via `mergeProfile()` before saving version
 4. **Tournament bind** — `Tournament.rulesProfileVersionId` + `TournamentRulesBinding` timeline
+
+U9 profile includes `rotateStrikeAfterWicket: true` — strike swaps after each wicket while the pair continues.
 
 ## Mid-tournament rule changes
 

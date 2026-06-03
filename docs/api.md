@@ -49,7 +49,8 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 |--------|------|------|-------------|
 | GET | `/matches/:matchId` | — | Match with innings & deliveries |
 | PATCH | `/matches/:matchId` | `{ status?, homeScore?, marginText?, ... }` | Update match |
-| GET | `/matches/:matchId/scorecard` | — | Computed scorecard via rules engine |
+| GET | `/matches/:matchId/scorecard` | — | Computed scorecard via rules engine (includes `ballByBall` when innings exist) |
+| GET | `/matches/:matchId/scoring` | — | Live scoring context (squads, next ball, pair/strike flags) |
 | POST | `/matches/:matchId/innings` | `{ battingTeamId, inningsNumber }` | Start innings |
 | POST | `/matches/:matchId/squad` | `{ teamId, playerIds[] }` | Set match squad |
 | POST | `/matches/:matchId/finalize` | — | Mark COMPLETED, sync scores |
@@ -81,6 +82,13 @@ Extras: `extrasType` = `wide` | `no_ball` | `bye` | `leg_bye` | `wide_runs` | `n
 | GET | `/rules/profiles?includeConfig=true` | — | List templates + latest version |
 | POST | `/rules/profiles` | `{ builtinId? \| templateId?, name?, overrides?, label? }` | Clone & configure |
 | GET | `/rules/profiles/:versionId` | — | Version with parsed config |
+
+## Demo (development)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/demo/simulated` | Server-rendered simulated match scorecard page |
+| GET | `/api/demo/simulated?seed=N` | JSON `MatchScorecardView` for simulated U9 match |
 
 ## Public (no auth)
 
