@@ -250,6 +250,239 @@
   content: "";
 }
 
+/* Match summary — edgeware-u9 style */
+.ms-panel {
+  margin: 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.ms-hero {
+  padding: 16px;
+  text-align: center;
+  color: #fff;
+}
+
+.ms-hero-win {
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+}
+
+.ms-hero-loss {
+  background: linear-gradient(135deg, #c0392b, #922b21);
+}
+
+.ms-hero-draw,
+.ms-hero-neutral {
+  background: linear-gradient(135deg, var(--dk), var(--md));
+}
+
+.ms-headline {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.ms-meta {
+  font-size: 0.75rem;
+  opacity: 0.92;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.ms-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: #e0e0e0;
+}
+
+@media (max-width: 480px) {
+  .ms-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ms-stat {
+  background: #fff;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.ms-stat-val {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--dk);
+  line-height: 1.1;
+}
+
+.ms-stat-lbl {
+  display: block;
+  font-size: 0.65rem;
+  color: #888;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.ms-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--lt, #e8f0fa);
+}
+
+@media (min-width: 520px) {
+  .ms-highlights {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ms-highlight {
+  background: #fff;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.ms-potm {
+  background: #fffef5;
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 520px) {
+  .ms-potm {
+    grid-column: auto;
+  }
+}
+
+.ms-hl-lbl {
+  display: block;
+  font-size: 0.62rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ms-hl-name {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--dk);
+  margin-top: 2px;
+}
+
+.ms-hl-detail {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--md);
+  margin-top: 2px;
+}
+
+.ms-insights {
+  margin: 0;
+  padding: 14px 16px 18px;
+  background: #fafbfc;
+  border-top: 1px solid #eee;
+}
+
+.ms-insights-coach {
+  background: #f6f7f9;
+}
+
+.ms-insights-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ms-insights-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--dk);
+  margin: 0;
+}
+
+.ms-insights-tabs {
+  display: flex;
+  gap: 4px;
+  background: #e8ecf2;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.ms-insights-tab {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #666;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ms-insights-tab.active {
+  background: #fff;
+  color: var(--dk);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ms-insights-coach .ms-insights-tab.active {
+  background: var(--dk);
+  color: #fff;
+}
+
+.ms-insights-intro {
+  margin: 0 0 12px;
+  font-size: 0.74rem;
+  color: #777;
+  line-height: 1.4;
+}
+
+.ms-insights-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ms-insight {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 10px;
+  align-items: start;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ms-insight-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.ms-insight-title {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--dk);
+  margin-bottom: 3px;
+}
+
+.ms-insight-body {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #555;
+  line-height: 1.45;
+}
+
 .sc-rules-note {
   margin: 12px 16px 20px;
   padding: 10px 12px;

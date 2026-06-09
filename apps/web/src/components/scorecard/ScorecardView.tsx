@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import type { MatchScorecardView } from "@/lib/scorecard/types";
+import { buildMatchSummary } from "@/lib/scorecard/match-summary";
 import { BallByBallPanel } from "./BallByBallPanel";
 import { InningsPanel } from "./InningsPanel";
+import { MatchInsightsPanel, MatchSummaryPanel } from "./MatchSummaryPanel";
 import "./scorecard.css";
 
 export function ScorecardView({
@@ -13,12 +15,11 @@ export function ScorecardView({
   data: MatchScorecardView;
   defaultView?: "scorecard" | "bbb";
 }) {
-  const [activeInnings, setActiveInnings] = useState(0);
   const [viewMode, setViewMode] = useState<"scorecard" | "bbb">(
     data.ballByBall?.innings.length ? defaultView : "scorecard",
   );
   const hasBallByBall = Boolean(data.ballByBall?.innings.length);
-  const innings = data.innings[activeInnings];
+  const summary = buildMatchSummary(data);
 
   return (
     <div className="sc-wrap">
@@ -30,21 +31,6 @@ export function ScorecardView({
           </p>
         )}
       </header>
-
-      {data.innings.length > 1 && viewMode === "scorecard" && (
-        <nav className="sc-tabs" aria-label="Innings">
-          {data.innings.map((inn, i) => (
-            <button
-              key={inn.inningsLabel}
-              type="button"
-              className={`sc-tab ${i === activeInnings ? "active" : ""}`}
-              onClick={() => setActiveInnings(i)}
-            >
-              {inn.teamName}
-            </button>
-          ))}
-        </nav>
-      )}
 
       {hasBallByBall && (
         <nav className="sc-view-tabs" aria-label="View">
@@ -65,19 +51,23 @@ export function ScorecardView({
         </nav>
       )}
 
-      {data.resultBanner && (
-        <div className={`sc-result ${data.resultBanner.variant}`}>
-          <div className="sc-result-text">{data.resultBanner.text}</div>
-          {data.resultBanner.subtext && (
-            <div className="sc-result-sub">{data.resultBanner.subtext}</div>
-          )}
-        </div>
+      {summary && viewMode === "scorecard" && (
+        <MatchSummaryPanel summary={summary} />
       )}
 
-      {viewMode === "scorecard" && innings && (
-        <InningsPanel
-          innings={innings}
-          variant={activeInnings % 2 === 1 ? "alt" : "default"}
+      {viewMode === "scorecard" &&
+        data.innings.map((inn, i) => (
+          <InningsPanel
+            key={inn.inningsLabel}
+            innings={inn}
+            variant={i % 2 === 1 ? "alt" : "default"}
+          />
+        ))}
+
+      {viewMode === "scorecard" && summary && (
+        <MatchInsightsPanel
+          parentInsights={summary.parentInsights}
+          coachInsights={summary.coachInsights}
         />
       )}
 

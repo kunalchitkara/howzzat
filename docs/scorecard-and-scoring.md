@@ -17,7 +17,9 @@ Run web: `pnpm dev:web` (or `cd apps/web && pnpm dev --port 3005` if 3000 is tak
 
 Components live under `apps/web/src/components/scorecard/`:
 
-- **ScorecardView** — match header, innings tabs, scorecard / ball-by-ball toggle
+- **ScorecardView** — match header, scorecard / ball-by-ball toggle, both innings stacked
+- **MatchSummaryPanel** — edgeware-u9 style result hero, score grid, top bat/bowl, player of the match
+- **MatchInsightsPanel** — auto-generated insights with **Parents** / **Coaches** tabs (upbeat vs critical, seeded variety from match data)
 - **InningsPanel** — batting, extras, fall of wickets, partnerships, bowling, fielding
 - **BattingTable / BowlingTable** — Edgware blue styling, net runs column for U9
 - **BallByBallPanel** — per-over expandable commentary
@@ -114,6 +116,7 @@ Used by `/demo/simulated` and `GET /api/demo/simulated?seed=42`. Server-side ren
 | Simulator | `packages/rules-engine/src/simulator.test.ts` |
 | Ball labels | `apps/web/tests/unit/ball-label.test.ts` |
 | Ball-by-ball | `apps/web/tests/unit/ball-by-ball.test.ts` |
+| Match summary & insights | `apps/web/tests/unit/match-summary.test.ts` |
 | Aggregates / partnerships | `apps/web/tests/unit/scorecard-aggregate.test.ts` |
 | Simulated scorecard | `apps/web/tests/unit/simulated-scorecard.test.ts` |
 | Live scoring | `apps/web/tests/services/scoring.test.ts` |
