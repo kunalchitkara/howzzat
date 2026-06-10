@@ -46,7 +46,10 @@ export async function getOrganizationBySlug(slug: string) {
   return org;
 }
 
-export async function createOrganization(input: CreateOrgInput) {
+export async function createOrganization(
+  input: CreateOrgInput,
+  ownerUserId?: string,
+) {
   const slug = input.slug ?? slugify(input.name);
   const existing = await prisma.organization.findUnique({ where: { slug } });
   if (existing) {
@@ -58,6 +61,28 @@ export async function createOrganization(input: CreateOrgInput) {
       slug,
       description: input.description,
       homeGround: input.homeGround,
+      memberships: ownerUserId
+        ? {
+            create: {
+              userId: ownerUserId,
+              role: "OWNER",
+            },
+          }
+        : undefined,
+    },
+    include: {
+      _count: { select: { teams: true, tournaments: true } },
+    },
+  });
+}
+
+export async function listOrganizationsForUser(userId: string) {
+  return prisma.organization.findMany({
+    where: { memberships: { some: { userId } } },
+    orderBy: { name: "asc" },
+    include: {
+      memberships: { where: { userId } },
+      _count: { select: { teams: true, tournaments: true } },
     },
   });
 }

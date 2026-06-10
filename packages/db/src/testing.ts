@@ -1,9 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const profilesDir = join(__dirname, "../../rules-engine/profiles");
 
 export function getU9ProfileJson(): string {
   return readFileSync(
@@ -27,6 +28,7 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.teamMembership.deleteMany();
   await prisma.team.deleteMany();
   await prisma.orgMembership.deleteMany();
+  await prisma.session.deleteMany();
   await prisma.organization.deleteMany();
   await prisma.user.deleteMany();
   await prisma.rulesProfileVersion.deleteMany();
@@ -34,25 +36,35 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.player.deleteMany();
 }
 
+async function seedAllRulesProfiles(prisma: PrismaClient) {
+  const results = [];
+  for (const file of readdirSync(profilesDir).filter((f) => f.endsWith(".json"))) {
+    const json = readFileSync(join(profilesDir, file), "utf-8");
+    const profile = JSON.parse(json) as { id: string; name: string; description: string };
+    const template = await prisma.rulesProfileTemplate.create({
+      data: {
+        builtinId: profile.id,
+        name: profile.name,
+        description: profile.description,
+        isPublic: true,
+      },
+    });
+    const version = await prisma.rulesProfileVersion.create({
+      data: {
+        templateId: template.id,
+        version: 1,
+        configJson: json,
+        label: "v1",
+      },
+    });
+    results.push({ template, version });
+  }
+  const u9 = results.find((r) => r.template.builtinId === "u9-softball-london-v1");
+  return u9 ?? results[0]!;
+}
+
 export async function seedRulesProfile(prisma: PrismaClient) {
-  const profileJson = getU9ProfileJson();
-  const template = await prisma.rulesProfileTemplate.create({
-    data: {
-      builtinId: "u9-softball-london-v1",
-      name: "U9 Softball (London)",
-      description: "Test profile",
-      isPublic: true,
-    },
-  });
-  const version = await prisma.rulesProfileVersion.create({
-    data: {
-      templateId: template.id,
-      version: 1,
-      configJson: profileJson,
-      label: "v1",
-    },
-  });
-  return { template, version };
+  return seedAllRulesProfiles(prisma);
 }
 
 export interface TestFixtureIds {
@@ -70,7 +82,13 @@ export interface TestFixtureIds {
 export async function seedTestFixtures(
   prisma: PrismaClient,
 ): Promise<TestFixtureIds> {
-  const { version } = await seedRulesProfile(prisma);
+  let version = await prisma.rulesProfileVersion.findFirst({
+    where: { template: { builtinId: "u9-softball-london-v1" } },
+  });
+  if (!version) {
+    const seeded = await seedRulesProfile(prisma);
+    version = seeded.version;
+  }
 
   const org = await prisma.organization.create({
     data: { name: "Test Club", slug: "test-club" },

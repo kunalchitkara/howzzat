@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma, resetDatabase, seedTestFixtures } from "@howzzat/db";
+import { prisma } from "@howzzat/db";
+import { resetDatabase, seedTestFixtures } from "@howzzat/db/testing";
 import {
   createMatch,
   createInnings,

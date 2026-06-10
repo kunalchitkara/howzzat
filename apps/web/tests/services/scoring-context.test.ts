@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma, resetDatabase, seedTestFixtures } from "@howzzat/db";
+import { prisma } from "@howzzat/db";
+import { resetDatabase, seedTestFixtures } from "@howzzat/db/testing";
 import {
   createMatch,
   createInnings,
   recordDelivery,
+  recordToss,
   setMatchSquad,
 } from "@/lib/services/matches";
 import { getMatchScoringContext } from "@/lib/services/scoring";
@@ -23,11 +25,46 @@ describe("scoring context service", () => {
       playersPerSide: 8,
     });
 
+    await setMatchSquad(match.id, {
+      teamId: fixtures.teamAId,
+      playerIds: fixtures.playerIds,
+    });
+
+    const beforeToss = await getMatchScoringContext(match.id);
+    expect(beforeToss.activeInningsId).toBeNull();
+    expect(beforeToss.canStartInnings).toBeNull();
+
+    await recordToss(match.id, {
+      tossWinnerTeamId: fixtures.tournamentTeamAId,
+      tossCallerPlayerId: fixtures.playerIds[0]!,
+      electedTo: "bat",
+    });
+
     const ctx = await getMatchScoringContext(match.id);
-    expect(ctx.activeInningsId).toBeNull();
     expect(ctx.canStartInnings?.inningsNumber).toBe(1);
+    expect(ctx.canStartInnings?.battingTeamId).toBe(fixtures.tournamentTeamAId);
     expect(ctx.totalOvers).toBe(16);
     expect(ctx.squads.home.length).toBeGreaterThan(0);
+  });
+
+  it("returns isCaptain for the match squad captain", async () => {
+    const match = await createMatch(fixtures.tournamentId, {
+      homeTeamId: fixtures.tournamentTeamAId,
+      awayTeamId: fixtures.tournamentTeamBId,
+      playersPerSide: 8,
+    });
+
+    const captainId = fixtures.playerIds[0]!;
+    await setMatchSquad(match.id, {
+      teamId: fixtures.teamAId,
+      playerIds: fixtures.playerIds,
+      captainId,
+    });
+
+    const ctx = await getMatchScoringContext(match.id);
+    const captain = ctx.squads.home.find((p) => p.id === captainId);
+    expect(captain?.isCaptain).toBe(true);
+    expect(ctx.squads.home.filter((p) => p.isCaptain)).toHaveLength(1);
   });
 
   it("tracks active innings and totals after deliveries", async () => {
@@ -40,6 +77,12 @@ describe("scoring context service", () => {
     await setMatchSquad(match.id, {
       teamId: fixtures.teamAId,
       playerIds: fixtures.playerIds,
+    });
+
+    await recordToss(match.id, {
+      tossWinnerTeamId: fixtures.tournamentTeamAId,
+      tossCallerPlayerId: fixtures.playerIds[0]!,
+      electedTo: "bat",
     });
 
     const innings = await createInnings(match.id, {
@@ -63,5 +106,7 @@ describe("scoring context service", () => {
     expect(ctx.activeInningsId).toBe(innings.id);
     expect(ctx.innings[0]?.totalRuns).toBe(204);
     expect(ctx.innings[0]?.nextBall).toEqual({ overNumber: 1, ballInOver: 2 });
+    expect(ctx.innings[0]?.bowlerLocked).toBe(true);
+    expect(ctx.innings[0]?.lockedBowlerId).toBe(bowler);
   });
 });

@@ -70,7 +70,11 @@ export default async function HomePage() {
       >
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Try it</h2>
         <p style={{ marginBottom: 8 }}>
-          <Link href="/demo/scorecard">Scorecard demo (Hayes vs Edgware M4)</Link>
+          <Link href="/login">Club dashboard</Link>
+          {" · "}
+          <Link href="/orgs/edgware-cc/tournaments/u9-2026">Public tournament</Link>
+          {" · "}
+          <Link href="/demo/scorecard">Scorecard demo</Link>
           {" · "}
           <Link href="/demo/simulated">Simulated match</Link>
           {demoMatch && (

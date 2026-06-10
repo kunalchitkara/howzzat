@@ -10,6 +10,17 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 |--------|------|-------------|
 | GET | `/api/health` | Service status + endpoint index |
 
+## Auth (session cookie)
+
+| Method | Path | Body | Description |
+|--------|------|------|-------------|
+| POST | `/auth/login` | `{ email, name? }` | Sign in (demo: email-only, no password). Sets `howzzat_session` cookie. |
+| POST | `/auth/logout` | — | Clear session |
+| GET | `/auth/me` | — | Current user + org memberships, or `null` |
+| GET | `/me/organizations` | — | Organizations for signed-in user |
+| GET | `/invites/:token` | — | Invite preview (public) |
+| POST | `/invites/:token/accept` | — | Accept invite (requires session) |
+
 ## Organizations
 
 | Method | Path | Body | Description |
@@ -51,6 +62,7 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 | PATCH | `/matches/:matchId` | `{ status?, homeScore?, marginText?, ... }` | Update match |
 | GET | `/matches/:matchId/scorecard` | — | Computed scorecard via rules engine (includes `ballByBall` when innings exist) |
 | GET | `/matches/:matchId/scoring` | — | Live scoring context (squads, next ball, pair/strike flags) |
+| GET | `/matches/:matchId/live` | — | Lightweight live snapshot for spectator polling |
 | POST | `/matches/:matchId/innings` | `{ battingTeamId, inningsNumber }` | Start innings |
 | POST | `/matches/:matchId/squad` | `{ teamId, playerIds[] }` | Set match squad |
 | POST | `/matches/:matchId/finalize` | — | Mark COMPLETED, sync scores |
@@ -115,4 +127,13 @@ curl -X POST localhost:3000/api/v1/deliveries \
   -d '{"inningsId":"...","overNumber":1,"ballInOver":1,"runsOffBat":4,"strikerId":"...","nonStrikerId":"...","bowlerId":"..."}'
 ```
 
-Auth (Better Auth / magic link) is planned — APIs are currently open for development.
+## Web UI routes
+
+| Path | Description |
+|------|-------------|
+| `/login` | Manager/coach sign-in |
+| `/dashboard` | Club management (orgs, teams, tournaments, invites) |
+| `/invite/:token` | Accept tournament invite |
+| `/orgs/:orgSlug/tournaments/:tournamentSlug` | Public tournament page |
+
+Session auth uses an HttpOnly cookie. Scoring and org APIs remain open in development; signed-in users get OWNER membership when creating an org.

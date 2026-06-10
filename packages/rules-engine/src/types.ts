@@ -1,3 +1,28 @@
+/** Middlesex / London league context — informational + designer overrides. */
+export interface LeagueMetadata {
+  prefix: string;
+  sourceUrl: string;
+  ageGroup: string;
+  competition: string;
+  season?: string;
+  ballType?: "softball" | "incrediball" | "hardball";
+  pitchYards?: number;
+  boundaryYards?: number;
+  playersNote?: string;
+  /** Profile fields tournament designers can override when cloning. */
+  tunable?: (
+    | "playersPerSide"
+    | "pairOvers"
+    | "startingScore"
+    | "wicketPenalty"
+    | "wide"
+    | "noBall"
+    | "totalOvers"
+  )[];
+  /** Documented in template; not yet enforced by the scoring engine. */
+  pendingEngine?: string[];
+}
+
 /** Immutable rules configuration for a tournament or match. */
 export interface RulesProfile {
   id: string;
@@ -14,6 +39,7 @@ export interface RulesProfile {
   dismissals: RulesDismissals;
   display: RulesDisplay;
   symbols?: Record<string, string | string[]>;
+  league?: LeagueMetadata;
 }
 
 export interface RulesScoring {

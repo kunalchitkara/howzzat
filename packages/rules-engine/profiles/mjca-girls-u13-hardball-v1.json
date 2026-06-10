@@ -1,0 +1,48 @@
+{
+  "id": "mjca-girls-u13-hardball-v1",
+  "name": "MJCA Girls U13 Hardball",
+  "description": "Girls U13 hardball: 11 players (min 8), 20 overs, wides/no-balls 2 runs + runs (rebowl final over only).",
+  "version": 1,
+  "format": "standard_innings",
+  "playersPerSide": { "min": 8, "max": 11, "default": 11 },
+  "oversPerInnings": { "formula": "fixed:20" },
+  "pairOvers": 20,
+  "startingScore": 0,
+  "wicketPenalty": 0,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 2, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 2, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": false,
+    "rotateStrikeAfterWicket": false
+  },
+  "display": {
+    "netRunsFormula": "batRuns",
+    "showStartingScoreInTotal": false,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "league": {
+    "prefix": "mjca",
+    "sourceUrl": "https://mjcacricket.org/mjca-rules/competition-rules/girls-outdoor-rules/",
+    "ageGroup": "U13",
+    "competition": "MJCA Girls U13 Hardball League",
+    "ballType": "hardball",
+    "pitchYards": 19,
+    "tunable": ["playersPerSide", "wide", "noBall", "totalOvers"],
+    "pendingEngine": ["standard_innings_scoring", "fielding_circles_25yd", "dls_vrr"]
+  }
+}

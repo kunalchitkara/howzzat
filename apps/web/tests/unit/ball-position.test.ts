@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  currentOverBowler,
   isInningsComplete,
   nextBallAfterDeliveries,
 } from "@/lib/scoring/ball-position";
@@ -26,6 +27,34 @@ describe("ball position", () => {
       16,
     );
     expect(next).toEqual({ overNumber: 2, ballInOver: 4 });
+  });
+
+  it("locks bowler after first delivery in an over", () => {
+    const next = { overNumber: 1, ballInOver: 2 };
+    expect(currentOverBowler([], next)).toEqual({ locked: false, bowlerId: null });
+    expect(
+      currentOverBowler([{ overNumber: 1, bowlerId: "b1" }], next),
+    ).toEqual({ locked: true, bowlerId: "b1" });
+  });
+
+  it("keeps bowler locked on illegal ball in same over", () => {
+    const next = { overNumber: 2, ballInOver: 4 };
+    expect(
+      currentOverBowler(
+        [
+          { overNumber: 2, bowlerId: "b1" },
+          { overNumber: 2, bowlerId: "b1" },
+        ],
+        next,
+      ),
+    ).toEqual({ locked: true, bowlerId: "b1" });
+  });
+
+  it("unlocks bowler at start of a new over", () => {
+    const next = { overNumber: 2, ballInOver: 1 };
+    expect(
+      currentOverBowler([{ overNumber: 1, bowlerId: "b1" }], next),
+    ).toEqual({ locked: false, bowlerId: null });
   });
 
   it("detects innings complete", () => {

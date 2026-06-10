@@ -127,6 +127,63 @@
   gap: 10px;
 }
 
+.sp-players-hint {
+  font-size: 0.75rem;
+  color: #5a6a7a;
+  margin-bottom: 10px;
+}
+
+.sp-bowler-locked,
+.sp-bowler-pick {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.sp-bowler-locked {
+  color: #b45309;
+}
+
+.sp-bowler-pick {
+  color: #5a6a7a;
+}
+
+.sp-bowler:disabled {
+  opacity: 0.75;
+  background: #f0f4f8;
+}
+
+.sp-players-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-players-head h3 {
+  margin: 0;
+}
+
+.sp-swap {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
+.sp-on-strike {
+  color: var(--md);
+  font-weight: 700;
+}
+
+.sp-striker {
+  border-color: var(--md) !important;
+  background: #e8f4fc;
+}
+
+.sp-bowler {
+  border-color: #3d85c6 !important;
+  background: #eef6fc;
+}
+
 .sp-players label {
   display: flex;
   flex-direction: column;
@@ -145,6 +202,36 @@
 
 .sp-pad {
   margin: 0 12px;
+}
+
+.sp-pad-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #888;
+  text-align: center;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.sp-extras-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.sp-extras-panel .sp-btn {
+  margin-top: 0;
+}
+
+.sp-extras-runs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.sp-key.extra.active {
+  outline: 2px solid var(--md);
+  outline-offset: 2px;
 }
 
 .sp-runs,
@@ -240,12 +327,89 @@
   margin-bottom: 8px;
 }
 
-.sp-roster ul {
-  list-style: none;
-  font-size: 0.85rem;
+.sp-roster-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #888;
+  margin: 8px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.sp-roster li {
-  padding: 4px 0;
+.sp-roster-list {
+  list-style: none;
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.sp-roster-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.sp-over-age {
+  color: var(--red) !important;
+  font-weight: 700;
+}
+
+.sp-age {
+  font-weight: 400;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.sp-roster-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sp-captain-mark {
+  font-weight: 800;
+  color: var(--dk);
+}
+
+.sp-roster-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sp-roster-btn.captain {
+  background: #f0f2f7;
+  color: #888;
+  font-size: 0.75rem;
+  font-style: italic;
+  text-transform: lowercase;
+}
+
+.sp-roster-btn.captain.on {
+  background: var(--dk);
+  color: #fff;
+}
+
+.sp-roster-btn.add {
+  background: #e8f4fc;
+  color: var(--md);
+}
+
+.sp-roster-btn.remove {
+  background: #fdecea;
+  color: var(--red);
+}
+
+.sp-roster-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

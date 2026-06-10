@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma, resetDatabase } from "@howzzat/db";
+import { prisma } from "@howzzat/db";
+import { resetDatabase } from "@howzzat/db/testing";
 import { slugify, uniqueSlug } from "@/lib/api/slug";
 import { createOrganizationSchema } from "@/lib/validations";
 

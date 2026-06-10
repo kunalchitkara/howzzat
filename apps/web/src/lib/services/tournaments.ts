@@ -1,7 +1,7 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { slugify } from "../api/slug";
-import { resolveRulesVersionForTournament } from "./rules";
+import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
 import type { createTournamentSchema } from "../validations";
 import type { z } from "zod";
 
@@ -67,6 +67,7 @@ export async function getTournamentBySlug(orgSlug: string, tournamentSlug: strin
       },
     },
     include: {
+      organization: true,
       rulesProfileVersion: { include: { template: true } },
       teams: { include: { team: true } },
       matches: {
@@ -89,7 +90,26 @@ export async function createTournament(orgId: string, input: CreateTournamentInp
   const org = await prisma.organization.findUnique({ where: { id: orgId } });
   if (!org) throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
 
-  const rulesVersion = await resolveRulesVersionForTournament(input);
+  let rulesVersion = await resolveRulesVersionForTournament(input);
+
+  if (input.rulesOverrides && Object.keys(input.rulesOverrides).length > 0) {
+    const builtinId =
+      input.rulesTemplateBuiltinId ?? rulesVersion.template.builtinId ?? undefined;
+    if (!builtinId) {
+      throw new ApiError(
+        400,
+        "rulesOverrides requires a builtin template",
+        "MISSING_TEMPLATE",
+      );
+    }
+    const cloned = await cloneRulesProfile({
+      builtinId,
+      name: `${input.name} rules`,
+      overrides: input.rulesOverrides,
+      label: "Tournament config",
+    });
+    rulesVersion = cloned;
+  }
   const slug = input.slug ?? slugify(input.name);
 
   const existing = await prisma.tournament.findUnique({

@@ -45,3 +45,13 @@ export function isInningsComplete(
 export function formatOver(position: BallPosition): string {
   return `${position.overNumber}.${position.ballInOver}`;
 }
+
+/** Bowler is fixed once any delivery has been recorded in the current over. */
+export function currentOverBowler(
+  deliveries: { overNumber: number; bowlerId: string }[],
+  nextBall: BallPosition,
+): { locked: boolean; bowlerId: string | null } {
+  const inOver = deliveries.filter((d) => d.overNumber === nextBall.overNumber);
+  if (inOver.length === 0) return { locked: false, bowlerId: null };
+  return { locked: true, bowlerId: inOver[inOver.length - 1]!.bowlerId };
+}

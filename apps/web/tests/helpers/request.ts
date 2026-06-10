@@ -6,12 +6,30 @@ export function jsonRequest(
   method: string,
   path: string,
   body?: unknown,
+  cookie?: string,
 ): Request {
+  const headers: Record<string, string> = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (cookie) headers.Cookie = cookie;
   return new Request(apiUrl(path), {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+}
+
+export async function readResponse<T = unknown>(
+  response: Response,
+): Promise<{ status: number; body: T; cookies: string[] }> {
+  const setCookies =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [response.headers.get("Set-Cookie")].filter(Boolean) as string[];
+  return {
+    status: response.status,
+    body: (await response.json()) as T,
+    cookies: setCookies,
+  };
 }
 
 export async function readJson<T = unknown>(

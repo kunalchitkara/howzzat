@@ -36,6 +36,11 @@ export const wicketTypeSchema = z.enum([
   "run_out",
 ]);
 
+export const loginSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(120).optional(),
+});
+
 export const createOrganizationSchema = z.object({
   name: z.string().min(2).max(120),
   slug: z.string().min(2).max(64).optional(),
@@ -50,6 +55,7 @@ export const createTournamentSchema = z.object({
   seasonLabel: z.string().max(50).optional(),
   rulesProfileVersionId: z.string().cuid().optional(),
   rulesTemplateBuiltinId: z.string().optional(),
+  rulesOverrides: z.record(z.unknown()).optional(),
   startsOn: z.string().datetime().optional(),
   endsOn: z.string().datetime().optional(),
   isPublic: z.boolean().optional(),
@@ -86,6 +92,8 @@ export const createMatchSchema = z.object({
   publicSlug: z.string().min(2).max(64).optional(),
 });
 
+export const electedToSchema = z.enum(["bat", "bowl"]);
+
 export const updateMatchSchema = z.object({
   status: matchStatusSchema.optional(),
   scheduledAt: z.string().datetime().optional(),
@@ -95,6 +103,15 @@ export const updateMatchSchema = z.object({
   awayScore: z.number().int().optional(),
   marginText: z.string().max(120).optional(),
   winningTeamId: z.string().cuid().optional(),
+  tossWinnerId: z.string().cuid().optional(),
+  electedTo: electedToSchema.optional(),
+  tossCallerPlayerId: z.string().cuid().optional(),
+});
+
+export const recordTossSchema = z.object({
+  tossWinnerTeamId: z.string().cuid(),
+  tossCallerPlayerId: z.string().cuid().optional(),
+  electedTo: electedToSchema,
 });
 
 export const createInningsSchema = z.object({
@@ -110,6 +127,7 @@ export const createDeliverySchema = z.object({
   runsOffBat: z.number().int().min(0).max(6).default(0),
   extrasType: extrasTypeSchema.optional(),
   extrasRuns: z.number().int().min(0).default(0),
+  extrasRunsType: z.enum(["bye", "leg_bye"]).optional(),
   wicketType: wicketTypeSchema.optional(),
   strikerId: z.string().cuid(),
   nonStrikerId: z.string().cuid(),
@@ -139,7 +157,13 @@ export const createInviteSchema = z.object({
   teamId: z.string().cuid().optional(),
 });
 
-export const setMatchSquadSchema = z.object({
-  teamId: z.string().cuid(),
-  playerIds: z.array(z.string().cuid()).min(1).max(15),
-});
+export const setMatchSquadSchema = z
+  .object({
+    teamId: z.string().cuid(),
+    playerIds: z.array(z.string().cuid()).min(1).max(15),
+    captainId: z.string().cuid().optional(),
+  })
+  .refine(
+    (data) => !data.captainId || data.playerIds.includes(data.captainId),
+    { message: "Captain must be in the match squad", path: ["captainId"] },
+  );

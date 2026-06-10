@@ -110,7 +110,7 @@ describe("ball-by-ball", () => {
     expect(over5?.deliveries[1]?.displayBall).toBe("4.5");
     expect(over5?.deliveries[1]?.strikerName).toBe("Dev");
 
-    expect(over6?.deliveries.at(-1)?.displayBall).toBe("6");
+    expect(over6?.deliveries.at(-1)?.displayBall).toBe("6.0");
     expect(over6?.deliveries.at(-1)?.strikerName).toBe("Chase");
 
     expect(over7?.displayOver).toBe("7th Over");

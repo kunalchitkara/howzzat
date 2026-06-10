@@ -13,7 +13,8 @@ import { POST as recordDeliveryRoute } from "@/app/api/v1/deliveries/route";
 import { GET as getScorecard } from "@/app/api/v1/matches/[matchId]/scorecard/route";
 import { GET as publicTournament } from "@/app/api/v1/public/orgs/[orgSlug]/tournaments/[tournamentSlug]/route";
 import { GET as listProfiles } from "@/app/api/v1/rules/profiles/route";
-import { prisma, resetDatabase, seedRulesProfile } from "@howzzat/db";
+import { prisma } from "@howzzat/db";
+import { resetDatabase, seedRulesProfile } from "@howzzat/db/testing";
 import {
   emptyParams,
   jsonRequest,
@@ -76,8 +77,11 @@ describe("API v1 integration", () => {
       await listProfiles(jsonRequest("GET", "/api/v1/rules/profiles"), emptyParams()),
     );
     expect(res.status).toBe(200);
-    expect(res.body.data.length).toBeGreaterThan(0);
-    expect(res.body.data[0]?.builtinId).toBe("u9-softball-london-v1");
+    expect(res.body.data.length).toBeGreaterThanOrEqual(11);
+    const builtinIds = res.body.data.map((t: { builtinId: string }) => t.builtinId);
+    expect(builtinIds).toContain("u9-softball-london-v1");
+    expect(builtinIds).toContain("mjca-u9-outdoor-v1");
+    expect(builtinIds).toContain("mjca-u17-premier-v1");
   });
 
   it("full scoring flow via API routes", async () => {

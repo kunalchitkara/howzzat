@@ -1,47 +1,26 @@
 import { PrismaClient } from "@prisma/client";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { seedRulesProfileTemplates } from "./seed-rules.js";
 
 const prisma = new PrismaClient();
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const profilePath = join(
-  __dirname,
-  "../../rules-engine/profiles/u9-softball-london-v1.json",
-);
-const profileJson = readFileSync(profilePath, "utf-8");
-
 async function main() {
-  const template = await prisma.rulesProfileTemplate.upsert({
+  await seedRulesProfileTemplates(prisma);
+
+  const template = await prisma.rulesProfileTemplate.findUnique({
     where: { builtinId: "u9-softball-london-v1" },
-    create: {
-      builtinId: "u9-softball-london-v1",
-      name: "U9 Softball (London)",
-      description: "Pairs innings with 200 starting score — London junior leagues",
-      isPublic: true,
-    },
-    update: {},
+    include: { versions: { where: { version: 1 } } },
   });
-
-  await prisma.rulesProfileVersion.upsert({
-    where: {
-      templateId_version: { templateId: template.id, version: 1 },
-    },
-    create: {
-      templateId: template.id,
-      version: 1,
-      configJson: profileJson,
-    },
-    update: { configJson: profileJson },
-  });
-
-  console.log("Seeded u9-softball-london-v1 rules profile");
-
-  const rulesVersion = await prisma.rulesProfileVersion.findFirst({
-    where: { templateId: template.id, version: 1 },
-  });
+  const rulesVersion = template?.versions[0];
   if (!rulesVersion) return;
+
+  const demoManager = await prisma.user.upsert({
+    where: { email: "manager@edgware.local" },
+    create: {
+      email: "manager@edgware.local",
+      name: "Demo Manager",
+    },
+    update: { name: "Demo Manager" },
+  });
 
   const org = await prisma.organization.upsert({
     where: { slug: "edgware-cc" },
@@ -50,8 +29,29 @@ async function main() {
       slug: "edgware-cc",
       description: "Demo organization for Howzzat development",
       homeGround: "Canons High School (HA8 6AN)",
+      memberships: {
+        create: {
+          userId: demoManager.id,
+          role: "OWNER",
+        },
+      },
     },
     update: {},
+  });
+
+  await prisma.orgMembership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId: org.id,
+        userId: demoManager.id,
+      },
+    },
+    create: {
+      organizationId: org.id,
+      userId: demoManager.id,
+      role: "OWNER",
+    },
+    update: { role: "OWNER" },
   });
 
   const team = await prisma.team.upsert({

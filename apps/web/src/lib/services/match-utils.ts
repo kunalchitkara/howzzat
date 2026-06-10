@@ -8,6 +8,7 @@ export function deliveryToEvent(d: {
   runsOffBat: number;
   extrasType: string | null;
   extrasRuns: number;
+  extrasRunsType?: string | null;
   wicketType: string | null;
   strikerId: string;
   nonStrikerId: string;
@@ -22,6 +23,7 @@ export function deliveryToEvent(d: {
     runsOffBat: d.runsOffBat,
     extrasType: d.extrasType as DeliveryEvent["extrasType"],
     extrasRuns: d.extrasRuns,
+    extrasRunsType: d.extrasRunsType as DeliveryEvent["extrasRunsType"],
     wicketType: d.wicketType as DeliveryEvent["wicketType"],
     strikerId: d.strikerId,
     nonStrikerId: d.nonStrikerId,

@@ -1,0 +1,48 @@
+{
+  "id": "mjca-girls-u17-hardball-v1",
+  "name": "MJCA Girls U17 Hardball",
+  "description": "Girls U17 hardball: 11 players, 20 overs, wides/no-balls 1+rebowl, free hit after front-foot no-ball.",
+  "version": 1,
+  "format": "standard_innings",
+  "playersPerSide": { "min": 8, "max": 11, "default": 11 },
+  "oversPerInnings": { "formula": "fixed:20" },
+  "pairOvers": 20,
+  "startingScore": 0,
+  "wicketPenalty": 0,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 1, "rebowl": true, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 1, "rebowl": true, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": false,
+    "rotateStrikeAfterWicket": false
+  },
+  "display": {
+    "netRunsFormula": "batRuns",
+    "showStartingScoreInTotal": false,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "league": {
+    "prefix": "mjca",
+    "sourceUrl": "https://mjcacricket.org/mjca-rules/competition-rules/girls-outdoor-rules/",
+    "ageGroup": "U17",
+    "competition": "MJCA Girls U17 Hardball League",
+    "ballType": "hardball",
+    "pitchYards": 22,
+    "tunable": ["playersPerSide", "wide", "noBall", "totalOvers"],
+    "pendingEngine": ["standard_innings_scoring", "free_hit", "fielding_circles_30yd", "profile_wides"]
+  }
+}

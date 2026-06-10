@@ -1,0 +1,50 @@
+{
+  "id": "mjca-u9-outdoor-v1",
+  "name": "MJCA U9 Outdoor (suggested)",
+  "description": "Middlesex U9 suggested pairs rules: 6–10 players, 12–20 overs by squad size, 200 start, −5 per wicket. Softball default.",
+  "version": 1,
+  "format": "pairs_single_innings",
+  "playersPerSide": { "min": 6, "max": 10, "default": 8 },
+  "oversPerInnings": { "formula": "2 * playersPerSide" },
+  "pairOvers": 4,
+  "startingScore": 200,
+  "wicketPenalty": 5,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": true,
+    "rotateStrikeAfterWicket": true
+  },
+  "display": {
+    "netRunsFormula": "batRuns - wicketPenalty * wickets",
+    "showStartingScoreInTotal": true,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "league": {
+    "prefix": "mjca",
+    "sourceUrl": "https://mjcacricket.org/mjca-rules/competition-rules/under-9-outdoor-competition-rules/",
+    "ageGroup": "U9",
+    "competition": "MJCA U9 Outdoor (area structures)",
+    "ballType": "softball",
+    "pitchYards": 15,
+    "boundaryYards": 30,
+    "playersNote": "8 per side default; 6–10 by agreement. U10 boys may not play down; U10 girls may.",
+    "tunable": ["playersPerSide", "pairOvers", "startingScore", "wicketPenalty", "wide", "noBall", "totalOvers"],
+    "pendingEngine": ["bowler_quota", "ball_type_agreement", "eligibility"]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "demo-2-over-pairs-v1",
+  "name": "Demo — 2 overs each side",
+  "description": "Two innings, 2 overs per side. For live scorer demos.",
+  "version": 1,
+  "format": "standard_innings",
+  "playersPerSide": { "min": 2, "max": 2, "default": 2 },
+  "oversPerInnings": { "formula": "fixed:2" },
+  "pairOvers": 2,
+  "startingScore": 0,
+  "wicketPenalty": 0,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": false,
+    "rotateStrikeAfterWicket": false
+  },
+  "display": {
+    "netRunsFormula": "batRuns",
+    "showStartingScoreInTotal": false,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "symbols": {
+    "dot": ["0", "."],
+    "wicket": "W",
+    "wide": "Wd",
+    "noBall": "Nb"
+  }
+}

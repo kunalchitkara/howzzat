@@ -51,7 +51,7 @@ Implemented in `aggregatePartnerships()` and per-over summaries in `buildBallByB
 |---------|---------|
 | Over heading | **1st Over**, **2nd Over**, … |
 | Balls 1–5 | `0.1` … `0.5` (first over), `1.1` … (second over) |
-| End of over (6th legal ball) | `1`, `2`, … (over number only) |
+| End of over (6th legal ball) | `1.0`, `2.0`, … |
 
 See `apps/web/src/lib/scoring/ball-label.ts`.
 

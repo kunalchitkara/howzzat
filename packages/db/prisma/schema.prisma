@@ -34,6 +34,20 @@ model User {
 
   memberships OrgMembership[]
   invitesSent TournamentInvite[]
+  sessions    Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model OrgMembership {
@@ -270,8 +284,9 @@ model Match {
   marginText      String?
   rulesVersionId  String?
   publicSlug      String?
-  tossWinnerId    String?
-  electedTo       String?
+  tossWinnerId         String?
+  electedTo            String?
+  tossCallerPlayerId   String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -338,6 +353,7 @@ model Delivery {
   runsOffBat         Int      @default(0)
   extrasType         String?
   extrasRuns         Int      @default(0)
+  extrasRunsType     String?
   wicketType         String?
   strikerId          String
   nonStrikerId       String

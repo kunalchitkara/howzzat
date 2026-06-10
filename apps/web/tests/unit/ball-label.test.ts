@@ -9,9 +9,10 @@ describe("formatBallLabel", () => {
     expect(formatBallLabel(20, 5)).toBe("19.5");
   });
 
-  it("uses over number alone for the 6th ball", () => {
-    expect(formatBallLabel(1, 6)).toBe("1");
-    expect(formatBallLabel(20, 6)).toBe("20");
+  it("uses N.0 for the 6th ball of each over", () => {
+    expect(formatBallLabel(1, 6)).toBe("1.0");
+    expect(formatBallLabel(2, 6)).toBe("2.0");
+    expect(formatBallLabel(20, 6)).toBe("20.0");
   });
 });
 

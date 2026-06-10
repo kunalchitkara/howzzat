@@ -111,9 +111,54 @@ export async function updateMatch(matchId: string, input: UpdateMatchInput) {
       awayScore: input.awayScore,
       marginText: input.marginText,
       winningTeamId: input.winningTeamId,
+      tossWinnerId: input.tossWinnerId,
+      electedTo: input.electedTo,
+      tossCallerPlayerId: input.tossCallerPlayerId,
     },
     include: matchInclude,
   });
+}
+
+/** Record toss and set match LIVE. Returns batting team id for 1st innings. */
+export async function recordToss(
+  matchId: string,
+  input: {
+    tossWinnerTeamId: string;
+    tossCallerPlayerId?: string;
+    electedTo: "bat" | "bowl";
+  },
+) {
+  const match = await getMatch(matchId);
+  const teams = [match.homeTeamId, match.awayTeamId];
+  if (!teams.includes(input.tossWinnerTeamId)) {
+    throw new ApiError(400, "Toss winner must be a match team", "INVALID_TOSS");
+  }
+
+  if (input.tossCallerPlayerId) {
+    const inSquad = match.squad.some(
+      (s) => s.playerId === input.tossCallerPlayerId,
+    );
+    if (!inSquad) {
+      throw new ApiError(400, "Toss caller must be in match squad", "INVALID_TOSS");
+    }
+  }
+
+  const battingFirstId =
+    input.electedTo === "bat"
+      ? input.tossWinnerTeamId
+      : teams.find((t) => t !== input.tossWinnerTeamId)!;
+
+  await prisma.match.update({
+    where: { id: matchId },
+    data: {
+      tossWinnerId: input.tossWinnerTeamId,
+      tossCallerPlayerId: input.tossCallerPlayerId ?? null,
+      electedTo: input.electedTo,
+      status: "LIVE",
+    },
+  });
+
+  return { battingFirstId, tossWinnerTeamId: input.tossWinnerTeamId };
 }
 
 export async function setMatchSquad(matchId: string, input: SetSquadInput) {
@@ -143,6 +188,7 @@ export async function setMatchSquad(matchId: string, input: SetSquadInput) {
       matchId,
       playerId,
       teamId: input.teamId,
+      role: playerId === input.captainId ? "captain" : "player",
     })),
   });
 
@@ -208,6 +254,18 @@ export async function recordDelivery(input: CreateDeliveryInput) {
     throw new ApiError(404, "Innings not found", "INNINGS_NOT_FOUND");
   }
 
+  if (
+    input.wicketType &&
+    ["caught", "run_out", "stumped"].includes(input.wicketType) &&
+    !input.fielderId
+  ) {
+    throw new ApiError(
+      400,
+      "Fielder required for caught, run out, and stumped",
+      "FIELDER_REQUIRED",
+    );
+  }
+
   const profile = await getRulesProfileFromVersion(innings.rulesVersionId);
   const config = resolveInningsConfig(profile, innings.match.playersPerSide);
 
@@ -226,6 +284,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
     runsOffBat: input.runsOffBat,
     extrasType: input.extrasType,
     extrasRuns: input.extrasRuns,
+    extrasRunsType: input.extrasRunsType,
     wicketType: input.wicketType,
     strikerId: input.strikerId,
     nonStrikerId: input.nonStrikerId,
@@ -248,6 +307,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
       runsOffBat: input.runsOffBat,
       extrasType: input.extrasType,
       extrasRuns: input.extrasRuns,
+      extrasRunsType: input.extrasRunsType,
       wicketType: input.wicketType,
       strikerId: input.strikerId,
       nonStrikerId: input.nonStrikerId,

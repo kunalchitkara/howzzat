@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "howzzat",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.howzzat.scorer"
@@ -18,6 +18,9 @@
       "package": "com.howzzat.scorer"
     },
     "plugins": ["expo-router"],
+    "extra": {
+      "apiUrl": "http://localhost:3005"
+    },
     "experiments": {
       "typedRoutes": true
     }

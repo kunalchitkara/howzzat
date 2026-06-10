@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma, resetDatabase, seedTestFixtures, seedRulesProfile } from "@howzzat/db";
+import { prisma } from "@howzzat/db";
+import { resetDatabase, seedTestFixtures, seedRulesProfile } from "@howzzat/db/testing";
 import { ApiError } from "@/lib/api/http";
 import {
   createOrganization,

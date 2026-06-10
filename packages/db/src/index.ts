@@ -15,10 +15,3 @@ export type {
   OrgRole,
 } from "@prisma/client";
 export { prisma, createPrismaClient } from "./client";
-export {
-  resetDatabase,
-  seedRulesProfile,
-  seedTestFixtures,
-  getU9ProfileJson,
-  type TestFixtureIds,
-} from "./testing";
