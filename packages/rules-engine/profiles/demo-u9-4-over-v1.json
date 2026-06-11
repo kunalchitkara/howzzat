@@ -1,0 +1,46 @@
+{
+  "id": "demo-u9-4-over-v1",
+  "name": "Demo — U9 4 overs",
+  "description": "U9 pairs scoring: 200 starting score, −5 per wicket, 4 overs per side. Pick any squad size from your roster (e.g. 4, 8, or 10 players).",
+  "version": 1,
+  "format": "standard_innings",
+  "playersPerSide": { "min": 2, "max": 11, "default": 4 },
+  "oversPerInnings": { "formula": "fixed:4" },
+  "pairOvers": 4,
+  "startingScore": 200,
+  "wicketPenalty": 5,
+  "scoring": {
+    "runsOffBat": { "min": 0, "max": 6 },
+    "wide": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "noBall": {
+      "default": { "runs": 2, "rebowl": false, "creditToBatsman": false },
+      "lastOver": { "runs": 1, "rebowl": true, "maxExtraBalls": 3, "creditToBatsman": false }
+    },
+    "bye": { "creditToBatsman": false, "enterTotalRuns": true },
+    "legBye": { "creditToBatsman": false, "enterTotalRuns": true }
+  },
+  "dismissals": {
+    "bowlerCredits": ["bowled", "caught", "stumped", "lbw", "hit_wicket"],
+    "fielderCredits": ["caught", "run_out"],
+    "runOutNoBowlerWicket": true,
+    "pairContinuesAfterWicket": true,
+    "rotateStrikeAfterWicket": true
+  },
+  "display": {
+    "netRunsFormula": "batRuns - wicketPenalty * wickets",
+    "showStartingScoreInTotal": true,
+    "economyGoodThreshold": 4.0,
+    "economyBadThreshold": 7.0
+  },
+  "symbols": {
+    "dot": ["0", "."],
+    "wicket": "W",
+    "wide": "+",
+    "noBall": "O",
+    "bye": "Δ",
+    "legBye": "v"
+  }
+}

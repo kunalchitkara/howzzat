@@ -29,6 +29,10 @@ describe("scoring context service", () => {
       teamId: fixtures.teamAId,
       playerIds: fixtures.playerIds,
     });
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { squadsConfirmedAt: new Date() },
+    });
 
     const beforeToss = await getMatchScoringContext(match.id);
     expect(beforeToss.activeInningsId).toBeNull();
@@ -78,6 +82,10 @@ describe("scoring context service", () => {
       teamId: fixtures.teamAId,
       playerIds: fixtures.playerIds,
     });
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { squadsConfirmedAt: new Date() },
+    });
 
     await recordToss(match.id, {
       tossWinnerTeamId: fixtures.tournamentTeamAId,
@@ -106,6 +114,8 @@ describe("scoring context service", () => {
     expect(ctx.activeInningsId).toBe(innings.id);
     expect(ctx.innings[0]?.totalRuns).toBe(204);
     expect(ctx.innings[0]?.nextBall).toEqual({ overNumber: 1, ballInOver: 2 });
+    expect(ctx.innings[0]?.lastBall).toEqual({ overNumber: 1, ballInOver: 1 });
+    expect(ctx.innings[0]?.displayOvers).toBe("0.1");
     expect(ctx.innings[0]?.bowlerLocked).toBe(true);
     expect(ctx.innings[0]?.lockedBowlerId).toBe(bowler);
   });

@@ -9,6 +9,33 @@ export interface ScoringPlayer {
   isCaptain?: boolean;
 }
 
+export interface RecentBallBubble {
+  id: string;
+  symbol: string;
+  overNumber: number;
+  ballInOver: number;
+  isOverEnd: boolean;
+}
+
+export interface ScoringDeliveryView {
+  id: string;
+  sequence: number;
+  overNumber: number;
+  ballInOver: number;
+  symbol: string;
+  runsOffBat: number;
+  isLegalBall: boolean;
+  extrasType: string | null;
+  extrasRuns: number;
+  extrasRunsType: string | null;
+  wicketType: string | null;
+  strikerId: string;
+  nonStrikerId: string;
+  bowlerId: string;
+  fielderId: string | null;
+  dismissedBatsmanId: string | null;
+}
+
 export interface ScoringInningsView {
   id: string;
   inningsNumber: number;
@@ -20,12 +47,26 @@ export interface ScoringInningsView {
   batRuns: number;
   netRuns: number;
   oversBowled: number;
+  legalBallsBowled: number;
+  displayOvers: string;
   deliveryCount: number;
   complete: boolean;
   nextBall: { overNumber: number; ballInOver: number };
+  /** Last ball bowled — use for live scoreboard display. */
+  lastBall: { overNumber: number; ballInOver: number } | null;
+  recentBalls: RecentBallBubble[];
+  deliveries: ScoringDeliveryView[];
   /** True once any ball (incl. wides/nb) has been bowled this over. */
   bowlerLocked: boolean;
   lockedBowlerId: string | null;
+}
+
+export interface ChaseInfo {
+  targetRuns: number;
+  runsNeeded: number;
+  defendingTeamId: string;
+  chasingTeamId: string;
+  targetReached: boolean;
 }
 
 export interface TossInfo {
@@ -37,15 +78,32 @@ export interface TossInfo {
   battingFirstTeamId: string | null;
 }
 
+export interface SuggestedResult {
+  line: string;
+  hostWon: boolean;
+}
+
 export interface MatchScoringContext {
   matchId: string;
   status: string;
+  /** Home team is the host / managing club side. */
+  hostTeamId: string;
+  squadsConfirmed: boolean;
+  /** Squads and toss can be revised until the first innings begins. */
+  canReopenSquads: boolean;
+  chaseContinuedAfterTarget: boolean;
   toss: TossInfo;
   homeTeam: { id: string; name: string; teamId: string };
   awayTeam: { id: string; name: string; teamId: string };
   venue?: string;
   playersPerSide: number;
+  /** Minimum players required per side (from rules profile). */
+  squadMin: number;
+  /** Maximum players allowed per side (from rules profile). */
+  squadMax: number;
   totalOvers: number;
+  /** Overs saved on the match (set at squad confirm). */
+  matchTotalOvers: number | null;
   pairOvers: number;
   startingScore: number;
   wicketPenalty: number;
@@ -62,6 +120,14 @@ export interface MatchScoringContext {
   };
   innings: ScoringInningsView[];
   activeInningsId: string | null;
-  canStartInnings: { inningsNumber: number; battingTeamId: string; label: string } | null;
+  canStartInnings: {
+    inningsNumber: number;
+    battingTeamId: string;
+    label: string;
+    /** Set when chasing (2nd innings): first-innings total + 1. */
+    targetRuns?: number;
+  } | null;
   canFinalize: boolean;
+  chase: ChaseInfo | null;
+  suggestedResult: SuggestedResult | null;
 }

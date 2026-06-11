@@ -83,7 +83,9 @@ export function BallByBallPanel({
                       </span>
                       <span className="bbb-ball-text">
                         {d.description}
-                        <span className="bbb-ball-meta">{d.strikerName}*</span>
+                        <span className="bbb-ball-meta">
+                          {d.strikerName}* · {d.bowlerName}
+                        </span>
                       </span>
                       <span className="bbb-ball-total">
                         {d.totalScore}-{d.wickets}

@@ -4,10 +4,17 @@ import {
   resolveInningsConfig,
 } from "@howzzat/rules-engine";
 import {
+  countLegalBalls,
   currentOverBowler,
+  formatOversFromLegalBalls,
   isInningsComplete,
+  lastBallAfterDeliveries,
   nextBallAfterDeliveries,
 } from "@/lib/scoring/ball-position";
+import { resolveInningsConfigForBatting } from "@/lib/scoring/innings-config";
+import { buildHostResultLine } from "@/lib/scoring/match-result";
+import { deliverySymbol } from "@/lib/scoring/delivery-symbol";
+import { buildRecentBalls } from "@/lib/scoring/recent-balls";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
 import {
   ageOnDate,
@@ -89,7 +96,11 @@ export async function getMatchScoringContext(
   const profile = await getRulesProfileFromVersion(
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
   );
-  const config = resolveInningsConfig(profile, match.playersPerSide);
+  const config = resolveInningsConfigForBatting(
+    profile,
+    match,
+    match.homeTeamId,
+  );
 
   const homeTeamId = match.homeTeam.team.id;
   const awayTeamId = match.awayTeam.team.id;
@@ -123,24 +134,31 @@ export async function getMatchScoringContext(
       : match.awayTeam.team.name;
 
   const inningsViews = match.innings.map((innings) => {
+    const inningsConfig = resolveInningsConfigForBatting(
+      profile,
+      match,
+      innings.battingTeamId,
+    );
     const events = innings.deliveries.map(deliveryToEvent);
     const state = replayInnings(
       profile,
       {
-        playersPerSide: config.playersPerSide,
-        totalOvers: config.totalOvers,
+        playersPerSide: inningsConfig.playersPerSide,
+        totalOvers: inningsConfig.totalOvers,
       },
       events,
     );
     const totals = finalizeInnings(state, profile);
     const nextBall = nextBallAfterDeliveries(
       innings.deliveries,
-      config.totalOvers,
+      inningsConfig.totalOvers,
     );
     const { locked: bowlerLocked, bowlerId: lockedBowlerId } = currentOverBowler(
       innings.deliveries,
       nextBall,
     );
+    const legalBallsBowled = countLegalBalls(innings.deliveries);
+    const lastBall = lastBallAfterDeliveries(innings.deliveries);
     const battingTeamId = innings.battingTeamId;
     const bowlingTeamId =
       battingTeamId === match.homeTeamId
@@ -158,9 +176,35 @@ export async function getMatchScoringContext(
       batRuns: totals.batRuns,
       netRuns: totals.netRuns,
       oversBowled: totals.oversBowled,
+      legalBallsBowled,
+      displayOvers: formatOversFromLegalBalls(legalBallsBowled),
       deliveryCount: innings.deliveries.length,
-      complete: isInningsComplete(innings.deliveries, config.totalOvers),
+      complete: isInningsComplete(
+        innings.deliveries,
+        inningsConfig.totalOvers,
+        innings.endedAt,
+      ),
       nextBall,
+      lastBall,
+      recentBalls: buildRecentBalls(innings.deliveries),
+      deliveries: innings.deliveries.map((d) => ({
+        id: d.id,
+        sequence: d.sequence,
+        overNumber: d.overNumber,
+        ballInOver: d.ballInOver,
+        symbol: deliverySymbol(d),
+        runsOffBat: d.runsOffBat,
+        isLegalBall: d.isLegalBall,
+        extrasType: d.extrasType,
+        extrasRuns: d.extrasRuns,
+        extrasRunsType: d.extrasRunsType,
+        wicketType: d.wicketType,
+        strikerId: d.strikerId,
+        nonStrikerId: d.nonStrikerId,
+        bowlerId: d.bowlerId,
+        fielderId: d.fielderId,
+        dismissedBatsmanId: d.dismissedBatsmanId,
+      })),
       bowlerLocked,
       lockedBowlerId,
     };
@@ -185,7 +229,12 @@ export async function getMatchScoringContext(
       : null;
 
   let canStartInnings: MatchScoringContext["canStartInnings"] = null;
-  if (!activeInnings && match.tossWinnerId && battingFirstTeamId) {
+  if (
+    !activeInnings &&
+    match.squadsConfirmedAt &&
+    match.tossWinnerId &&
+    battingFirstTeamId
+  ) {
     if (inningsViews.length === 0) {
       canStartInnings = {
         inningsNumber: 1,
@@ -202,6 +251,7 @@ export async function getMatchScoringContext(
         inningsNumber: 2,
         battingTeamId: secondBatting,
         label: `${teamName(secondBatting)} to bat (2nd innings)`,
+        targetRuns: first.totalRuns + 1,
       };
     }
   }
@@ -213,9 +263,60 @@ export async function getMatchScoringContext(
     inningsViews.every((i) => i.complete) &&
     match.status !== "COMPLETED";
 
+  let chase: MatchScoringContext["chase"] = null;
+  if (activeInnings?.inningsNumber === 2 && inningsViews[0]) {
+    const targetRuns = inningsViews[0].totalRuns + 1;
+    chase = {
+      targetRuns,
+      runsNeeded: Math.max(0, targetRuns - activeInnings.totalRuns),
+      defendingTeamId: inningsViews[0].battingTeamId,
+      chasingTeamId: activeInnings.battingTeamId,
+      targetReached: activeInnings.totalRuns >= targetRuns,
+    };
+  }
+
+  const inningsForResult = match.innings.map((inn, idx) => ({
+    battingTeamId: inn.battingTeamId,
+    totalRuns: inningsViews[idx]?.totalRuns ?? 0,
+    deliveries: inn.deliveries,
+  }));
+
+  const resultLine =
+    inningsViews.length >= 2 && inningsViews.every((i) => i.complete)
+      ? buildHostResultLine({
+          hostTeamId: match.homeTeamId,
+          hostTeamName: match.homeTeam.team.name,
+          homeTeamId: match.homeTeamId,
+          homeTeamName: match.homeTeam.team.name,
+          awayTeamId: match.awayTeamId,
+          awayTeamName: match.awayTeam.team.name,
+          innings: inningsForResult,
+          totalOvers: config.totalOvers,
+          chaseContinuedAfterTarget: match.chaseContinuedAfterTarget,
+        })
+      : null;
+
+  const hostWon = resultLine
+    ? resultLine.startsWith(match.homeTeam.team.name) &&
+      resultLine.includes("won")
+    : false;
+
+  const activeConfig = activeInnings
+    ? resolveInningsConfigForBatting(
+        profile,
+        match,
+        activeInnings.battingTeamId,
+      )
+    : config;
+
   return {
     matchId: match.id,
     status: match.status,
+    hostTeamId: match.homeTeamId,
+    squadsConfirmed: Boolean(match.squadsConfirmedAt),
+    canReopenSquads:
+      match.status !== "COMPLETED" && match.innings.length === 0,
+    chaseContinuedAfterTarget: match.chaseContinuedAfterTarget,
     toss: {
       tossWinnerTeamId: match.tossWinnerId,
       tossWinnerName,
@@ -237,8 +338,11 @@ export async function getMatchScoringContext(
       teamId: awayTeamId,
     },
     venue: match.venue ?? undefined,
-    playersPerSide: config.playersPerSide,
-    totalOvers: config.totalOvers,
+    playersPerSide: activeConfig.playersPerSide,
+    squadMin: profile.playersPerSide.min,
+    squadMax: profile.playersPerSide.max,
+    totalOvers: activeConfig.totalOvers,
+    matchTotalOvers: match.totalOvers,
     pairOvers: profile.pairOvers,
     startingScore: profile.startingScore,
     wicketPenalty: profile.wicketPenalty,
@@ -250,5 +354,9 @@ export async function getMatchScoringContext(
     activeInningsId: activeInnings?.id ?? null,
     canStartInnings,
     canFinalize,
+    chase,
+    suggestedResult: resultLine
+      ? { line: resultLine, hostWon }
+      : null,
   };
 }

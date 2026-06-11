@@ -1,0 +1,23 @@
+---
+description: Always share demo links when the user asks for a demo
+alwaysApply: true
+---
+
+# Demo links
+
+When the user asks for a demo, reset demo, fresh demo, or U9 scoring demo, always include:
+
+1. **Reset** (creates or refreshes the match):
+   ```bash
+   curl -X POST http://localhost:3005/api/v1/demo/u9-match
+   ```
+
+2. **Scorer** — resolve `u9-live` match id from the DB or the reset response, then share:
+   `http://localhost:3005/match/{matchId}/score`
+
+3. **Homepage** (fallback if id unknown):
+   `http://localhost:3005/` → link **U9 4-over demo**
+
+Default dev port is **3005**. U9 demo: 4 overs, 4 players per side, pick from 10 in roster, 200 start, −5 per wicket.
+
+For iOS 2-over demo, use `POST /api/v1/demo/ios-match` and `ios-live` slug instead.

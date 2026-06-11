@@ -14,8 +14,16 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   });
   const body = await res.json();
   if (!res.ok) {
-    const message = body?.error?.message ?? body?.error ?? "Request failed";
-    throw new Error(typeof message === "string" ? message : "Request failed");
+    const err = body?.error;
+    const message =
+      typeof err === "string"
+        ? err
+        : typeof err?.message === "string"
+          ? err.message
+          : typeof body?.message === "string"
+            ? body.message
+            : "Request failed";
+    throw new Error(message);
   }
   return body.data as T;
 }
@@ -43,8 +51,19 @@ export type TossInfo = {
   battingFirstTeamId: string | null;
 };
 
+export type RecentBallBubble = {
+  id: string;
+  symbol: string;
+  overNumber: number;
+  isOverEnd: boolean;
+};
+
 export type ScoringContext = {
   status: string;
+  hostTeamId: string;
+  squadsConfirmed: boolean;
+  chaseContinuedAfterTarget: boolean;
+  playersPerSide: number;
   homeTeam: { id: string; name: string; teamId: string };
   awayTeam: { id: string; name: string; teamId: string };
   totalOvers: number;
@@ -61,8 +80,11 @@ export type ScoringContext = {
     totalRuns: number;
     wickets: number;
     oversBowled: number;
+    displayOvers: string;
     complete: boolean;
     nextBall: { overNumber: number; ballInOver: number };
+    lastBall: { overNumber: number; ballInOver: number } | null;
+    recentBalls: RecentBallBubble[];
     bowlerLocked: boolean;
     lockedBowlerId: string | null;
   }[];
@@ -71,7 +93,35 @@ export type ScoringContext = {
   activeInningsId: string | null;
   canStartInnings: { inningsNumber: number; battingTeamId: string; label: string } | null;
   canFinalize: boolean;
+  chase: {
+    targetRuns: number;
+    runsNeeded: number;
+    defendingTeamId: string;
+    chasingTeamId: string;
+    targetReached: boolean;
+  } | null;
+  suggestedResult: { line: string; hostWon: boolean } | null;
 };
+
+export async function confirmSquads(matchId: string) {
+  return apiFetch<{ squadsConfirmedAt: string }>(
+    `/api/v1/matches/${matchId}/squad/confirm`,
+    { method: "POST" },
+  );
+}
+
+export async function endInningsEarly(matchId: string, inningsId: string) {
+  return apiFetch(`/api/v1/matches/${matchId}/innings/${inningsId}/end`, {
+    method: "POST",
+  });
+}
+
+export async function continueChase(matchId: string) {
+  return apiFetch<{ chaseContinuedAfterTarget: boolean }>(
+    `/api/v1/matches/${matchId}/chase/continue`,
+    { method: "POST" },
+  );
+}
 
 export type MatchScorecardView = {
   matchTitle: string;

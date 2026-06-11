@@ -7,7 +7,7 @@ import { buildMatchBallByBall } from "@/lib/scorecard/ball-by-ball";
 import { getMatchScorecard } from "@/lib/services/matches";
 import { deliveryToEvent } from "@/lib/services/match-utils";
 import { getRulesProfileFromVersion } from "@/lib/services/rules-helpers";
-import { resolveInningsConfig } from "@howzzat/rules-engine";
+import { resolveInningsConfigForBatting } from "@/lib/scoring/innings-config";
 
 type RawScorecard = Awaited<ReturnType<typeof getMatchScorecard>>;
 
@@ -90,9 +90,10 @@ export async function buildMatchScorecardFromRaw(
       match.innings.length > 0
         ? buildMatchBallByBall({
             profile: rulesProfile,
-            totalOvers: resolveInningsConfig(
+            totalOvers: resolveInningsConfigForBatting(
               rulesProfile,
-              match.playersPerSide,
+              match,
+              match.innings[0]!.battingTeamId,
             ).totalOvers,
             players,
             innings: match.innings.map((innings) => {

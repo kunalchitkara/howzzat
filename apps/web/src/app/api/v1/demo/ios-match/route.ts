@@ -1,19 +1,45 @@
 import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { json } from "@/lib/api/http";
 import { withApi } from "@/lib/api/handler";
+import { buildMatchSquadRows, seedTeamRoster } from "@/lib/demo/seed-roster";
 import { prisma } from "@/lib/db";
 import { resolveRulesVersionForTournament } from "@/lib/services/rules";
 
 export const runtime = "nodejs";
 
+const PROFILE_ID = "demo-2-over-pairs-v1";
+const PLAYERS_PER_SIDE = 2;
+
+const BLUES_ROSTER = [
+  "Alex",
+  "Sam",
+  "Charlie",
+  "Morgan",
+  "Jamie",
+  "Taylor",
+  "Riley",
+  "Casey",
+];
+
+const GOLDS_ROSTER = [
+  "Jordan",
+  "Logan",
+  "Drew",
+  "Quinn",
+  "Avery",
+  "Skyler",
+  "Parker",
+  "Reese",
+];
+
 async function ensureDemoProfile() {
-  const profile = getBuiltinProfile("demo-2-over-pairs-v1");
-  if (!profile) throw new Error("demo-2-over-pairs-v1 not in rules-engine");
+  const profile = getBuiltinProfile(PROFILE_ID);
+  if (!profile) throw new Error(`${PROFILE_ID} not in rules-engine`);
   const configJson = JSON.stringify(profile);
   const template = await prisma.rulesProfileTemplate.upsert({
-    where: { builtinId: "demo-2-over-pairs-v1" },
+    where: { builtinId: PROFILE_ID },
     create: {
-      builtinId: "demo-2-over-pairs-v1",
+      builtinId: PROFILE_ID,
       name: profile.name,
       description: profile.description,
       isPublic: true,
@@ -31,7 +57,7 @@ async function ensureDemoProfile() {
 export const POST = withApi(async () => {
   await ensureDemoProfile();
   const rulesVersion = await resolveRulesVersionForTournament({
-    rulesTemplateBuiltinId: "demo-2-over-pairs-v1",
+    rulesTemplateBuiltinId: PROFILE_ID,
   });
 
   let org = await prisma.organization.findUnique({ where: { slug: "edgware-cc" } });
@@ -87,40 +113,13 @@ export const POST = withApi(async () => {
     update: {},
   });
 
-  const playerSpecs = [
-    { teamId: teamA.id, names: ["Alex (C)", "Sam"] },
-    { teamId: teamB.id, names: ["Jordan (C)", "Riley"] },
-  ];
-  const squadRows: { matchId: string; playerId: string; teamId: string }[] = [];
+  const bluesIds = await seedTeamRoster(prisma, teamA.id, BLUES_ROSTER, "demo");
+  const goldsIds = await seedTeamRoster(prisma, teamB.id, GOLDS_ROSTER, "demo");
 
-  for (const spec of playerSpecs) {
-    for (let i = 0; i < spec.names.length; i++) {
-      const name = spec.names[i]!;
-      let player = await prisma.player.findFirst({ where: { legalName: name } });
-      if (!player) {
-        player = await prisma.player.create({
-          data: { legalName: name, displayName: name },
-        });
-      }
-      await prisma.teamMembership.upsert({
-        where: {
-          teamId_playerId_seasonLabel: {
-            teamId: spec.teamId,
-            playerId: player.id,
-            seasonLabel: "demo",
-          },
-        },
-        create: {
-          teamId: spec.teamId,
-          playerId: player.id,
-          shirtNumber: i + 1,
-          seasonLabel: "demo",
-        },
-        update: {},
-      });
-      squadRows.push({ matchId: "", playerId: player.id, teamId: spec.teamId });
-    }
-  }
+  const squadRows = [
+    ...buildMatchSquadRows(teamA.id, bluesIds, PLAYERS_PER_SIDE),
+    ...buildMatchSquadRows(teamB.id, goldsIds, PLAYERS_PER_SIDE),
+  ];
 
   const existing = await prisma.match.findFirst({
     where: { tournamentId: tournament.id, publicSlug: "ios-live" },
@@ -144,6 +143,9 @@ export const POST = withApi(async () => {
         tossWinnerId: null,
         electedTo: null,
         tossCallerPlayerId: null,
+        squadsConfirmedAt: null,
+        chaseContinuedAfterTarget: false,
+        totalOvers: 2,
       },
     });
     await prisma.matchSquadPlayer.createMany({
@@ -167,15 +169,13 @@ export const POST = withApi(async () => {
       awayTeamId: ttB.id,
       matchNumber: 1,
       venue: "iOS Demo Ground",
-      playersPerSide: 2,
+      playersPerSide: PLAYERS_PER_SIDE,
+      totalOvers: 2,
       publicSlug: "ios-live",
       rulesVersionId: rulesVersion.id,
       status: "SCHEDULED",
       squad: {
-        create: squadRows.map((r) => ({
-          playerId: r.playerId,
-          teamId: r.teamId,
-        })),
+        create: squadRows,
       },
     },
   });

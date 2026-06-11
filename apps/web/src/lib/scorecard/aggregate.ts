@@ -156,43 +156,40 @@ export function aggregateInningsFromDeliveries(input: {
       extras.total += d.extrasRuns;
     }
 
+    let bowler = bowlers.get(d.bowlerId);
+    if (!bowler) {
+      bowler = {
+        playerId: d.bowlerId,
+        name: playerName(playerMap, d.bowlerId),
+        overs: 0,
+        maidens: 0,
+        runs: 0,
+        wickets: 0,
+        wides: 0,
+        noBalls: 0,
+        dots: 0,
+        economy: 0,
+        legalBalls: 0,
+      };
+      bowlers.set(d.bowlerId, bowler);
+    }
+
+    let conceded = d.runsOffBat;
+    if (isWide) {
+      conceded += d.extrasType === "wide" ? 2 : 2 + d.extrasRuns;
+      bowler.wides += 1;
+    } else if (isNoBall) {
+      conceded += d.extrasType === "no_ball" ? 2 : 2 + d.extrasRuns;
+      bowler.noBalls += 1;
+    } else if (d.extrasType === "bye" || d.extrasType === "leg_bye") {
+      conceded += d.extrasRuns;
+    }
+    bowler.runs += conceded;
+
     if (d.isLegalBall) {
-      let bowler = bowlers.get(d.bowlerId);
-      if (!bowler) {
-        bowler = {
-          playerId: d.bowlerId,
-          name: playerName(playerMap, d.bowlerId),
-          overs: 0,
-          maidens: 0,
-          runs: 0,
-          wickets: 0,
-          wides: 0,
-          noBalls: 0,
-          dots: 0,
-          economy: 0,
-          legalBalls: 0,
-        };
-        bowlers.set(d.bowlerId, bowler);
-      }
       bowler.legalBalls += 1;
-      const conceded =
-        d.runsOffBat +
-        (d.extrasType?.startsWith("wide") || d.extrasType?.startsWith("no_ball")
-          ? d.extrasType === "wide" || d.extrasType === "no_ball"
-            ? 2
-            : 2 + d.extrasRuns
-          : d.extrasType === "bye" || d.extrasType === "leg_bye"
-            ? d.extrasRuns
-            : 0);
-      bowler.runs += conceded;
       if (d.runsOffBat === 0 && !d.wicketType && !d.extrasType) {
         bowler.dots += 1;
-      }
-      if (d.extrasType === "wide" || d.extrasType === "wide_runs") {
-        bowler.wides += 1;
-      }
-      if (d.extrasType === "no_ball" || d.extrasType === "no_ball_runs") {
-        bowler.noBalls += 1;
       }
       if (
         d.wicketType &&

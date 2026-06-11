@@ -34,12 +34,72 @@ export function nextBallAfterDeliveries(
   return { overNumber: over, ballInOver: ball };
 }
 
+export function countLegalBalls(
+  deliveries: { isLegalBall: boolean }[],
+): number {
+  return deliveries.filter((d) => d.isLegalBall).length;
+}
+
+export function maxLegalBalls(totalOvers: number): number {
+  return totalOvers * 6;
+}
+
 export function isInningsComplete(
   deliveries: { isLegalBall: boolean }[],
   totalOvers: number,
+  endedAt?: Date | string | null,
 ): boolean {
-  const legalBalls = deliveries.filter((d) => d.isLegalBall).length;
-  return legalBalls >= totalOvers * 6;
+  if (endedAt) return true;
+  return countLegalBalls(deliveries) >= maxLegalBalls(totalOvers);
+}
+
+/** Whether another delivery may be recorded in this innings. */
+export function canAcceptDelivery(
+  deliveries: { isLegalBall: boolean }[],
+  totalOvers: number,
+  incomingIsLegal: boolean,
+  endedAt?: Date | string | null,
+): { ok: true } | { ok: false; reason: string } {
+  if (endedAt) {
+    return { ok: false, reason: "Innings already ended" };
+  }
+  const legal = countLegalBalls(deliveries);
+  const cap = maxLegalBalls(totalOvers);
+  if (legal >= cap) {
+    return {
+      ok: false,
+      reason: `Innings complete (${totalOvers} overs)`,
+    };
+  }
+  if (incomingIsLegal && legal + 1 > cap) {
+    return {
+      ok: false,
+      reason: `Innings complete (${totalOvers} overs)`,
+    };
+  }
+  return { ok: true };
+}
+
+/** Position of the last delivery bowled (for live display). */
+export function lastBallAfterDeliveries(
+  deliveries: DeliveryBallInput[],
+): BallPosition | null {
+  if (deliveries.length === 0) return null;
+  const last = deliveries[deliveries.length - 1]!;
+  return { overNumber: last.overNumber, ballInOver: last.ballInOver };
+}
+
+/** Cricket overs display e.g. 3 legal balls → 0.3, 7 → 1.1 */
+export function formatOversFromLegalBalls(legalBalls: number): string {
+  const overs = Math.floor(legalBalls / 6);
+  const balls = legalBalls % 6;
+  return `${overs}.${balls}`;
+}
+
+/** Overs (and balls) remaining in the innings e.g. 4 overs, 18 balls bowled → 1.0 */
+export function oversToSpare(totalOvers: number, legalBallsBowled: number): string {
+  const spareBalls = totalOvers * 6 - legalBallsBowled;
+  return formatOversFromLegalBalls(Math.max(0, spareBalls));
 }
 
 export function formatOver(position: BallPosition): string {

@@ -13,7 +13,13 @@ import {
   type DeliveryEvent,
 } from "@howzzat/rules-engine";
 import { formatBallLabel } from "../../../lib/ball-label";
-import { apiFetch, fetchScoringContext, type ScoringContext } from "../../../lib/api";
+import {
+  apiFetch,
+  continueChase,
+  endInningsEarly,
+  fetchScoringContext,
+  type ScoringContext,
+} from "../../../lib/api";
 
 type WicketKind = "bowled" | "caught" | "run_out" | "lbw" | "stumped";
 type ExtrasPanel = "wide" | "no_ball" | "bye" | "leg_bye" | null;
@@ -29,7 +35,7 @@ export default function MobileScoreScreen() {
   const [ctx, setCtx] = useState<ScoringContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [thisOver, setThisOver] = useState<string[]>([]);
+  const [chasePromptOpen, setChasePromptOpen] = useState(false);
 
   const [strikerId, setStrikerId] = useState("");
   const [nonStrikerId, setNonStrikerId] = useState("");
@@ -78,9 +84,12 @@ export default function MobileScoreScreen() {
       setNonStrikerId(battingSquad[1]?.id ?? battingSquad[0]!.id);
     }
     if (bowlingSquad.length && !bowlerId) {
+      if (bowlingSquad.length > 2 && activeInnings && !activeInnings.bowlerLocked) {
+        return;
+      }
       setBowlerId(bowlingSquad[0]!.id);
     }
-  }, [battingSquad, bowlingSquad, strikerId, bowlerId]);
+  }, [battingSquad, bowlingSquad, strikerId, bowlerId, activeInnings?.bowlerLocked]);
 
   useEffect(() => {
     if (!activeInnings?.bowlerLocked || !activeInnings.lockedBowlerId) return;
@@ -145,9 +154,9 @@ export default function MobileScoreScreen() {
     setBusy(true);
     setError(null);
     try {
-      const sym = ballSymbol(body);
+      const ball = activeInnings.nextBall;
       const isEndOfOver =
-        activeInnings.nextBall.ballInOver === 6 && body.isLegalBall !== false && !body.wicketType;
+        ball.ballInOver === 6 && body.isLegalBall !== false && !body.wicketType;
 
       await apiFetch("/api/v1/deliveries", {
         method: "POST",
@@ -162,13 +171,31 @@ export default function MobileScoreScreen() {
         }),
       });
 
-      setThisOver((prev) => (isEndOfOver ? [] : [...prev, sym]));
       rotateStrikeAfter(body);
+
+      if (isEndOfOver) {
+        if (bowlingSquad.length === 2) {
+          const other = bowlingSquad.find((p) => p.id !== bowlerId);
+          if (other) setBowlerId(other.id);
+        } else if (bowlingSquad.length > 2) {
+          setBowlerId("");
+        }
+      }
 
       const updated = await refresh();
       setWicketOpen(false);
       setFielderId("");
       setExtrasOpen(null);
+
+      const stillActive = updated.innings.find((i) => i.id === updated.activeInningsId);
+      if (
+        stillActive &&
+        updated.chase?.targetReached &&
+        !updated.chaseContinuedAfterTarget &&
+        !stillActive.complete
+      ) {
+        setChasePromptOpen(true);
+      }
 
       if (updated.canFinalize) {
         router.push(`/match/${matchId}/result`);
@@ -194,7 +221,6 @@ export default function MobileScoreScreen() {
       setStrikerId("");
       setNonStrikerId("");
       setBowlerId("");
-      setThisOver([]);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start innings");
@@ -231,6 +257,17 @@ export default function MobileScoreScreen() {
     );
   }
 
+  if (!ctx.squadsConfirmed) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.msg}>Confirm match squads first</Text>
+        <Link href={`/match/${matchId}/squads`} style={styles.link}>
+          Go to squads →
+        </Link>
+      </View>
+    );
+  }
+
   if (!ctx.toss.tossWinnerTeamId) {
     return (
       <View style={styles.center}>
@@ -242,8 +279,8 @@ export default function MobileScoreScreen() {
     );
   }
 
-  const ballLabel = activeInnings
-    ? formatBallLabel(activeInnings.nextBall.overNumber, activeInnings.nextBall.ballInOver)
+  const ballLabel = activeInnings?.lastBall
+    ? formatBallLabel(activeInnings.lastBall.overNumber, activeInnings.lastBall.ballInOver)
     : null;
 
   return (
@@ -269,24 +306,83 @@ export default function MobileScoreScreen() {
             <Text style={styles.vs}>vs {activeInnings.bowlingTeamName}</Text>
           </View>
 
-          <Text style={styles.ballLabel}>Ball {ballLabel}</Text>
+          <Text style={styles.ballLabel}>Ball {ballLabel ?? "—"}</Text>
           <Text style={styles.score}>
             {activeInnings.totalRuns}/{activeInnings.wickets}
           </Text>
           <Text style={styles.meta}>
-            {activeInnings.oversBowled}/{ctx.totalOvers} overs
+            {activeInnings.displayOvers}/{ctx.totalOvers} overs
             {ctx.startingScore > 0 ? ` · base ${ctx.startingScore}` : ""}
           </Text>
+          {ctx.chase && (
+            <Text style={styles.chase}>
+              Need {ctx.chase.runsNeeded} runs to win (target {ctx.chase.targetRuns})
+            </Text>
+          )}
 
-          {thisOver.length > 0 && (
+          {activeInnings.recentBalls.length > 0 && (
             <View style={styles.thisOver}>
-              <Text style={styles.thisOverLabel}>This over:</Text>
               <View style={styles.thisOverRow}>
-                {thisOver.map((sym, i) => (
-                  <View key={i} style={styles.overBall}>
-                    <Text style={styles.overBallText}>{sym}</Text>
+                {activeInnings.recentBalls.map((b) => (
+                  <View key={b.id} style={styles.historyWrap}>
+                    <View
+                      style={[
+                        styles.overBall,
+                        b.overNumber % 2 === 0 && styles.overBallEven,
+                      ]}
+                    >
+                      <Text style={styles.overBallText}>{b.symbol}</Text>
+                    </View>
+                    {b.isOverEnd && <View style={styles.overSep} />}
                   </View>
                 ))}
+              </View>
+            </View>
+          )}
+
+          {chasePromptOpen && (
+            <View style={styles.chasePrompt}>
+              <Text style={styles.chasePromptTitle}>Target reached</Text>
+              <Text style={styles.chasePromptBody}>
+                Stop the innings or continue batting?
+              </Text>
+              <View style={styles.chasePromptRow}>
+                <Pressable
+                  style={styles.chaseBtn}
+                  disabled={busy}
+                  onPress={async () => {
+                    setBusy(true);
+                    try {
+                      await endInningsEarly(matchId, activeInnings.id);
+                      setChasePromptOpen(false);
+                      await refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.chaseBtnText}>Stop</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.chaseBtn, styles.chaseBtnAlt]}
+                  disabled={busy}
+                  onPress={async () => {
+                    setBusy(true);
+                    try {
+                      await continueChase(matchId);
+                      setChasePromptOpen(false);
+                      await refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.chaseBtnTextAlt}>Continue</Text>
+                </Pressable>
               </View>
             </View>
           )}
@@ -334,8 +430,10 @@ export default function MobileScoreScreen() {
             <Text style={[styles.section, { marginTop: 12 }]}>Bowling</Text>
             <Text style={styles.bowlerHint}>
               {activeInnings.bowlerLocked
-                ? `Bowler locked for over ${activeInnings.nextBall.overNumber}`
-                : "Pick bowler before the first ball of the over"}
+                ? `Bowler locked for over ${activeInnings.lastBall?.overNumber ?? activeInnings.nextBall.overNumber}`
+                : bowlingSquad.length > 2
+                  ? "Pick bowler for this over"
+                  : "Pick bowler before the first ball of the over"}
             </Text>
             {bowlingSquad.map((p) => (
               <Pressable
@@ -659,8 +757,38 @@ const styles = StyleSheet.create({
   score: { fontSize: 48, fontWeight: "800", color: "#0B4169", textAlign: "center" },
   meta: { textAlign: "center", color: "#666", marginBottom: 12 },
   thisOver: { marginBottom: 12, alignItems: "center" },
-  thisOverLabel: { fontSize: 12, color: "#666", marginBottom: 6 },
-  thisOverRow: { flexDirection: "row", gap: 6 },
+  thisOverRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center" },
+  historyWrap: { flexDirection: "row", alignItems: "center", gap: 4 },
+  overBallEven: { backgroundColor: "#f0f4f8", borderColor: "#d0d8e0" },
+  overSep: { width: 2, height: 16, backgroundColor: "#3d85c6", opacity: 0.5 },
+  chase: {
+    textAlign: "center",
+    color: "#b8860b",
+    fontWeight: "700",
+    marginBottom: 8,
+    fontSize: 14,
+  },
+  chasePrompt: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#54ACEE",
+  },
+  chasePromptTitle: { fontWeight: "800", color: "#0B4169", marginBottom: 6 },
+  chasePromptBody: { color: "#666", marginBottom: 10 },
+  chasePromptRow: { flexDirection: "row", gap: 10 },
+  chaseBtn: {
+    flex: 1,
+    backgroundColor: "#0B4169",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  chaseBtnAlt: { backgroundColor: "#eef2f7", borderWidth: 1, borderColor: "#0B4169" },
+  chaseBtnText: { color: "#fff", fontWeight: "700" },
+  chaseBtnTextAlt: { color: "#0B4169", fontWeight: "700" },
   overBall: {
     width: 32,
     height: 32,

@@ -62,7 +62,17 @@ export function MatchInsightsPanel({
   coachInsights: MatchSummary["coachInsights"];
 }) {
   const [audience, setAudience] = useState<"parents" | "coaches">("parents");
-  const insights = audience === "parents" ? parentInsights : coachInsights;
+  const coachAll = (() => {
+    const seen = new Set<string>();
+    const merged = [];
+    for (const ins of [...parentInsights, ...coachInsights]) {
+      if (seen.has(ins.title)) continue;
+      seen.add(ins.title);
+      merged.push(ins);
+    }
+    return merged;
+  })();
+  const insights = audience === "parents" ? parentInsights : coachAll;
 
   if (!parentInsights.length && !coachInsights.length) return null;
 
@@ -92,7 +102,7 @@ export function MatchInsightsPanel({
       <p className="ms-insights-intro">
         {audience === "parents"
           ? "Highlights and encouragement from the match — perfect for the car ride home."
-          : "Data-led talking points for training — honest gaps and what to work on next."}
+          : "Full match facts for training — positives and areas to work on."}
       </p>
       <ul className="ms-insights-list">
         {insights.map((ins) => (

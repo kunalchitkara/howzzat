@@ -119,6 +119,20 @@ export const createInningsSchema = z.object({
   inningsNumber: z.number().int().min(1).max(2),
 });
 
+export const updateDeliverySchema = z.object({
+  runsOffBat: z.number().int().min(0).max(6).optional(),
+  isLegalBall: z.boolean().optional(),
+  extrasType: extrasTypeSchema.nullable().optional(),
+  extrasRuns: z.number().int().min(0).optional(),
+  extrasRunsType: z.enum(["bye", "leg_bye"]).nullable().optional(),
+  wicketType: wicketTypeSchema.nullable().optional(),
+  strikerId: z.string().cuid().optional(),
+  nonStrikerId: z.string().cuid().optional(),
+  bowlerId: z.string().cuid().optional(),
+  fielderId: z.string().cuid().nullable().optional(),
+  dismissedBatsmanId: z.string().cuid().nullable().optional(),
+});
+
 export const createDeliverySchema = z.object({
   inningsId: z.string().cuid(),
   overNumber: z.number().int().min(1),
@@ -155,6 +169,10 @@ export const createInviteSchema = z.object({
   email: z.string().email(),
   role: orgRoleSchema.optional(),
   teamId: z.string().cuid().optional(),
+});
+
+export const confirmSquadsSchema = z.object({
+  totalOvers: z.number().int().min(1).max(50).optional(),
 });
 
 export const setMatchSquadSchema = z

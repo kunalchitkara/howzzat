@@ -548,7 +548,14 @@ function generateCoachInsights(ctx: InsightContext): MatchSummaryInsight[] {
     }
   }
 
-  return pickInsights(candidates, ctx.seed + 1, 6);
+  const seen = new Set<string>();
+  return candidates
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .filter((c) => {
+      if (seen.has(c.title)) return false;
+      seen.add(c.title);
+      return true;
+    });
 }
 
 export function buildMatchSummary(data: MatchScorecardView): MatchSummary | null {

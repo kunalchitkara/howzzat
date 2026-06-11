@@ -19,6 +19,7 @@ export default function ResultScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [marginText, setMarginText] = useState("");
+  const [marginEdited, setMarginEdited] = useState(false);
 
   const refresh = useCallback(async () => {
     const data = await fetchScoringContext(matchId);
@@ -26,8 +27,14 @@ export default function ResultScreen() {
   }, [matchId]);
 
   useEffect(() => {
-    refresh().catch((e) => setError(e instanceof Error ? e.message : "Load failed"));
-  }, [refresh]);
+    refresh()
+      .then((data) => {
+        if (data.suggestedResult && !marginEdited) {
+          setMarginText(data.suggestedResult.line);
+        }
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Load failed"));
+  }, [refresh, marginEdited]);
 
   async function finalize() {
     setBusy(true);
@@ -61,7 +68,8 @@ export default function ResultScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Record result</Text>
+      <Text style={styles.heading}>4. Final result</Text>
+      <Text style={styles.sub}>Host: {ctx.homeTeam.name}</Text>
 
       {ctx.status === "COMPLETED" ? (
         <View style={styles.card}>
@@ -94,12 +102,18 @@ export default function ResultScreen() {
             <Text style={styles.warn}>Complete the innings in the scorer first.</Text>
           )}
 
-          <Text style={styles.label}>Result line (optional)</Text>
+          {ctx.suggestedResult && (
+            <Text style={styles.suggested}>{ctx.suggestedResult.line}</Text>
+          )}
+          <Text style={styles.label}>Result line</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. Blues won by 12 runs"
             value={marginText}
-            onChangeText={setMarginText}
+            onChangeText={(t) => {
+              setMarginEdited(true);
+              setMarginText(t);
+            }}
           />
 
           <Pressable
@@ -129,7 +143,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#eef2f7" },
   content: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  heading: { fontSize: 22, fontWeight: "800", color: "#0B4169", marginBottom: 16 },
+  heading: { fontSize: 22, fontWeight: "800", color: "#0B4169", marginBottom: 8 },
+  sub: { color: "#666", marginBottom: 16 },
+  suggested: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0B4169",
+    marginBottom: 12,
+    textAlign: "center",
+  },
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 },
   team: { fontWeight: "700", color: "#0B4169", fontSize: 16 },
   score: { fontSize: 36, fontWeight: "800", color: "#0B4169", marginTop: 8 },

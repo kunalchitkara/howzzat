@@ -65,6 +65,8 @@ describe("ball-by-ball", () => {
     expect(bbb.overs[0]?.deliveries).toHaveLength(2);
     expect(bbb.overs[0]?.deliveries[0]?.totalScore).toBe(204);
     expect(bbb.overs[0]?.deliveries[0]?.displayBall).toBe("0.1");
+    expect(bbb.overs[0]?.deliveries[0]?.bowlerName).toBe("Bowler");
+    expect(bbb.overs[0]?.deliveries[0]?.strikerName).toBe("Striker");
     expect(bbb.overs[0]?.deliveries[1]?.isWicket).toBe(true);
     expect(bbb.overs[0]?.deliveries[1]?.totalScore).toBe(199);
     expect(bbb.overs[0]?.batterSummaries).toHaveLength(2);

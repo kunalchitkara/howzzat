@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { POST as createIosDemo } from "@/app/api/v1/demo/ios-match/route";
+import { POST as confirmSquadsRoute } from "@/app/api/v1/matches/[matchId]/squad/confirm/route";
 import { POST as recordTossRoute } from "@/app/api/v1/matches/[matchId]/toss/route";
 import { GET as getScoring } from "@/app/api/v1/matches/[matchId]/scoring/route";
 import { GET as getLive } from "@/app/api/v1/matches/[matchId]/live/route";
@@ -71,7 +72,22 @@ describe("iOS demo integration flow", () => {
     expect(ctx0.canStartInnings).toBeNull();
     expect(ctx0.squads.home.length).toBe(2);
     expect(ctx0.squads.away.length).toBe(2);
-    expect(ctx0.rosters.home.length).toBeGreaterThanOrEqual(2);
+    expect(ctx0.rosters.home.length).toBe(8);
+    expect(ctx0.rosters.away.length).toBe(8);
+    expect(ctx0.squads.home[0]?.name).toBe("Alex");
+    expect(ctx0.squads.home[0]?.isCaptain).toBe(true);
+
+    expect(scoring0.body.data.squadsConfirmed).toBe(false);
+
+    const confirmRes = await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
+        }),
+        params({ matchId }),
+      ),
+    );
+    expect(confirmRes.status).toBe(200);
 
     const homeId = ctx0.homeTeam.id as string;
     const awayId = ctx0.awayTeam.id as string;
@@ -177,6 +193,73 @@ describe("iOS demo integration flow", () => {
     );
     expect(finRes.status).toBe(200);
     expect(finRes.body.data.status).toBe("COMPLETED");
+  });
+
+  it("rejects a 13th legal ball in a 2-over innings", async () => {
+    const created = await readJson(
+      await createIosDemo(jsonRequest("POST", "/api/v1/demo/ios-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+
+    const scoring0 = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    const homeId = scoring0.body.data.homeTeam.id as string;
+    const strikerId = scoring0.body.data.squads.home[0]!.id as string;
+    const nonStrikerId = scoring0.body.data.squads.home[1]!.id as string;
+    const bowlerId = scoring0.body.data.squads.away[0]!.id as string;
+
+    await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    await readJson(
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeId,
+          electedTo: "bat",
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    const inningsRes = await readJson(
+      await createInningsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/innings`, {
+          battingTeamId: homeId,
+          inningsNumber: 1,
+        }),
+        params({ matchId }),
+      ),
+    );
+    const inningsId = inningsRes.body.data.id as string;
+
+    await bowlOvers(inningsId, Array(12).fill(1), strikerId, nonStrikerId, bowlerId);
+
+    const extra = await readJson(
+      await recordDeliveryRoute(
+        jsonRequest("POST", "/api/v1/deliveries", {
+          inningsId,
+          overNumber: 2,
+          ballInOver: 6,
+          runsOffBat: 1,
+          strikerId,
+          nonStrikerId,
+          bowlerId,
+        }),
+        emptyParams(),
+      ),
+    );
+    expect(extra.status).toBe(400);
+    expect(extra.body.error).toMatch(/complete|ended/i);
   });
 
   it("records wide+runs, no-ball+runs, byes and leg-byes on extras deliveries", async () => {

@@ -5,6 +5,9 @@ import u9SoftballLondonV1 from "../profiles/u9-softball-london-v1.json" with {
 import demo2OverPairsV1 from "../profiles/demo-2-over-pairs-v1.json" with {
   type: "json",
 };
+import demoU94OverV1 from "../profiles/demo-u9-4-over-v1.json" with {
+  type: "json",
+};
 import mjcaU9OutdoorV1 from "../profiles/mjca-u9-outdoor-v1.json" with {
   type: "json",
 };
@@ -42,6 +45,7 @@ import mjcaOutdoorStandard20V1 from "../profiles/mjca-outdoor-standard-20-v1.jso
 const BUILTIN_PROFILES: Record<string, RulesProfile> = {
   "u9-softball-london-v1": u9SoftballLondonV1 as RulesProfile,
   "demo-2-over-pairs-v1": demo2OverPairsV1 as RulesProfile,
+  "demo-u9-4-over-v1": demoU94OverV1 as RulesProfile,
   "mjca-u9-outdoor-v1": mjcaU9OutdoorV1 as RulesProfile,
   "mjca-u10-boys-pairs-v1": mjcaU10BoysPairsV1 as RulesProfile,
   "mjca-girls-u10-softball-pairs-v1": mjcaGirlsU10SoftballPairsV1 as RulesProfile,

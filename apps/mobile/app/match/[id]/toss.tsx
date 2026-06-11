@@ -55,6 +55,17 @@ export default function TossScreen() {
     }
   }
 
+  if (ctx && !ctx.squadsConfirmed) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.heading}>Confirm squads first</Text>
+        <Pressable style={styles.btn} onPress={() => router.push(`/match/${matchId}/squads`)}>
+          <Text style={styles.btnText}>Go to squads →</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
   if (!ctx) {
     return (
       <View style={styles.center}>

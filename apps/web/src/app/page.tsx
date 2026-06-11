@@ -10,10 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const profiles = listBuiltinProfiles();
   const u9 = getBuiltinProfile("u9-softball-london-v1");
-  const demoMatch = await prisma.match.findFirst({
-    where: { publicSlug: "demo-score" },
-    select: { id: true },
-  });
+  const [demoMatch, u9DemoMatch] = await Promise.all([
+    prisma.match.findFirst({
+      where: { publicSlug: "demo-score" },
+      select: { id: true },
+    }),
+    prisma.match.findFirst({
+      where: { publicSlug: "u9-live" },
+      select: { id: true },
+    }),
+  ]);
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -80,9 +86,19 @@ export default async function HomePage() {
           {demoMatch && (
             <>
               {" · "}
-              <Link href={`/match/${demoMatch.id}/score`}>Live demo scorer</Link>
+              <Link href={`/match/${demoMatch.id}/score`}>U9 full squad scorer</Link>
             </>
           )}
+          {u9DemoMatch && (
+            <>
+              {" · "}
+              <Link href={`/match/${u9DemoMatch.id}/score`}>U9 4-over demo</Link>
+            </>
+          )}
+        </p>
+        <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
+          Reset U9 demo: <code>POST /api/v1/demo/u9-match</code> — pick 2–11 from 10 per
+          side, 4 overs each, 200 start, −5 per wicket.
         </p>
       </section>
 

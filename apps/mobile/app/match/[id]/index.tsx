@@ -44,28 +44,36 @@ export default function MatchHubScreen() {
   const inningsComplete = ctx.innings.some((i) => i.complete);
   const matchDone = ctx.status === "COMPLETED";
 
+  const squadsDone = ctx.squadsConfirmed;
+
   const steps: Step[] = [
     {
+      key: "squads",
+      label: "1. Squads",
+      href: `/match/${matchId}/squads`,
+      done: squadsDone,
+    },
+    {
       key: "toss",
-      label: "1. Toss",
+      label: "2. Toss",
       href: `/match/${matchId}/toss`,
       done: tossDone,
     },
     {
       key: "score",
-      label: "2. Score balls",
+      label: "3. Score",
       href: `/match/${matchId}/score`,
       done: inningsComplete,
     },
     {
       key: "result",
-      label: "3. Record result",
+      label: "4. Result",
       href: `/match/${matchId}/result`,
       done: matchDone,
     },
     {
       key: "dashboard",
-      label: "4. Match dashboard",
+      label: "Dashboard",
       href: `/match/${matchId}/dashboard`,
       done: inningsStarted,
     },
@@ -100,8 +108,12 @@ export default function MatchHubScreen() {
             {active.battingTeamName}: {active.totalRuns}/{active.wickets}
           </Text>
           <Text style={styles.liveMeta}>
-            Over {active.nextBall.overNumber}.{active.nextBall.ballInOver} ·{" "}
-            {active.oversBowled}/{ctx.totalOvers} ov
+            Ball{" "}
+            {active.lastBall
+              ? `${active.lastBall.overNumber}.${active.lastBall.ballInOver}`
+              : "—"}{" "}
+            · {active.displayOvers}/{ctx.totalOvers} ov
+            {ctx.chase ? ` · need ${ctx.chase.runsNeeded}` : ""}
           </Text>
         </View>
       )}

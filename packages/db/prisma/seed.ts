@@ -247,6 +247,11 @@ async function main() {
       ],
     });
 
+    await prisma.match.update({
+      where: { id: demoMatch.id },
+      data: { squadsConfirmedAt: new Date() },
+    });
+
     console.log(`Demo scoring match: ${demoMatch.id} (public slug: demo-score)`);
   }
 }
