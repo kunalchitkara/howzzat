@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
@@ -25,7 +26,18 @@ export default async function DashboardLayout({
         }}
       >
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-          <Link href="/dashboard" style={{ color: "#fff", fontWeight: 800 }}>
+          <Link
+            href="/dashboard"
+            style={{
+              color: "#fff",
+              fontWeight: 800,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              textDecoration: "none",
+            }}
+          >
+            <Image src="/logo-icon.png" alt="" width={28} height={28} aria-hidden />
             Howzzat
           </Link>
           <Link href="/dashboard" style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.9rem" }}>

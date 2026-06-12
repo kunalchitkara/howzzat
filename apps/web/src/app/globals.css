@@ -1,8 +1,10 @@
 :root {
-  --dk: #0b4169;
-  --md: #3d85c6;
+  --brand-navy: #0a1628;
+  --brand-primary: #3b82f6;
+  --dk: var(--brand-navy);
+  --md: #4a90e2;
   --lt: #d6eaf8;
-  --ac: #54acee;
+  --ac: var(--brand-primary);
   --gold: #f4a261;
   --ltgold: #fff3e0;
   --grey: #f0f2f7;

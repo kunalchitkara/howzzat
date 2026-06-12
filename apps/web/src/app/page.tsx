@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   getBuiltinProfile,
   listBuiltinProfiles,
@@ -19,16 +20,24 @@ export default async function HomePage() {
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem" }}>
       <header
         style={{
-          background: "linear-gradient(135deg, var(--dk), var(--md))",
+          background: "var(--brand-navy)",
           color: "#fff",
           padding: "2rem",
           borderRadius: 12,
           marginBottom: "2rem",
+          borderBottom: "3px solid var(--brand-primary)",
         }}
       >
-        <h1 style={{ fontSize: "2rem", fontWeight: 800 }}>Howzzat</h1>
-        <p style={{ marginTop: 8, opacity: 0.9 }}>
-          Cricket Scoring — rules-aware stats, live scorecards, and public dashboards.
+        <Image
+          src="/logo-full.png"
+          alt="Howzzat — Cricket Scoring App"
+          width={300}
+          height={90}
+          priority
+          style={{ height: "auto", maxWidth: "100%" }}
+        />
+        <p style={{ marginTop: 12, opacity: 0.9, color: "rgba(255,255,255,0.85)" }}>
+          Rules-aware stats, live scorecards, and public dashboards.
         </p>
       </header>
 

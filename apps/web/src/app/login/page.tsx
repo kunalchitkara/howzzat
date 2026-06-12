@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/dashboard/LoginForm";
@@ -25,8 +26,25 @@ export default async function LoginPage({
   return (
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "2rem 1rem" }}>
       <header style={{ marginBottom: 24, textAlign: "center" }}>
-        <h1 style={{ color: "var(--dk)", fontSize: "2rem", fontWeight: 800 }}>Cricket Scoring</h1>
-        <p style={{ color: "#666", marginTop: 8 }}>by Howzzat</p>
+        <Image
+          src="/logo-icon.png"
+          alt="Howzzat"
+          width={72}
+          height={72}
+          priority
+          style={{ margin: "0 auto" }}
+        />
+        <h1
+          style={{
+            color: "var(--brand-navy)",
+            fontSize: "1.5rem",
+            fontWeight: 800,
+            marginTop: 12,
+          }}
+        >
+          Cricket Scoring
+        </h1>
+        <p style={{ color: "#666", marginTop: 4 }}>Sign in to your club dashboard</p>
       </header>
       <LoginForm
         redirectTo={redirectTo ?? "/dashboard"}
