@@ -1,4 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
+import { ApiError } from "@/lib/api/http";
+import { normalizeEmail } from "@/lib/auth/email-user";
 import { prisma } from "@/lib/db";
 
 const GOOGLE_PROVIDER = "google";
@@ -83,7 +85,7 @@ export async function signInWithGoogleProfile(profile: {
   name?: string;
   emailVerified?: boolean;
 }) {
-  const email = profile.email.toLowerCase().trim();
+  const email = normalizeEmail(profile.email);
 
   const linked = await prisma.account.findUnique({
     where: {
@@ -94,26 +96,53 @@ export async function signInWithGoogleProfile(profile: {
     },
     include: { user: true },
   });
-  if (linked) return linked.user;
+  if (linked) {
+    const updates: { name?: string; emailVerified?: Date } = {};
+    if (profile.name?.trim() && !linked.user.name) updates.name = profile.name.trim();
+    if (profile.emailVerified && !linked.user.emailVerified) {
+      updates.emailVerified = new Date();
+    }
+    if (Object.keys(updates).length > 0) {
+      return prisma.user.update({ where: { id: linked.user.id }, data: updates });
+    }
+    return linked.user;
+  }
 
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
+  let user;
+  if (profile.emailVerified) {
+    user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: profile.name?.trim() || null,
+          emailVerified: new Date(),
+        },
+      });
+    } else {
+      const updates: { name?: string; emailVerified?: Date } = {};
+      if (profile.name?.trim() && !user.name) updates.name = profile.name.trim();
+      if (!user.emailVerified) updates.emailVerified = new Date();
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      }
+    }
+  } else {
+    const existingByEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingByEmail) {
+      throw new ApiError(
+        409,
+        "An account with this email already exists. Sign in with email or password.",
+        "EMAIL_EXISTS_USE_EMAIL",
+      );
+    }
     user = await prisma.user.create({
       data: {
         email,
         name: profile.name?.trim() || null,
-        emailVerified: profile.emailVerified ? new Date() : null,
+        emailVerified: null,
       },
     });
-  } else {
-    const updates: { name?: string; emailVerified?: Date } = {};
-    if (profile.name?.trim() && !user.name) updates.name = profile.name.trim();
-    if (profile.emailVerified && !user.emailVerified) {
-      updates.emailVerified = new Date();
-    }
-    if (Object.keys(updates).length > 0) {
-      user = await prisma.user.update({ where: { id: user.id }, data: updates });
-    }
   }
 
   await prisma.account.upsert({
