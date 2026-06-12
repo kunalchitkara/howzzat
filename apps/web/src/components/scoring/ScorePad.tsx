@@ -73,13 +73,15 @@ export function ScorePad({ matchId }: { matchId: string }) {
     return data;
   }, [matchId]);
 
+  // Initial load only — do not depend on oversTouched; flipping it re-fetched and
+  // syncDraftFromServer wiped unsaved squad picks on the first overs edit.
   useEffect(() => {
     refresh()
       .then((data) => {
         syncDraftFromServer(data);
         if (data.matchTotalOvers != null) {
           setDraftOvers(data.matchTotalOvers);
-        } else if (!oversTouched) {
+        } else {
           setDraftOvers(data.totalOvers);
         }
         if (data.toss.tossWinnerTeamId) {
@@ -88,7 +90,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
         }
       })
       .catch((e) => setError(String(e.message ?? e)));
-  }, [refresh, syncDraftFromServer, oversTouched]);
+  }, [refresh, syncDraftFromServer]);
 
   useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
