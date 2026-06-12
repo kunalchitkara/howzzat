@@ -65,11 +65,16 @@ async function rosterForTeam(
   const memberships = await prisma.teamMembership.findMany({
     where: { teamId, active: true },
     include: { player: true },
-    orderBy: { shirtNumber: "asc" },
+    orderBy: [{ shirtNumber: "asc" }, { createdAt: "asc" }],
   });
-  return memberships.map((m) =>
-    mapPlayer(m.player, teamId, ageGroupCap, referenceDate),
-  );
+  const seen = new Set<string>();
+  const roster: ScoringPlayer[] = [];
+  for (const m of memberships) {
+    if (seen.has(m.playerId)) continue;
+    seen.add(m.playerId);
+    roster.push(mapPlayer(m.player, teamId, ageGroupCap, referenceDate));
+  }
+  return roster;
 }
 
 function squadPlayers(

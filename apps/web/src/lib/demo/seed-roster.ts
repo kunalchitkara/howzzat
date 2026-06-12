@@ -48,12 +48,23 @@ export async function seedTeamRoster(
     playerIds.push(player.id);
   }
 
+  // Drop removed players across all season labels.
   await prisma.teamMembership.updateMany({
     where: {
       teamId,
-      seasonLabel,
       active: true,
       playerId: { notIn: playerIds },
+    },
+    data: { active: false },
+  });
+
+  // One active membership per player — stale ios-demo / u9-demo rows overlap otherwise.
+  await prisma.teamMembership.updateMany({
+    where: {
+      teamId,
+      active: true,
+      playerId: { in: playerIds },
+      NOT: { seasonLabel },
     },
     data: { active: false },
   });

@@ -71,6 +71,20 @@ describe("teams and tournaments service", () => {
     expect(players[0]?.player.legalName).toBe("Ariyan");
   });
 
+  it("rejects duplicate player names on the same team", async () => {
+    const org = await createOrganization({ name: "Player Club" });
+    const team = await createTeam(org.id, { name: "U9" });
+    await addPlayerToTeam(team.id, { legalName: "Avyaan", shirtNumber: 1 });
+    await expect(
+      addPlayerToTeam(team.id, { legalName: "  avyaan  ", shirtNumber: 2 }),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "DUPLICATE_PLAYER_NAME",
+    });
+    const players = await listTeamPlayers(team.id);
+    expect(players).toHaveLength(1);
+  });
+
   it("loads public tournament by slug", async () => {
     const fixtures = await seedTestFixtures(prisma);
     const tournament = await getTournamentBySlug(

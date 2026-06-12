@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { POST as loginRoute } from "@/app/api/v1/auth/login/route";
+import { POST as createIosDemo } from "@/app/api/v1/demo/ios-match/route";
 import { POST as createU9Demo } from "@/app/api/v1/demo/u9-match/route";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 import { POST as setSquadRoute } from "@/app/api/v1/matches/[matchId]/squad/route";
@@ -160,6 +161,34 @@ describe("squad confirm and scoring e2e", () => {
     );
     expect(homeRosterNames).toEqual([...EDGWARE_U9_ROSTER]);
     expect(awayRosterNames).toEqual([...HAYES_ROSTER]);
+  });
+
+  it("u9-live reset has no duplicate roster names after ios-demo seed", async () => {
+    await readJson(
+      await createIosDemo(jsonRequest("POST", "/api/v1/demo/ios-match"), emptyParams()),
+    );
+    const created = await readJson(
+      await createU9Demo(jsonRequest("POST", "/api/v1/demo/u9-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+
+    const scoring = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    const homeRoster = scoring.body.data.rosters.home as { id: string; name: string }[];
+    const awayRoster = scoring.body.data.rosters.away as { id: string; name: string }[];
+
+    expect(homeRoster).toHaveLength(EDGWARE_U9_ROSTER.length);
+    expect(awayRoster).toHaveLength(HAYES_ROSTER.length);
+    expect(new Set(homeRoster.map((p) => p.id)).size).toBe(homeRoster.length);
+    expect(new Set(awayRoster.map((p) => p.id)).size).toBe(awayRoster.length);
+    expect(new Set(homeRoster.map((p) => p.name)).size).toBe(homeRoster.length);
+    expect(new Set(awayRoster.map((p) => p.name)).size).toBe(awayRoster.length);
+    expect(homeRoster.map((p) => p.name)).toEqual([...EDGWARE_U9_ROSTER]);
+    expect(awayRoster.map((p) => p.name)).toEqual([...HAYES_ROSTER]);
   });
 
   it("u9-live: toss → first delivery without auth", async () => {

@@ -7,6 +7,38 @@ import type { z } from "zod";
 type CreateTeamInput = z.infer<typeof createTeamSchema>;
 type CreatePlayerInput = z.infer<typeof createPlayerSchema>;
 
+const DUPLICATE_NAME_MESSAGE =
+  'This team already has a player with that name. Use a second name initial (e.g. "Avyaan S") or suffix I, II, III if second names also match.';
+
+function normalizePlayerName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** Reject duplicate legal names on the same team (case-insensitive, trimmed). */
+export async function assertUniquePlayerNameOnTeam(
+  teamId: string,
+  legalName: string,
+  excludePlayerId?: string,
+) {
+  const normalized = normalizePlayerName(legalName);
+  if (!normalized) return;
+
+  const memberships = await prisma.teamMembership.findMany({
+    where: { teamId, active: true },
+    include: { player: true },
+  });
+  const conflict = memberships.find(
+    (m) =>
+      m.playerId !== excludePlayerId &&
+      normalizePlayerName(m.player.legalName) === normalized,
+  );
+  if (conflict) {
+    throw new ApiError(400, DUPLICATE_NAME_MESSAGE, "DUPLICATE_PLAYER_NAME", {
+      existingName: conflict.player.legalName,
+    });
+  }
+}
+
 export async function listTeams(orgId: string) {
   return prisma.team.findMany({
     where: { organizationId: orgId },
@@ -55,6 +87,7 @@ export async function createTeam(orgId: string, input: CreateTeamInput) {
 
 export async function addPlayerToTeam(teamId: string, input: CreatePlayerInput) {
   const team = await getTeam(teamId);
+  await assertUniquePlayerNameOnTeam(team.id, input.legalName);
 
   const player = await prisma.player.create({
     data: {
