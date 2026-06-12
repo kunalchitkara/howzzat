@@ -615,6 +615,54 @@ export function InviteForm({
   );
 }
 
+export function RedeemCouponForm({
+  tournamentId,
+  onRedeemed,
+}: {
+  tournamentId: string;
+  onRedeemed?: (balancePence: number, amountPence: number) => void;
+}) {
+  const [code, setCode] = useState("");
+  const { run, error, busy } = useSubmit<{
+    balancePence: number;
+    amountPence: number;
+  }>();
+
+  return (
+    <form
+      style={card}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(
+          `/api/v1/tournaments/${tournamentId}/wallet/redeem-coupon`,
+          { code: code.trim() },
+        ).then((data) => {
+          if (data) {
+            setCode("");
+            onRedeemed?.(data.balancePence, data.amountPence);
+          }
+        });
+      }}
+    >
+      <Field label="Coupon code">
+        <input
+          required
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="HOWZZAT-ALPHA-XXXX"
+          style={input}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </Field>
+      {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+      <button type="submit" disabled={busy || !code.trim()} style={btn}>
+        {busy ? "Redeeming…" : "Redeem coupon"}
+      </button>
+    </form>
+  );
+}
+
 export function AcceptInviteButton({ token }: { token: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

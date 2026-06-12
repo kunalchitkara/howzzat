@@ -4,22 +4,31 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WALLET_TOP_UP_AMOUNTS_PENCE, formatPence } from "@howzzat/shared";
 import { apiFetch } from "@/lib/client/api";
+import { RedeemCouponForm } from "./forms";
 import { btn, card } from "./ui";
 
 export function TournamentWalletPanel({
   tournamentId,
   orgId,
   balancePence,
+  walletPage = false,
+  showCouponRedeem = false,
 }: {
   tournamentId: string;
   orgId: string;
   balancePence: number;
+  /** When true, Stripe return URLs land on the wallet page. */
+  walletPage?: boolean;
+  showCouponRedeem?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [balance, setBalance] = useState(balancePence);
   const [busy, setBusy] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const tournamentPath = `/dashboard/organizations/${orgId}/tournaments/${tournamentId}`;
+  const pagePath = walletPage ? `${tournamentPath}/wallet` : tournamentPath;
 
   useEffect(() => {
     const walletStatus = searchParams.get("wallet");
@@ -32,20 +41,16 @@ export function TournamentWalletPanel({
         .then((data) => {
           setBalance(data.balancePence);
           setMessage("Wallet topped up successfully.");
-          router.replace(
-            `/dashboard/organizations/${orgId}/tournaments/${tournamentId}`,
-          );
+          router.replace(pagePath);
         })
         .catch((e) => {
           setMessage(e instanceof Error ? e.message : "Could not confirm payment");
         });
     } else if (walletStatus === "cancelled") {
       setMessage("Top-up cancelled.");
-      router.replace(
-        `/dashboard/organizations/${orgId}/tournaments/${tournamentId}`,
-      );
+      router.replace(pagePath);
     }
-  }, [orgId, router, searchParams, tournamentId]);
+  }, [orgId, pagePath, router, searchParams, tournamentId]);
 
   async function topUp(amountPence: number) {
     setBusy(amountPence);
@@ -55,7 +60,7 @@ export function TournamentWalletPanel({
         `/api/v1/tournaments/${tournamentId}/wallet/checkout`,
         {
           method: "POST",
-          body: JSON.stringify({ amountPence }),
+          body: JSON.stringify({ amountPence, returnToWallet: walletPage }),
         },
       );
       if (!url) throw new Error("Stripe did not return a checkout URL");
@@ -100,6 +105,21 @@ export function TournamentWalletPanel({
           Test mode: use card 4242 4242 4242 4242, any future expiry, any CVC.
         </p>
       </div>
+
+      {showCouponRedeem && (
+        <div style={{ marginTop: 16 }}>
+          <h3 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1rem" }}>
+            Redeem coupon
+          </h3>
+          <RedeemCouponForm
+            tournamentId={tournamentId}
+            onRedeemed={(newBalance, amountPence) => {
+              setBalance(newBalance);
+              setMessage(`Coupon redeemed — ${formatPence(amountPence)} added.`);
+            }}
+          />
+        </div>
+      )}
     </section>
   );
 }

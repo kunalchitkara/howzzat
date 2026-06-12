@@ -122,7 +122,37 @@ curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMEN
 
 Save `MATCH_ID`. Score: `http://localhost:3005/match/$MATCH_ID/score`
 
-## 9. Logout
+## 9. Tournament wallet & coupon (dashboard UI)
+
+After creating a tournament (`TOURNAMENT_ID`, `ORG_ID`):
+
+1. Open tournament dashboard:  
+   `http://localhost:3005/dashboard/organizations/$ORG_ID/tournaments/$TOURNAMENT_ID`  
+   Confirm **Tournament wallet** shows balance (starts at £0.00) and **Manage wallet →** link.
+2. Open wallet page:  
+   `http://localhost:3005/dashboard/organizations/$ORG_ID/tournaments/$TOURNAMENT_ID/wallet`  
+   Redeem a coupon or use Stripe test card `4242 4242 4242 4242`.
+3. Generate a coupon (admin):
+
+```bash
+curl -s -X POST "$BASE/api/v1/admin/coupons" \
+  -H 'Content-Type: application/json' \
+  -H "X-Admin-Secret: $COUPON_ADMIN_SECRET" \
+  -d '{"amountPence":2500,"code":"HOWZZAT-ALPHA-E2E1"}' | jq .
+```
+
+4. Redeem via API (manager cookie from step 1):
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST \
+  "$BASE/api/v1/tournaments/$TOURNAMENT_ID/wallet/redeem-coupon" \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"HOWZZAT-ALPHA-E2E1"}' | jq .
+```
+
+Expect `balancePence: 2500`. In the wallet UI, enter the same code and confirm balance updates.
+
+## 10. Logout
 
 ```bash
 curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/logout" | jq .
@@ -153,4 +183,5 @@ curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
 pnpm test:api
 ```
 
-Phase 1 happy path: `apps/web/tests/api/phase1-e2e.test.ts`
+Phase 1 happy path: `apps/web/tests/api/phase1-e2e.test.ts`  
+Wallet coupons (API): `apps/web/tests/integration/wallet-coupon.test.ts`

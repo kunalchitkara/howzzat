@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   amountPence: z.number().int().positive(),
+  returnToWallet: z.boolean().optional(),
 });
 
 export const POST = withApi(async (request, { params }) => {
@@ -18,11 +19,12 @@ export const POST = withApi(async (request, { params }) => {
   const user = await requireRequestUser(request);
   await assertCanTopUpWallet(tournamentId, user);
 
-  const { amountPence } = await parseJson(request, bodySchema);
+  const { amountPence, returnToWallet } = await parseJson(request, bodySchema);
   const session = await createWalletCheckoutSession(
     tournamentId,
     amountPence,
     user.id,
+    returnToWallet ?? false,
   );
 
   return json({ data: session }, 201);

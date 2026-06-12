@@ -33,6 +33,7 @@ export async function createWalletCheckoutSession(
   tournamentId: string,
   amountPence: number,
   userId: string,
+  returnToWallet = false,
 ) {
   if (!TOP_UP_SET.has(amountPence)) {
     throw new ApiError(
@@ -53,8 +54,10 @@ export async function createWalletCheckoutSession(
   });
 
   const origin = appOrigin();
-  const successUrl = `${origin}/dashboard/organizations/${tournament.organizationId}/tournaments/${tournamentId}?wallet=success&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${origin}/dashboard/organizations/${tournament.organizationId}/tournaments/${tournamentId}?wallet=cancelled`;
+  const basePath = `${origin}/dashboard/organizations/${tournament.organizationId}/tournaments/${tournamentId}`;
+  const returnPath = returnToWallet ? `${basePath}/wallet` : basePath;
+  const successUrl = `${returnPath}?wallet=success&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${returnPath}?wallet=cancelled`;
 
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({

@@ -110,4 +110,100 @@ describe("wallet coupon API", () => {
     );
     expect(res.status).toBe(403);
   });
+
+  it("rejects duplicate coupon redemption on the same tournament", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const cookie = await sessionCookie();
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: "coupon-manager@test.com" },
+    });
+    await prisma.orgMembership.create({
+      data: {
+        organizationId: fixtures.orgId,
+        userId: user.id,
+        role: "OWNER",
+      },
+    });
+    await prisma.tournamentManager.create({
+      data: { tournamentId: fixtures.tournamentId, userId: user.id },
+    });
+
+    await readJson(
+      await createCouponRoute(
+        new Request("http://localhost:3000/api/v1/admin/coupons", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Admin-Secret": adminSecret,
+          },
+          body: JSON.stringify({
+            amountPence: 1500,
+            maxRedemptions: 5,
+            code: "HOWZZAT-ALPHA-DUP2",
+          }),
+        }),
+        emptyParams(),
+      ),
+    );
+
+    const first = await readJson(
+      await redeemCouponRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${fixtures.tournamentId}/wallet/redeem-coupon`,
+          { code: "HOWZZAT-ALPHA-DUP2" },
+          cookie,
+        ),
+        params({ tournamentId: fixtures.tournamentId }),
+      ),
+    );
+    expect(first.status).toBe(200);
+    expect(first.body.data.balancePence).toBe(1500);
+
+    const second = await readJson(
+      await redeemCouponRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${fixtures.tournamentId}/wallet/redeem-coupon`,
+          { code: "HOWZZAT-ALPHA-DUP2" },
+          cookie,
+        ),
+        params({ tournamentId: fixtures.tournamentId }),
+      ),
+    );
+    expect(second.status).toBe(400);
+    expect(second.body.code).toBe("COUPON_ALREADY_REDEEMED");
+  });
+
+  it("rejects unknown coupon codes", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const cookie = await sessionCookie();
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: "coupon-manager@test.com" },
+    });
+    await prisma.orgMembership.create({
+      data: {
+        organizationId: fixtures.orgId,
+        userId: user.id,
+        role: "OWNER",
+      },
+    });
+    await prisma.tournamentManager.create({
+      data: { tournamentId: fixtures.tournamentId, userId: user.id },
+    });
+
+    const res = await readJson(
+      await redeemCouponRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${fixtures.tournamentId}/wallet/redeem-coupon`,
+          { code: "HOWZZAT-ALPHA-MISSING" },
+          cookie,
+        ),
+        params({ tournamentId: fixtures.tournamentId }),
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("COUPON_INVALID");
+  });
 });
