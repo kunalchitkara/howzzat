@@ -154,7 +154,7 @@ export function AccountSettings({
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={input}
-              placeholder="Coach or parent name"
+              placeholder="Manager or parent name"
             />
           </Field>
           <button type="submit" disabled={busy || !name.trim()} style={btn}>

@@ -47,7 +47,7 @@ export default async function MatchScorecardPage({
           <LiveScorePoll matchId={matchId} initialStatus={matchStatus} />
           <p style={{ marginTop: 16 }}>
             <Link href={`/match/${matchId}/score`} style={{ color: "var(--md)", marginRight: 12 }}>
-              Coach scorer
+              Open scorer
             </Link>
             <Link href="/demo/scorecard" style={{ color: "var(--md)" }}>
               Demo scorecard
@@ -63,7 +63,7 @@ export default async function MatchScorecardPage({
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "12px 16px 0" }}>
         <div style={{ textAlign: "right", marginBottom: 8 }}>
           <Link href={`/match/${matchId}/score`} style={{ color: "var(--md)", fontSize: "0.85rem", fontWeight: 600 }}>
-            Coach scorer →
+            Open scorer →
           </Link>
         </div>
         <LiveScorePoll matchId={matchId} initialStatus={matchStatus} />

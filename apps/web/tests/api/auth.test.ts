@@ -132,6 +132,39 @@ describe("Auth API", () => {
     expect(membership?.role).toBe("MANAGER");
   });
 
+  it("accept SCORER invite grants org scorer role", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const invite = await createInvite(fixtures.tournamentId, {
+      email: "scorer@test.club",
+      kind: "ORG_MANAGER",
+      role: "SCORER",
+    });
+
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", { email: "scorer@test.club" }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
+    const acceptRes = await readJson(
+      await acceptInvite(
+        jsonRequest("POST", `/api/v1/invites/${invite.token}/accept`, undefined, cookie),
+        params({ token: invite.token }),
+      ),
+    );
+    expect(acceptRes.status).toBe(200);
+
+    const membership = await prisma.orgMembership.findFirst({
+      where: {
+        organizationId: fixtures.orgId,
+        user: { email: "scorer@test.club" },
+      },
+    });
+    expect(membership?.role).toBe("SCORER");
+  });
+
   it("accept MANAGER invite grants tournament manager role", async () => {
     const fixtures = await seedTestFixtures(prisma);
     const invite = await createInvite(fixtures.tournamentId, {

@@ -1,11 +1,16 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { slugify } from "../api/slug";
-import type { createTeamSchema, createPlayerSchema } from "../validations";
+import type {
+  createTeamSchema,
+  createPlayerSchema,
+  updateTeamSchema,
+} from "../validations";
 import type { z } from "zod";
 
 type CreateTeamInput = z.infer<typeof createTeamSchema>;
 type CreatePlayerInput = z.infer<typeof createPlayerSchema>;
+type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 
 const DUPLICATE_NAME_MESSAGE =
   'This team already has a player with that name. Use a second name initial (e.g. "Avyaan S") or suffix I, II, III if second names also match.';
@@ -117,4 +122,60 @@ export async function listTeamPlayers(teamId: string) {
     include: { player: true },
     orderBy: { shirtNumber: "asc" },
   });
+}
+
+export async function updateTeam(teamId: string, input: UpdateTeamInput) {
+  const team = await getTeam(teamId);
+
+  if (input.name && input.name !== team.name) {
+    const slug = slugify(input.name);
+    const existing = await prisma.team.findFirst({
+      where: {
+        organizationId: team.organizationId,
+        slug,
+        NOT: { id: teamId },
+      },
+    });
+    if (existing) {
+      throw new ApiError(409, "Team slug already exists", "SLUG_EXISTS");
+    }
+  }
+
+  return prisma.team.update({
+    where: { id: teamId },
+    data: {
+      ...(input.name !== undefined ? { name: input.name, slug: slugify(input.name) } : {}),
+      ...(input.ageGroup !== undefined ? { ageGroup: input.ageGroup } : {}),
+      ...(input.homeGround !== undefined ? { homeGround: input.homeGround } : {}),
+    },
+  });
+}
+
+export async function deleteTeam(teamId: string) {
+  await getTeam(teamId);
+
+  const tournamentEntry = await prisma.tournamentTeam.findFirst({
+    where: { teamId },
+    include: {
+      _count: { select: { homeMatches: true, awayMatches: true } },
+    },
+  });
+  if (tournamentEntry) {
+    const matchCount =
+      tournamentEntry._count.homeMatches + tournamentEntry._count.awayMatches;
+    if (matchCount > 0) {
+      throw new ApiError(
+        400,
+        "Remove scheduled matches for this team before deleting",
+        "TEAM_HAS_MATCHES",
+      );
+    }
+    throw new ApiError(
+      400,
+      "Remove this team from tournaments before deleting",
+      "TEAM_IN_TOURNAMENT",
+    );
+  }
+
+  await prisma.team.delete({ where: { id: teamId } });
 }

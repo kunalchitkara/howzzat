@@ -1,9 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { AGE_GROUPS } from "@/lib/age-groups";
 import { apiFetch } from "@/lib/client/api";
 import { btn, card, Field, input } from "./ui";
+
+function AgeGroupSelect({
+  value,
+  onChange,
+  style,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  style: CSSProperties;
+}) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={style}>
+      {AGE_GROUPS.map((group) => (
+        <option key={group} value={group}>
+          {group}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function useSubmit<T>(onDone?: () => void) {
   const router = useRouter();
@@ -84,7 +105,7 @@ export function CreateTeamForm({ orgId }: { orgId: string }) {
         <input required value={name} onChange={(e) => setName(e.target.value)} style={input} />
       </Field>
       <Field label="Age group">
-        <input value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} style={input} />
+        <AgeGroupSelect value={ageGroup} onChange={setAgeGroup} style={input} />
       </Field>
       {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
       <button type="submit" disabled={busy} style={btn}>
@@ -325,7 +346,7 @@ export function CreateTournamentForm({
         <input required value={name} onChange={(e) => setName(e.target.value)} style={input} />
       </Field>
       <Field label="Age group">
-        <input value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} style={input} />
+        <AgeGroupSelect value={ageGroup} onChange={setAgeGroup} style={input} />
       </Field>
       <Field label="Season">
         <input
@@ -533,10 +554,17 @@ export function CreateMatchForm({
   tournamentTeams: { id: string; name: string }[];
 }) {
   const router = useRouter();
-  const [homeTeamId, setHomeTeamId] = useState(tournamentTeams[0]?.id ?? "");
-  const [awayTeamId, setAwayTeamId] = useState(tournamentTeams[1]?.id ?? "");
+  const [homeTeamId, setHomeTeamId] = useState("");
+  const [awayTeamId, setAwayTeamId] = useState("");
   const [venue, setVenue] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
   const { run, error, busy } = useSubmit<{ id: string }>();
+
+  useEffect(() => {
+    if (tournamentTeams.length < 2) return;
+    setHomeTeamId(tournamentTeams[0]!.id);
+    setAwayTeamId(tournamentTeams[1]!.id);
+  }, [tournamentTeams]);
 
   if (tournamentTeams.length < 2) {
     return (
@@ -546,11 +574,22 @@ export function CreateMatchForm({
     );
   }
 
+  const displayError = localError ?? error;
+
   return (
     <form
       style={card}
       onSubmit={(e) => {
         e.preventDefault();
+        if (!homeTeamId || !awayTeamId) {
+          setLocalError("Select home and away teams");
+          return;
+        }
+        if (homeTeamId === awayTeamId) {
+          setLocalError("Home and away teams must be different");
+          return;
+        }
+        setLocalError(null);
         void run(`/api/v1/tournaments/${tournamentId}/matches`, {
           homeTeamId,
           awayTeamId,
@@ -594,10 +633,108 @@ export function CreateMatchForm({
       <Field label="Venue">
         <input value={venue} onChange={(e) => setVenue(e.target.value)} style={input} />
       </Field>
-      {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-      <button type="submit" disabled={busy} style={btn}>
+      {displayError && (
+        <p style={{ color: "var(--red)", marginBottom: 12 }}>{displayError}</p>
+      )}
+      <button
+        type="submit"
+        disabled={busy || !homeTeamId || !awayTeamId}
+        style={btn}
+      >
         Schedule match
       </button>
+    </form>
+  );
+}
+
+export function EditTeamForm({
+  orgId,
+  teamId,
+  initialName,
+  initialAgeGroup,
+}: {
+  orgId: string;
+  teamId: string;
+  initialName: string;
+  initialAgeGroup: string | null;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState(initialName);
+  const [ageGroup, setAgeGroup] = useState(initialAgeGroup ?? "U9");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/teams/${teamId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name, ageGroup }),
+      });
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save team");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/teams/${teamId}`, { method: "DELETE" });
+      router.push(`/dashboard/organizations/${orgId}/teams`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete team");
+      setConfirmDelete(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form style={card} onSubmit={save}>
+      <Field label="Team name">
+        <input required value={name} onChange={(e) => setName(e.target.value)} style={input} />
+      </Field>
+      <Field label="Age group">
+        <AgeGroupSelect value={ageGroup} onChange={setAgeGroup} style={input} />
+      </Field>
+      {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <button type="submit" disabled={busy} style={btn}>
+          Save changes
+        </button>
+        {!confirmDelete ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmDelete(true)}
+            style={{
+              ...btn,
+              background: "transparent",
+              color: "var(--red)",
+              border: "1px solid var(--red)",
+            }}
+          >
+            Delete team
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void remove()}
+            style={{ ...btn, background: "var(--red)" }}
+          >
+            Confirm delete
+          </button>
+        )}
+      </div>
     </form>
   );
 }
@@ -610,10 +747,7 @@ export function InviteForm({
   teams: { id: string; name: string }[];
 }) {
   const [email, setEmail] = useState("");
-  const [inviteKind, setInviteKind] = useState<"MANAGER" | "ORG_MANAGER">(
-    "MANAGER",
-  );
-  const [orgRole, setOrgRole] = useState("SCORER");
+  const [role, setRole] = useState<"MANAGER" | "SCORER">("MANAGER");
   const [teamId, setTeamId] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const { run, error, busy } = useSubmit<{ token: string }>();
@@ -625,8 +759,8 @@ export function InviteForm({
         e.preventDefault();
         void run(`/api/v1/tournaments/${tournamentId}/invites`, {
           email,
-          kind: inviteKind,
-          role: inviteKind === "ORG_MANAGER" ? orgRole : undefined,
+          kind: role === "MANAGER" ? "MANAGER" : "ORG_MANAGER",
+          role: role === "SCORER" ? "SCORER" : undefined,
           teamId: teamId || undefined,
         }).then((invite) => {
           if (invite?.token) {
@@ -645,27 +779,16 @@ export function InviteForm({
           style={input}
         />
       </Field>
-      <Field label="Invite type">
+      <Field label="Role">
         <select
-          value={inviteKind}
-          onChange={(e) =>
-            setInviteKind(e.target.value as "MANAGER" | "ORG_MANAGER")
-          }
+          value={role}
+          onChange={(e) => setRole(e.target.value as "MANAGER" | "SCORER")}
           style={input}
         >
-          <option value="MANAGER">Tournament manager (this tournament only)</option>
-          <option value="ORG_MANAGER">Organization member (club-wide access)</option>
+          <option value="MANAGER">Manager — run this tournament</option>
+          <option value="SCORER">Scorer — score matches for the club</option>
         </select>
       </Field>
-      {inviteKind === "ORG_MANAGER" && (
-        <Field label="Organization role">
-          <select value={orgRole} onChange={(e) => setOrgRole(e.target.value)} style={input}>
-            <option value="MANAGER">Manager</option>
-            <option value="SCORER">Scorer</option>
-            <option value="VIEWER">Viewer</option>
-          </select>
-        </Field>
-      )}
       {teams.length > 0 && (
         <Field label="Team (optional)">
           <select value={teamId} onChange={(e) => setTeamId(e.target.value)} style={input}>

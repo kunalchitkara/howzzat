@@ -96,7 +96,11 @@ export default async function TournamentDashboardPage({
             </li>
           ))}
         </ul>
-        <CreateMatchForm tournamentId={tournamentId} tournamentTeams={tournamentTeams} />
+        <CreateMatchForm
+          key={tournamentTeams.map((t) => t.id).join(",")}
+          tournamentId={tournamentId}
+          tournamentTeams={tournamentTeams}
+        />
       </section>
 
       <section style={{ marginBottom: 28 }}>
@@ -122,7 +126,11 @@ export default async function TournamentDashboardPage({
             {invites.map((inv) => (
               <li key={inv.id} style={card}>
                 <strong>{inv.email}</strong> —{" "}
-                {inv.kind === "MANAGER" ? "Tournament manager" : inv.role}
+                {inv.kind === "MANAGER"
+                  ? "Tournament manager"
+                  : inv.role === "SCORER"
+                    ? "Scorer"
+                    : inv.role}
                 {inv.team ? ` (${inv.team.name})` : ""}
                 <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
                   {inv.acceptedAt ? "Accepted" : "Pending"} ·{" "}

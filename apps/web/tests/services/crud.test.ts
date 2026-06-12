@@ -11,13 +11,25 @@ import {
   createTeam,
   addPlayerToTeam,
   listTeamPlayers,
+  updateTeam,
+  deleteTeam,
 } from "@/lib/services/teams";
 import {
   createTournament,
   addTeamToTournament,
+  getTournament,
   getTournamentBySlug,
 } from "@/lib/services/tournaments";
+import { createMatch } from "@/lib/services/matches";
 import { cloneRulesProfile } from "@/lib/services/rules";
+
+function availableOrgTeams(
+  orgTeams: { id: string; name: string }[],
+  tournamentTeamIds: string[],
+) {
+  const enrolled = new Set(tournamentTeamIds);
+  return orgTeams.filter((t) => !enrolled.has(t.id));
+}
 
 describe("organizations service", () => {
   beforeEach(async () => {
@@ -93,6 +105,104 @@ describe("teams and tournaments service", () => {
     );
     expect(tournament.id).toBe(fixtures.tournamentId);
     expect(tournament.teams).toHaveLength(2);
+  });
+
+  it("filters enrolled teams from add-team picker", async () => {
+    const org = await createOrganization({ name: "Filter Club" });
+    const teamA = await createTeam(org.id, { name: "Team A", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Team B", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "League",
+      rulesProfileVersionId: version.id,
+    });
+    await addTeamToTournament(tournament.id, teamA.id);
+
+    const orgTeams = [
+      { id: teamA.id, name: teamA.name },
+      { id: teamB.id, name: teamB.name },
+    ];
+    const tour = await getTournament(tournament.id);
+    const enrolledTeamIds = tour.teams.map((tt) => tt.teamId);
+    const available = availableOrgTeams(orgTeams, enrolledTeamIds);
+
+    expect(available).toEqual([{ id: teamB.id, name: teamB.name }]);
+  });
+
+  it("creates a match using tournament team ids", async () => {
+    const org = await createOrganization({ name: "Fixture Club" });
+    const teamA = await createTeam(org.id, { name: "Home XI", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Away XI", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Cup",
+      rulesProfileVersionId: version.id,
+    });
+    const ttHome = await addTeamToTournament(tournament.id, teamA.id);
+    const ttAway = await addTeamToTournament(tournament.id, teamB.id);
+
+    const match = await createMatch(tournament.id, {
+      homeTeamId: ttHome.id,
+      awayTeamId: ttAway.id,
+      venue: "Main Ground",
+    });
+
+    expect(match.homeTeamId).toBe(ttHome.id);
+    expect(match.awayTeamId).toBe(ttAway.id);
+  });
+
+  it("rejects org team ids when scheduling a match", async () => {
+    const org = await createOrganization({ name: "Bad Fixture Club" });
+    const teamA = await createTeam(org.id, { name: "Home XI", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Away XI", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Cup",
+      rulesProfileVersionId: version.id,
+    });
+    await addTeamToTournament(tournament.id, teamA.id);
+    await addTeamToTournament(tournament.id, teamB.id);
+
+    await expect(
+      createMatch(tournament.id, {
+        homeTeamId: teamA.id,
+        awayTeamId: teamB.id,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_TEAMS" });
+  });
+
+  it("rejects scheduling the same tournament team as home and away", async () => {
+    const org = await createOrganization({ name: "Same Team Club" });
+    const teamA = await createTeam(org.id, { name: "Solo XI", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Other XI", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Cup",
+      rulesProfileVersionId: version.id,
+    });
+    const ttHome = await addTeamToTournament(tournament.id, teamA.id);
+    await addTeamToTournament(tournament.id, teamB.id);
+
+    await expect(
+      createMatch(tournament.id, {
+        homeTeamId: ttHome.id,
+        awayTeamId: ttHome.id,
+      }),
+    ).rejects.toMatchObject({ code: "SAME_TEAMS" });
+  });
+
+  it("updates and deletes a team", async () => {
+    const org = await createOrganization({ name: "Edit Club" });
+    const team = await createTeam(org.id, { name: "U9 Cubs", ageGroup: "U9" });
+
+    const updated = await updateTeam(team.id, { name: "U10 Cubs", ageGroup: "U10" });
+    expect(updated.name).toBe("U10 Cubs");
+    expect(updated.ageGroup).toBe("U10");
+
+    await deleteTeam(team.id);
+    await expect(deleteTeam(team.id)).rejects.toMatchObject({
+      code: "TEAM_NOT_FOUND",
+    });
   });
 
   it("reuses the same player across tournaments via team membership", async () => {

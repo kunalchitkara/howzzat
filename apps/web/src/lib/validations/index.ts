@@ -67,6 +67,12 @@ export const createTeamSchema = z.object({
   ageGroup: z.string().max(20).optional(),
 });
 
+export const updateTeamSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  ageGroup: z.string().max(20).nullable().optional(),
+  homeGround: z.string().max(200).nullable().optional(),
+});
+
 export const createPlayerSchema = z.object({
   legalName: z.string().min(1).max(120),
   displayName: z.string().max(120).optional(),

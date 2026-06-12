@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddPlayerForm } from "@/components/dashboard/forms";
+import { AddPlayerForm, EditTeamForm } from "@/components/dashboard/forms";
 import { PageShell, card } from "@/components/dashboard/ui";
 import { prisma } from "@/lib/db";
 
@@ -32,6 +32,23 @@ export default async function TeamPage({
       </p>
 
       <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
+        Team details
+      </h2>
+      <EditTeamForm
+        orgId={orgId}
+        teamId={teamId}
+        initialName={team.name}
+        initialAgeGroup={team.ageGroup}
+      />
+
+      <h2
+        style={{
+          color: "var(--dk)",
+          marginBottom: 12,
+          marginTop: 28,
+          fontSize: "1.1rem",
+        }}
+      >
         Players ({team.memberships.length})
       </h2>
       <ul style={{ listStyle: "none", marginBottom: 24 }}>

@@ -34,7 +34,14 @@ export default async function InvitePage({
       >
         <div style={card}>
           <p>
-            <strong>{invite.email}</strong> invited as <strong>{invite.role}</strong>
+            <strong>{invite.email}</strong> invited as{" "}
+            <strong>
+              {invite.kind === "MANAGER"
+                ? "tournament manager"
+                : invite.role === "SCORER"
+                  ? "scorer"
+                  : invite.role.toLowerCase()}
+            </strong>
             {invite.team ? ` for ${invite.team.name}` : ""}.
           </p>
           {invite.acceptedAt && (
