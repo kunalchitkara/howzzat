@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
-import { getOrganization } from "@/lib/services/organizations";
+import { getOrganizationForUser } from "@/lib/services/organizations";
+import { getServerUser } from "@/lib/auth/server";
 import { ApiError } from "@/lib/api/http";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,12 @@ export default async function OrganizationPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
+  const user = await getServerUser();
+  if (!user) notFound();
+
   let org;
   try {
-    org = await getOrganization(orgId);
+    org = await getOrganizationForUser(orgId, user.id);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) notFound();
     throw e;

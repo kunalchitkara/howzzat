@@ -3,7 +3,8 @@ import { LoginForm } from "@/components/dashboard/LoginForm";
 import { BtnLink, card, PageShell } from "@/components/dashboard/ui";
 import { getServerUser } from "@/lib/auth/server";
 import { prisma } from "@/lib/db";
-import { notFound } from "next/navigation";
+import { acceptInvite } from "@/lib/services/invites";
+import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,16 @@ export default async function InvitePage({
 
   const user = await getServerUser();
   const expired = invite.expiresAt && invite.expiresAt < new Date();
+
+  if (
+    user &&
+    !invite.acceptedAt &&
+    !expired &&
+    user.email.toLowerCase() === invite.email.toLowerCase()
+  ) {
+    await acceptInvite(token, user.id);
+    redirect("/dashboard");
+  }
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "2rem 1rem" }}>

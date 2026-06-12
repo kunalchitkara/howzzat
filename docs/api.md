@@ -21,7 +21,8 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 | POST | `/auth/login` | `{ email, name? }` | Dev/test only: passwordless sign-in. |
 | POST | `/auth/logout` | — | Clear session |
 | GET | `/auth/me` | — | Current user + org memberships, or `null` |
-| GET | `/me/organizations` | — | Organizations for signed-in user |
+| GET | `/me/organizations` | — | Organizations for signed-in user (membership or tournament manager) |
+| GET | `/me/tournaments` | — | Tournaments the user manages |
 | GET | `/invites/:token` | — | Invite preview (public) |
 | POST | `/invites/:token/accept` | — | Accept invite (requires session) |
 

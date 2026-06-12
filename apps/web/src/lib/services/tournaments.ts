@@ -18,6 +18,18 @@ export async function listTournaments(orgId: string) {
   });
 }
 
+export async function listTournamentsForUser(userId: string) {
+  return prisma.tournament.findMany({
+    where: { managers: { some: { userId } } },
+    orderBy: { createdAt: "desc" },
+    include: {
+      organization: { select: { id: true, name: true, slug: true } },
+      rulesProfileVersion: { include: { template: true } },
+      _count: { select: { teams: true, matches: true } },
+    },
+  });
+}
+
 export async function getTournament(tournamentId: string) {
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },

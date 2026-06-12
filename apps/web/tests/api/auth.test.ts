@@ -5,6 +5,9 @@ import { GET as me } from "@/app/api/v1/auth/me/route";
 import { POST as createOrg } from "@/app/api/v1/organizations/route";
 import { POST as acceptInvite } from "@/app/api/v1/invites/[token]/accept/route";
 import { GET as getInvite } from "@/app/api/v1/invites/[token]/route";
+import { GET as myOrganizations } from "@/app/api/v1/me/organizations/route";
+import { GET as myTournaments } from "@/app/api/v1/me/tournaments/route";
+import { POST as register } from "@/app/api/v1/auth/register/route";
 import { prisma } from "@howzzat/db";
 import { resetDatabase, seedRulesProfile, seedTestFixtures } from "@howzzat/db/testing";
 import { createInvite } from "@/lib/services/invites";
@@ -203,5 +206,69 @@ describe("Auth API", () => {
       },
     });
     expect(membership).toBeNull();
+
+    const orgsRes = await readJson(
+      await myOrganizations(
+        jsonRequest("GET", "/api/v1/me/organizations", undefined, cookie),
+        emptyParams(),
+      ),
+    );
+    expect(orgsRes.status).toBe(200);
+    expect(orgsRes.body.data.some((o: { id: string }) => o.id === fixtures.orgId)).toBe(
+      true,
+    );
+
+    const tournamentsRes = await readJson(
+      await myTournaments(
+        jsonRequest("GET", "/api/v1/me/tournaments", undefined, cookie),
+        emptyParams(),
+      ),
+    );
+    expect(tournamentsRes.status).toBe(200);
+    expect(
+      tournamentsRes.body.data.some(
+        (t: { id: string }) => t.id === fixtures.tournamentId,
+      ),
+    ).toBe(true);
+  });
+
+  it("register then accept MANAGER invite lists tournament on dashboard APIs", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const invite = await createInvite(fixtures.tournamentId, {
+      email: "newmgr@test.club",
+      kind: "MANAGER",
+    });
+
+    const registerRes = await readResponse(
+      await register(
+        jsonRequest("POST", "/api/v1/auth/register", {
+          email: "newmgr@test.club",
+          password: "password123",
+          name: "New Manager",
+        }),
+        emptyParams(),
+      ),
+    );
+    expect(registerRes.status).toBe(201);
+    const cookie = registerRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
+    const acceptRes = await readJson(
+      await acceptInvite(
+        jsonRequest("POST", `/api/v1/invites/${invite.token}/accept`, undefined, cookie),
+        params({ token: invite.token }),
+      ),
+    );
+    expect(acceptRes.status).toBe(200);
+
+    const tournamentsRes = await readJson(
+      await myTournaments(
+        jsonRequest("GET", "/api/v1/me/tournaments", undefined, cookie),
+        emptyParams(),
+      ),
+    );
+    expect(tournamentsRes.status).toBe(200);
+    expect(tournamentsRes.body.data).toHaveLength(1);
+    expect(tournamentsRes.body.data[0].id).toBe(fixtures.tournamentId);
+    expect(tournamentsRes.body.data[0].organization.id).toBe(fixtures.orgId);
   });
 });

@@ -78,11 +78,47 @@ export async function createOrganization(
 
 export async function listOrganizationsForUser(userId: string) {
   return prisma.organization.findMany({
-    where: { memberships: { some: { userId } } },
+    where: {
+      OR: [
+        { memberships: { some: { userId } } },
+        { tournaments: { some: { managers: { some: { userId } } } } },
+      ],
+    },
     orderBy: { name: "asc" },
     include: {
       memberships: { where: { userId } },
+      tournaments: {
+        where: { managers: { some: { userId } } },
+        select: { id: true },
+      },
       _count: { select: { teams: true, tournaments: true } },
     },
   });
+}
+
+/** Org detail scoped to what the user may see (all tournaments if org member, else managed only). */
+export async function getOrganizationForUser(orgId: string, userId: string) {
+  const org = await getOrganization(orgId);
+
+  const membership = await prisma.orgMembership.findUnique({
+    where: { organizationId_userId: { organizationId: orgId, userId } },
+  });
+  if (membership) return org;
+
+  const managedIds = new Set(
+    (
+      await prisma.tournamentManager.findMany({
+        where: { userId, tournament: { organizationId: orgId } },
+        select: { tournamentId: true },
+      })
+    ).map((m) => m.tournamentId),
+  );
+  if (managedIds.size === 0) {
+    throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
+  }
+
+  return {
+    ...org,
+    tournaments: org.tournaments.filter((t) => managedIds.has(t.id)),
+  };
 }
