@@ -163,3 +163,77 @@ export async function signInWithGoogleProfile(profile: {
 
   return user;
 }
+
+export async function linkGoogleProfileToUser(
+  userId: string,
+  profile: {
+    sub: string;
+    email: string;
+    name?: string;
+    emailVerified?: boolean;
+  },
+) {
+  const email = normalizeEmail(profile.email);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new ApiError(401, "Sign in required", "UNAUTHORIZED");
+  }
+  if (normalizeEmail(user.email) !== email) {
+    throw new ApiError(
+      409,
+      "Google account email does not match your Howzzat account email",
+      "GOOGLE_EMAIL_MISMATCH",
+    );
+  }
+
+  const linked = await prisma.account.findUnique({
+    where: {
+      provider_providerAccountId: {
+        provider: GOOGLE_PROVIDER,
+        providerAccountId: profile.sub,
+      },
+    },
+  });
+  if (linked && linked.userId !== userId) {
+    throw new ApiError(
+      409,
+      "This Google account is already linked to another user",
+      "GOOGLE_ALREADY_LINKED",
+    );
+  }
+
+  const existingGoogle = await prisma.account.findFirst({
+    where: { userId, provider: GOOGLE_PROVIDER },
+  });
+  if (existingGoogle && existingGoogle.providerAccountId !== profile.sub) {
+    throw new ApiError(
+      409,
+      "Your account already has Google connected",
+      "GOOGLE_ALREADY_CONNECTED",
+    );
+  }
+
+  await prisma.account.upsert({
+    where: {
+      provider_providerAccountId: {
+        provider: GOOGLE_PROVIDER,
+        providerAccountId: profile.sub,
+      },
+    },
+    create: {
+      userId,
+      type: "oauth",
+      provider: GOOGLE_PROVIDER,
+      providerAccountId: profile.sub,
+    },
+    update: { userId },
+  });
+
+  const updates: { name?: string; emailVerified?: Date } = {};
+  if (profile.name?.trim() && !user.name) updates.name = profile.name.trim();
+  if (profile.emailVerified && !user.emailVerified) {
+    updates.emailVerified = new Date();
+  }
+  if (Object.keys(updates).length === 0) return user;
+  return prisma.user.update({ where: { id: userId }, data: updates });
+}

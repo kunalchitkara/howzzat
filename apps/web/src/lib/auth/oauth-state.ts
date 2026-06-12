@@ -3,6 +3,7 @@ import { randomToken } from "@/lib/api/slug";
 export const OAUTH_STATE_COOKIE = "howzzat_oauth_state";
 export const OAUTH_REDIRECT_COOKIE = "howzzat_oauth_redirect";
 export const OAUTH_CALLBACK_URI_COOKIE = "howzzat_oauth_callback_uri";
+export const OAUTH_LINK_USER_COOKIE = "howzzat_oauth_link_user";
 
 const OAUTH_COOKIE_MAX_AGE = 10 * 60; // 10 minutes
 
@@ -27,11 +28,16 @@ export function oauthCallbackUriCookie(callbackUri: string): string {
   return cookieBase(OAUTH_CALLBACK_URI_COOKIE, callbackUri, OAUTH_COOKIE_MAX_AGE);
 }
 
+export function oauthLinkUserCookie(userId: string): string {
+  return cookieBase(OAUTH_LINK_USER_COOKIE, userId, OAUTH_COOKIE_MAX_AGE);
+}
+
 export function clearOAuthCookies(): string[] {
   return [
     `${OAUTH_STATE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
     `${OAUTH_REDIRECT_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
     `${OAUTH_CALLBACK_URI_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+    `${OAUTH_LINK_USER_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
   ];
 }
 

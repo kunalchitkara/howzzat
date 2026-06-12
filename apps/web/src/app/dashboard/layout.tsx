@@ -36,6 +36,16 @@ export default async function DashboardLayout({
           <span style={{ fontSize: "0.85rem", opacity: 0.9 }}>
             {user.name ?? user.email}
           </span>
+          <Link
+            href="/dashboard/account"
+            style={{
+              color: "rgba(255,255,255,0.9)",
+              fontSize: "0.85rem",
+              textDecoration: "none",
+            }}
+          >
+            Account
+          </Link>
           <LogoutButton />
         </div>
       </nav>

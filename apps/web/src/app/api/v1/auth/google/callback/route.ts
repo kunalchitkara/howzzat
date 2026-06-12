@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import { ApiError } from "@/lib/api/http";
 import { withApi } from "@/lib/api/handler";
-import { exchangeGoogleCode, signInWithGoogleProfile } from "@/lib/auth/google";
+import {
+  exchangeGoogleCode,
+  linkGoogleProfileToUser,
+  signInWithGoogleProfile,
+} from "@/lib/auth/google";
 import {
   clearOAuthCookies,
   OAUTH_CALLBACK_URI_COOKIE,
+  OAUTH_LINK_USER_COOKIE,
   OAUTH_REDIRECT_COOKIE,
   OAUTH_STATE_COOKIE,
   parseCookie,
@@ -45,7 +51,31 @@ export const GET = withApi(async (request) => {
   }
 
   const callbackUri = parseCookie(cookieHeader, OAUTH_CALLBACK_URI_COOKIE);
+  const linkUserId = parseCookie(cookieHeader, OAUTH_LINK_USER_COOKIE);
   const profile = await exchangeGoogleCode(code, callbackUri);
+
+  if (linkUserId) {
+    try {
+      await linkGoogleProfileToUser(linkUserId, profile);
+      const response = NextResponse.redirect(
+        new URL(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}google=linked`, url.origin),
+      );
+      for (const cleared of clearOAuthCookies()) {
+        response.headers.append("Set-Cookie", cleared);
+      }
+      return response;
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code ?? "google_link_failed" : "google_link_failed";
+      const response = NextResponse.redirect(
+        new URL(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}error=${encodeURIComponent(code)}`, url.origin),
+      );
+      for (const cleared of clearOAuthCookies()) {
+        response.headers.append("Set-Cookie", cleared);
+      }
+      return response;
+    }
+  }
+
   const user = await signInWithGoogleProfile(profile);
   const { token } = await createSession(user.id);
 
