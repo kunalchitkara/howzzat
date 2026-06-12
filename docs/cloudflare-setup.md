@@ -86,10 +86,41 @@ Stripe Dashboard → **Developers → Webhooks**:
 
 ### 9. Google OAuth (production)
 
-Google Cloud → Web OAuth client → add:
+In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials** → your **Web application** OAuth 2.0 client (the one whose ID is in `GOOGLE_CLIENT_ID` on Vercel):
 
-- Origin: `https://app.howzzat.uk`
-- Redirect: `https://app.howzzat.uk/api/v1/auth/google/callback`
+**Authorized JavaScript origins** (add each):
+
+| URL |
+|-----|
+| `https://app.howzzat.uk` |
+
+**Authorized redirect URIs** (add each — must match exactly, including `/api/v1`):
+
+| URL |
+|-----|
+| `https://app.howzzat.uk/api/v1/auth/google/callback` |
+
+Local dev (same Web client or a separate one):
+
+| Type | URL |
+|------|-----|
+| Origin | `http://localhost:3005` |
+| Redirect | `http://localhost:3005/api/v1/auth/google/callback` |
+
+**Vercel:** set `NEXT_PUBLIC_APP_URL` to `https://app.howzzat.uk` (no trailing slash). The app uses this in production when building the Google `redirect_uri`.
+
+**Mobile** (separate OAuth clients — no redirect URI): set `GOOGLE_IOS_CLIENT_ID` and/or `GOOGLE_ANDROID_CLIENT_ID` on Vercel. Native apps exchange an ID token via `POST /api/v1/auth/google/token`.
+
+If you see **Error 400: redirect_uri_mismatch**, the URI in the error details must be added verbatim to **Authorized redirect URIs**.
+
+### 10. Twilio Verify SMS (production)
+
+Twilio Console → **Verify → Services** → your service (`TWILIO_VERIFY_SERVICE_SID`):
+
+1. **Friendly Name** → set to `Howzzat` (not the default “Sample” / trial name).
+2. The API also sends `customFriendlyName: "Howzzat"` on each verification.
+
+Expected SMS: `Your Howzzat verification code is: 123456`
 
 ---
 

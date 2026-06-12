@@ -4,6 +4,7 @@ import { buildGoogleAuthUrl } from "@/lib/auth/google";
 import {
   createOAuthState,
   googleCallbackUriForOrigin,
+  requestAppOrigin,
   oauthCallbackUriCookie,
   oauthRedirectCookie,
   oauthStateCookie,
@@ -15,7 +16,7 @@ export const runtime = "nodejs";
 export const GET = withApi(async (request) => {
   const requestUrl = new URL(request.url);
   const redirectTo = safeRedirectPath(requestUrl.searchParams.get("redirect"));
-  const callbackUri = googleCallbackUriForOrigin(requestUrl.origin);
+  const callbackUri = googleCallbackUriForOrigin(requestAppOrigin(request));
   const state = createOAuthState();
   const url = buildGoogleAuthUrl(state, callbackUri);
 

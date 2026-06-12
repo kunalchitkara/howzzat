@@ -8,9 +8,12 @@ Set `BASE=http://localhost:3005` for the commands below.
 
 1. Database migrated: `pnpm db:migrate` (from repo root).
 2. `apps/web/.env.local` with at least `DATABASE_URL` (see `apps/web/.env.example`).
-3. For **Google OAuth**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and redirect URI  
-   `http://localhost:3005/api/v1/auth/google/callback` in Google Cloud Console.
+3. For **Google OAuth**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_APP_URL`, and in Google Cloud Console (Web client):
+   - Authorized JavaScript origin: `http://localhost:3005`
+   - Authorized redirect URI: `http://localhost:3005/api/v1/auth/google/callback`  
+   Production checklist: see `docs/cloudflare-setup.md` §9 (`https://app.howzzat.uk/...`).
 4. For **SMS OTP**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`.  
+   Twilio Verify service **Friendly Name** should be `Howzzat` (avoids “Sample” in SMS).  
    **Dev bypass** (no Twilio): set `DEV_SMS_BYPASS_PHONE` and `DEV_SMS_BYPASS_CODE` in `.env.local`.
 
 ## 1. Sign in (demo email — no external services)

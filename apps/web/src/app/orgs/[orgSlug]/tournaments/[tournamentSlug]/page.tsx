@@ -37,7 +37,7 @@ export default async function PublicTournamentPage({
           </h1>
           <p style={{ marginTop: 8, opacity: 0.9 }}>
             {tournament.ageGroup} · {tournament.seasonLabel ?? "Season TBC"} ·{" "}
-            {tournament.rulesProfileVersion?.template?.name ?? "Junior cricket"}
+            {tournament.rulesProfileVersion?.template?.name ?? "Cricket"}
           </p>
         </div>
       </header>

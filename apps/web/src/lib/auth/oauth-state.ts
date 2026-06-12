@@ -39,6 +39,24 @@ export function googleCallbackUriForOrigin(origin: string): string {
   return `${origin.replace(/\/$/, "")}/api/v1/auth/google/callback`;
 }
 
+/** Prefer NEXT_PUBLIC_APP_URL in production so OAuth matches Google Console. */
+export function requestAppOrigin(request: Request): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (configured && process.env.NODE_ENV === "production") {
+    return configured;
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (forwardedHost) {
+    const proto =
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
+    const host = forwardedHost.split(",")[0].trim();
+    return `${proto}://${host}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
 export function parseCookie(cookieHeader: string | null, name: string): string | undefined {
   if (!cookieHeader) return undefined;
   const match = cookieHeader.match(new RegExp(`(?:^|; )${name}=([^;]*)`));

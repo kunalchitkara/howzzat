@@ -47,6 +47,7 @@ export async function sendSmsVerification(phoneE164: string): Promise<void> {
     await client.verify.v2.services(serviceSid).verifications.create({
       to: phoneE164,
       channel: "sms",
+      customFriendlyName: "Howzzat",
     });
   } catch (err) {
     const twilioErr = err as { code?: number; message?: string };

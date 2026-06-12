@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   googleCallbackUriForOrigin,
+  requestAppOrigin,
   OAUTH_REDIRECT_COOKIE,
   OAUTH_STATE_COOKIE,
   parseCookie,
@@ -26,6 +27,21 @@ describe("google oauth helpers", () => {
     expect(googleCallbackUriForOrigin("http://localhost:3000")).toBe(
       "http://localhost:3000/api/v1/auth/google/callback",
     );
+  });
+
+  it("prefers NEXT_PUBLIC_APP_URL for OAuth origin in production", () => {
+    const prevEnv = process.env.NODE_ENV;
+    const prevUrl = process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NODE_ENV = "production";
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.howzzat.uk";
+
+    const request = new Request("https://howzzat-web.vercel.app/api/v1/auth/google", {
+      headers: { host: "howzzat-web.vercel.app" },
+    });
+    expect(requestAppOrigin(request)).toBe("https://app.howzzat.uk");
+
+    process.env.NODE_ENV = prevEnv;
+    process.env.NEXT_PUBLIC_APP_URL = prevUrl;
   });
 
   it("rejects unsafe redirect paths", () => {
