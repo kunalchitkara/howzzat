@@ -111,7 +111,7 @@ model OrgMembership {
   id             String   @id @default(cuid())
   organizationId String
   userId         String
-  role           OrgRole  @default(COACH)
+  role           OrgRole  @default(MANAGER)
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -124,7 +124,6 @@ model OrgMembership {
 enum OrgRole {
   OWNER
   MANAGER
-  COACH
   SCORER
   VIEWER
 }
@@ -272,8 +271,8 @@ enum RuleChangeStatus {
 enum TournamentInviteKind {
   /// Adds TournamentManager on accept (email + same magic link).
   MANAGER
-  /// Legacy: adds org membership on accept.
-  ORG_COACH
+  /// Adds org membership on accept.
+  ORG_MANAGER
 }
 
 model TournamentInvite {
@@ -281,7 +280,7 @@ model TournamentInvite {
   tournamentId String
   email        String
   kind         TournamentInviteKind @default(MANAGER)
-  role         OrgRole              @default(COACH)
+  role         OrgRole              @default(MANAGER)
   teamId       String?
   token        String               @unique
   acceptedAt   DateTime?
@@ -480,7 +479,7 @@ model Match {
   tossCallerPlayerId   String?
   squadsConfirmedAt    DateTime?
   chaseContinuedAfterTarget Boolean @default(false)
-  /** Coach who holds the exclusive scoring lock for this match. */
+  /** Manager who holds the exclusive scoring lock for this match. */
   scoringUserId     String?
   scoringClaimedAt  DateTime?
   createdAt       DateTime    @default(now())

@@ -164,11 +164,13 @@ type RulesTemplateOption = {
   latestVersion: {
     config?: {
       description?: string;
+      format?: string;
       league?: { prefix?: string; sourceUrl?: string; ageGroup?: string };
       startingScore?: number;
       wicketPenalty?: number;
       pairOvers?: number;
-      playersPerSide?: { default?: number };
+      playersPerSide?: { default?: number; min?: number; max?: number };
+      oversPerInnings?: { formula?: string };
       scoring?: {
         wide?: { default?: { runs?: number; rebowl?: boolean } };
         noBall?: { default?: { runs?: number; rebowl?: boolean } };
@@ -177,10 +179,37 @@ type RulesTemplateOption = {
   } | null;
 };
 
+function formatOversSummary(
+  config: NonNullable<RulesTemplateOption["latestVersion"]>["config"],
+) {
+  if (!config) return "";
+  const formula = config.oversPerInnings?.formula;
+  if (formula?.startsWith("fixed:")) {
+    return `${formula.slice("fixed:".length)} overs/side`;
+  }
+  if (formula === "2 * playersPerSide") {
+    const def = config.playersPerSide?.default;
+    if (def != null) return `${2 * def} overs/side (${def} players)`;
+    return "2× squad size overs/side";
+  }
+  return "";
+}
+
+function templateOptionLabel(t: RulesTemplateOption): string {
+  const cfg = t.latestVersion?.config;
+  const overs = formatOversSummary(cfg);
+  if (overs) return `${t.name} — ${overs}`;
+  return t.name;
+}
+
 function groupTemplates(templates: RulesTemplateOption[]) {
   const mjca = templates.filter((t) => t.builtinId?.startsWith("mjca-"));
-  const other = templates.filter((t) => !t.builtinId?.startsWith("mjca-"));
-  return { mjca, other };
+  const demo = templates.filter((t) => t.builtinId?.startsWith("demo-"));
+  const other = templates.filter(
+    (t) =>
+      !t.builtinId?.startsWith("mjca-") && !t.builtinId?.startsWith("demo-"),
+  );
+  return { mjca, demo, other };
 }
 
 export function CreateTournamentForm({
@@ -203,15 +232,16 @@ export function CreateTournamentForm({
   const [customizeRules, setCustomizeRules] = useState(false);
   const [startingScore, setStartingScore] = useState("");
   const [wicketPenalty, setWicketPenalty] = useState("");
-  const [pairOvers, setPairOvers] = useState("");
   const [playersDefault, setPlayersDefault] = useState("");
-  const [wideRuns, setWideRuns] = useState("");
-  const [noBallRuns, setNoBallRuns] = useState("");
+  const [wideRuns, setWideRuns] = useState("2");
+  const [noBallRuns, setNoBallRuns] = useState("2");
+  const [wideRebowl, setWideRebowl] = useState("false");
+  const [noBallRebowl, setNoBallRebowl] = useState("false");
   const { run, error, busy } = useSubmit<{ id: string }>();
 
   const selected = templates.find((t) => t.builtinId === builtinId);
   const config = selected?.latestVersion?.config;
-  const { mjca, other } = groupTemplates(templates);
+  const { mjca, demo, other } = groupTemplates(templates);
 
   function applyTemplateDefaults(id: string) {
     const tpl = templates.find((t) => t.builtinId === id);
@@ -219,10 +249,11 @@ export function CreateTournamentForm({
     if (!cfg) return;
     setStartingScore(String(cfg.startingScore ?? ""));
     setWicketPenalty(String(cfg.wicketPenalty ?? ""));
-    setPairOvers(String(cfg.pairOvers ?? ""));
     setPlayersDefault(String(cfg.playersPerSide?.default ?? ""));
-    setWideRuns(String(cfg.scoring?.wide?.default?.runs ?? ""));
-    setNoBallRuns(String(cfg.scoring?.noBall?.default?.runs ?? ""));
+    setWideRuns(String(cfg.scoring?.wide?.default?.runs ?? 2));
+    setNoBallRuns(String(cfg.scoring?.noBall?.default?.runs ?? 2));
+    setWideRebowl(String(cfg.scoring?.wide?.default?.rebowl ?? false));
+    setNoBallRebowl(String(cfg.scoring?.noBall?.default?.rebowl ?? false));
     if (cfg.league?.ageGroup) setAgeGroup(cfg.league.ageGroup);
   }
 
@@ -235,9 +266,6 @@ export function CreateTournamentForm({
     if (wicketPenalty !== "" && Number(wicketPenalty) !== config.wicketPenalty) {
       overrides.wicketPenalty = Number(wicketPenalty);
     }
-    if (pairOvers !== "" && Number(pairOvers) !== config.pairOvers) {
-      overrides.pairOvers = Number(pairOvers);
-    }
     if (
       playersDefault !== "" &&
       Number(playersDefault) !== config.playersPerSide?.default
@@ -245,17 +273,28 @@ export function CreateTournamentForm({
       overrides.playersPerSide = { default: Number(playersDefault) };
     }
     const scoring: Record<string, unknown> = {};
+    const wideDefault = config.scoring?.wide?.default;
+    const noBallDefault = config.scoring?.noBall?.default;
+    const wideRunsNum = wideRuns !== "" ? Number(wideRuns) : undefined;
+    const noBallRunsNum = noBallRuns !== "" ? Number(noBallRuns) : undefined;
+    const wideRebowlBool = wideRebowl === "true";
+    const noBallRebowlBool = noBallRebowl === "true";
     if (
-      wideRuns !== "" &&
-      Number(wideRuns) !== config.scoring?.wide?.default?.runs
+      wideRunsNum !== undefined &&
+      (wideRunsNum !== wideDefault?.runs || wideRebowlBool !== wideDefault?.rebowl)
     ) {
-      scoring.wide = { default: { runs: Number(wideRuns) } };
+      scoring.wide = {
+        default: { runs: wideRunsNum, rebowl: wideRebowlBool },
+      };
     }
     if (
-      noBallRuns !== "" &&
-      Number(noBallRuns) !== config.scoring?.noBall?.default?.runs
+      noBallRunsNum !== undefined &&
+      (noBallRunsNum !== noBallDefault?.runs ||
+        noBallRebowlBool !== noBallDefault?.rebowl)
     ) {
-      scoring.noBall = { default: { runs: Number(noBallRuns) } };
+      scoring.noBall = {
+        default: { runs: noBallRunsNum, rebowl: noBallRebowlBool },
+      };
     }
     if (Object.keys(scoring).length > 0) overrides.scoring = scoring;
     return Object.keys(overrides).length > 0 ? overrides : undefined;
@@ -308,7 +347,16 @@ export function CreateTournamentForm({
             <optgroup label="MJCA (Middlesex / London)">
               {mjca.map((t) => (
                 <option key={t.builtinId!} value={t.builtinId!}>
-                  {t.name}
+                  {templateOptionLabel(t)}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {demo.length > 0 && (
+            <optgroup label="Demo">
+              {demo.map((t) => (
+                <option key={t.builtinId!} value={t.builtinId!}>
+                  {templateOptionLabel(t)}
                 </option>
               ))}
             </optgroup>
@@ -317,7 +365,7 @@ export function CreateTournamentForm({
             <optgroup label="Other">
               {other.map((t) => (
                 <option key={t.builtinId ?? t.name} value={t.builtinId ?? ""}>
-                  {t.name}
+                  {templateOptionLabel(t)}
                 </option>
               ))}
             </optgroup>
@@ -373,14 +421,6 @@ export function CreateTournamentForm({
               style={input}
             />
           </Field>
-          <Field label="Overs per pair">
-            <input
-              type="number"
-              value={pairOvers}
-              onChange={(e) => setPairOvers(e.target.value)}
-              style={input}
-            />
-          </Field>
           <Field label="Players per side (default)">
             <input
               type="number"
@@ -404,6 +444,26 @@ export function CreateTournamentForm({
               onChange={(e) => setNoBallRuns(e.target.value)}
               style={input}
             />
+          </Field>
+          <Field label="Wide: rebowl the ball?">
+            <select
+              value={wideRebowl}
+              onChange={(e) => setWideRebowl(e.target.value)}
+              style={input}
+            >
+              <option value="false">No — ball counts, no extra delivery</option>
+              <option value="true">Yes — rebowl (extra ball)</option>
+            </select>
+          </Field>
+          <Field label="No-ball: rebowl the ball?">
+            <select
+              value={noBallRebowl}
+              onChange={(e) => setNoBallRebowl(e.target.value)}
+              style={input}
+            >
+              <option value="false">No — ball counts, no extra delivery</option>
+              <option value="true">Yes — rebowl (extra ball)</option>
+            </select>
           </Field>
         </div>
       )}
@@ -550,7 +610,10 @@ export function InviteForm({
   teams: { id: string; name: string }[];
 }) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("COACH");
+  const [inviteKind, setInviteKind] = useState<"MANAGER" | "ORG_MANAGER">(
+    "MANAGER",
+  );
+  const [orgRole, setOrgRole] = useState("SCORER");
   const [teamId, setTeamId] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const { run, error, busy } = useSubmit<{ token: string }>();
@@ -562,8 +625,8 @@ export function InviteForm({
         e.preventDefault();
         void run(`/api/v1/tournaments/${tournamentId}/invites`, {
           email,
-          kind: role === "MANAGER" ? "MANAGER" : "ORG_COACH",
-          role: role === "MANAGER" ? undefined : role,
+          kind: inviteKind,
+          role: inviteKind === "ORG_MANAGER" ? orgRole : undefined,
           teamId: teamId || undefined,
         }).then((invite) => {
           if (invite?.token) {
@@ -573,7 +636,7 @@ export function InviteForm({
         });
       }}
     >
-      <Field label="Coach email">
+      <Field label="Manager email">
         <input
           type="email"
           required
@@ -582,13 +645,27 @@ export function InviteForm({
           style={input}
         />
       </Field>
-      <Field label="Role">
-        <select value={role} onChange={(e) => setRole(e.target.value)} style={input}>
-          <option value="COACH">Coach</option>
-          <option value="MANAGER">Manager</option>
-          <option value="SCORER">Scorer</option>
+      <Field label="Invite type">
+        <select
+          value={inviteKind}
+          onChange={(e) =>
+            setInviteKind(e.target.value as "MANAGER" | "ORG_MANAGER")
+          }
+          style={input}
+        >
+          <option value="MANAGER">Tournament manager (this tournament only)</option>
+          <option value="ORG_MANAGER">Organization member (club-wide access)</option>
         </select>
       </Field>
+      {inviteKind === "ORG_MANAGER" && (
+        <Field label="Organization role">
+          <select value={orgRole} onChange={(e) => setOrgRole(e.target.value)} style={input}>
+            <option value="MANAGER">Manager</option>
+            <option value="SCORER">Scorer</option>
+            <option value="VIEWER">Viewer</option>
+          </select>
+        </Field>
+      )}
       {teams.length > 0 && (
         <Field label="Team (optional)">
           <select value={teamId} onChange={(e) => setTeamId(e.target.value)} style={input}>

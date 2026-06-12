@@ -439,8 +439,8 @@ export function ScorePad({ matchId }: { matchId: string }) {
     if (!ctx.scoringLock.canScore) {
       setError(
         ctx.scoringLock.lockedByOther
-          ? `${ctx.scoringLock.holderName ?? "Another coach"} is already scoring this match`
-          : "Sign in as a club coach to score this match",
+          ? `${ctx.scoringLock.holderName ?? "Another manager"} is already scoring this match`
+          : "Sign in as a club manager to score this match",
       );
       return;
     }
@@ -678,7 +678,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
       {ctx.scoringLock.requiresAuth && (
         <div className="sp-scoring-lock">
           <strong>Sign in to score</strong>
-          Club coaches must sign in before scoring. Parents can watch the{" "}
+          Club managers must sign in before scoring. Parents can watch the{" "}
           <Link href={`/match/${matchId}`}>live scorecard</Link>.
           <p style={{ marginTop: 10 }}>
             <Link href="/login">Sign in →</Link>
@@ -689,7 +689,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
       {ctx.scoringLock.lockedByOther && (
         <div className="sp-scoring-lock">
           <strong>Scoring locked</strong>
-          {ctx.scoringLock.holderName ?? "Another coach"} is scoring this match. You can
+          {ctx.scoringLock.holderName ?? "Another manager"} is scoring this match. You can
           follow the{" "}
           <Link href={`/match/${matchId}`}>live scorecard</Link> instead.
         </div>

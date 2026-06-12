@@ -123,7 +123,7 @@ describe("mobile Phase 2 API", () => {
       data: {
         organizationId: fixtures.orgId,
         userId: coachUser.id,
-        role: "COACH",
+        role: "MANAGER",
       },
     });
 

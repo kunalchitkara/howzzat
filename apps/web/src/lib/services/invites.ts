@@ -30,14 +30,14 @@ export async function createInvite(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 14);
 
-  const kind = input.kind ?? "ORG_COACH";
+  const kind = input.kind ?? "MANAGER";
 
   return prisma.tournamentInvite.create({
     data: {
       tournamentId,
       email: input.email.toLowerCase(),
       kind,
-      role: input.role ?? "COACH",
+      role: input.role ?? "MANAGER",
       teamId: input.teamId,
       token: randomToken(),
       expiresAt,

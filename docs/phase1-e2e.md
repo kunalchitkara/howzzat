@@ -109,31 +109,31 @@ curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/teams/$TEAM_A_ID/playe
 
 Save `TT_HOME_ID`, `TT_AWAY_ID` from tournament team responses.
 
-## 6. Invite coach
+## 6. Invite tournament manager
 
 ```bash
 curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMENT_ID/invites" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"coach@local.club","kind":"ORG_COACH","role":"COACH"}' | jq .
+  -d '{"email":"manager@local.club","kind":"MANAGER"}' | jq .
 ```
 
 Save `TOKEN`. Open invite: `http://localhost:3005/invite/$TOKEN`
 
-Dashboard: tournament page → **Coach invites** section.
+Dashboard: tournament page → **Manager invites** section.
 
-## 7. Coach accepts invite
+For club-wide access instead, use `{"kind":"ORG_MANAGER","role":"MANAGER"}` or `"role":"SCORER"`.
+
+## 7. Manager accepts invite
 
 ```bash
-curl -s -c /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/auth/register" \
+curl -s -c /tmp/howzzat-manager.txt -X POST "$BASE/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"coach@local.club","password":"coachpass123","name":"Local Coach"}' | jq .
+  -d '{"email":"manager@local.club","password":"managerpass123","name":"Local Manager"}' | jq .
 
-curl -s -b /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/invites/$TOKEN/accept" | jq .
-
-curl -s -b /tmp/howzzat-coach.txt "$BASE/api/v1/organizations" | jq .
+curl -s -b /tmp/howzzat-manager.txt -X POST "$BASE/api/v1/invites/$TOKEN/accept" | jq .
 ```
 
-Coach should see the org in the list. Dashboard: [http://localhost:3005/dashboard](http://localhost:3005/dashboard)
+Tournament-manager invites add a `TournamentManager` row (no org membership). Org invites add `OrgMembership`. Dashboard: [http://localhost:3005/dashboard](http://localhost:3005/dashboard)
 
 ## 8. Schedule match
 

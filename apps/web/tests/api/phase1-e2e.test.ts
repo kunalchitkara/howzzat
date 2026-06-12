@@ -122,9 +122,8 @@ describe("Phase 1 e2e", () => {
     const inviteRes = await readJson(
       await createInviteRoute(
         jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/invites`, {
-          email: "coach@phase1.club",
-          kind: "ORG_COACH",
-          role: "COACH",
+          email: "manager@phase1.club",
+          kind: "MANAGER",
         }),
         params({ tournamentId }),
       ),
@@ -139,39 +138,38 @@ describe("Phase 1 e2e", () => {
       ),
     );
     expect(preview.status).toBe(200);
-    expect(preview.body.data.email).toBe("coach@phase1.club");
+    expect(preview.body.data.email).toBe("manager@phase1.club");
 
-    const coachLogin = await readResponse(
+    const managerLogin = await readResponse(
       await login(
         jsonRequest("POST", "/api/v1/auth/login", {
-          email: "coach@phase1.club",
-          name: "Phase Coach",
+          email: "manager@phase1.club",
+          name: "Phase Manager",
         }),
         emptyParams(),
       ),
     );
-    const coachCookie = coachLogin.cookies.find((c) =>
+    const managerCookie = managerLogin.cookies.find((c) =>
       c.startsWith(`${SESSION_COOKIE}=`),
     )!;
 
     const acceptRes = await readJson(
       await acceptInviteRoute(
-        jsonRequest("POST", `/api/v1/invites/${token}/accept`, undefined, coachCookie),
+        jsonRequest("POST", `/api/v1/invites/${token}/accept`, undefined, managerCookie),
         params({ token }),
       ),
     );
     expect(acceptRes.status).toBe(200);
 
-    const membership = await prisma.orgMembership.findFirst({
-      where: { organizationId: orgId, user: { email: "coach@phase1.club" } },
+    const tourManager = await prisma.tournamentManager.findFirst({
+      where: { tournamentId, user: { email: "manager@phase1.club" } },
     });
-    expect(membership?.role).toBe("COACH");
+    expect(tourManager?.role).toBe("MANAGER");
 
-    const coachOrgs = await readJson(
-      await listOrgs(jsonRequest("GET", "/api/v1/organizations", undefined, coachCookie), emptyParams()),
-    );
-    expect(coachOrgs.body.data).toHaveLength(1);
-    expect(coachOrgs.body.data[0].id).toBe(orgId);
+    const membership = await prisma.orgMembership.findFirst({
+      where: { organizationId: orgId, user: { email: "manager@phase1.club" } },
+    });
+    expect(membership).toBeNull();
 
     const matchRes = await readJson(
       await createMatchRoute(
@@ -186,10 +184,10 @@ describe("Phase 1 e2e", () => {
     expect(matchRes.status).toBe(201);
     expect(matchRes.body.data.venue).toBe("Main Ground");
 
-    const coachMe = await readJson(
-      await me(jsonRequest("GET", "/api/v1/auth/me", undefined, coachCookie), emptyParams()),
+    const managerMe = await readJson(
+      await me(jsonRequest("GET", "/api/v1/auth/me", undefined, managerCookie), emptyParams()),
     );
-    expect(coachMe.body.data?.email).toBe("coach@phase1.club");
+    expect(managerMe.body.data?.email).toBe("manager@phase1.club");
   });
 
   it("rejects invite accept when signed in with a different email", async () => {
@@ -225,9 +223,8 @@ describe("Phase 1 e2e", () => {
     const inviteRes = await readJson(
       await createInviteRoute(
         jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/invites`, {
-          email: "coach@phase1.club",
-          kind: "ORG_COACH",
-          role: "COACH",
+          email: "manager@phase1.club",
+          kind: "MANAGER",
         }),
         params({ tournamentId }),
       ),

@@ -6,26 +6,26 @@ import {
 } from "@/lib/services/scoring-lock";
 import type { AuthUser } from "@/lib/auth/session";
 
-const coach: AuthUser = {
-  id: "coach-a",
+const manager: AuthUser = {
+  id: "mgr-a",
   email: "a@club.com",
-  name: "Coach A",
+  name: "Manager A",
   memberships: [
     {
-      role: "COACH",
+      role: "MANAGER",
       organizationId: "org-1",
       organization: { id: "org-1", name: "Club", slug: "club" },
     },
   ],
 };
 
-const otherCoach: AuthUser = {
-  id: "coach-b",
+const otherManager: AuthUser = {
+  id: "mgr-b",
   email: "b@club.com",
-  name: "Coach B",
+  name: "Manager B",
   memberships: [
     {
-      role: "COACH",
+      role: "MANAGER",
       organizationId: "org-1",
       organization: { id: "org-1", name: "Club", slug: "club" },
     },
@@ -64,17 +64,17 @@ describe("scoring lock", () => {
     expect(info.requiresAuth).toBe(true);
   });
 
-  it("blocks second coach when lock is held", () => {
+  it("blocks second manager when lock is held", () => {
     const info = buildScoringLockInfo(
       mockMatch({
-        scoringUserId: "coach-a",
-        scoringUser: { id: "coach-a", name: "Coach A", email: "a@club.com" },
+        scoringUserId: "mgr-a",
+        scoringUser: { id: "mgr-a", name: "Manager A", email: "a@club.com" },
       }),
-      otherCoach,
+      otherManager,
     );
     expect(info.lockedByOther).toBe(true);
     expect(info.canScore).toBe(false);
-    expect(info.holderName).toBe("Coach A");
+    expect(info.holderName).toBe("Manager A");
   });
 
   it("allows signed-in users on demo matches without club role (read path)", () => {
@@ -95,10 +95,10 @@ describe("scoring lock", () => {
   it("allows holder to continue scoring", () => {
     const info = buildScoringLockInfo(
       mockMatch({
-        scoringUserId: "coach-a",
-        scoringUser: { id: "coach-a", name: "Coach A", email: "a@club.com" },
+        scoringUserId: "mgr-a",
+        scoringUser: { id: "mgr-a", name: "Manager A", email: "a@club.com" },
       }),
-      coach,
+      manager,
     );
     expect(info.isHolder).toBe(true);
     expect(info.canScore).toBe(true);

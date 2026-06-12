@@ -98,8 +98,8 @@ describe("Auth API", () => {
     const fixtures = await seedTestFixtures(prisma);
     const invite = await createInvite(fixtures.tournamentId, {
       email: "newcoach@test.club",
-      kind: "ORG_COACH",
-      role: "COACH",
+      kind: "ORG_MANAGER",
+      role: "MANAGER",
     });
 
     const loginRes = await readResponse(
@@ -129,6 +129,46 @@ describe("Auth API", () => {
     const membership = await prisma.orgMembership.findFirst({
       where: { organizationId: fixtures.orgId, user: { email: "newcoach@test.club" } },
     });
-    expect(membership?.role).toBe("COACH");
+    expect(membership?.role).toBe("MANAGER");
+  });
+
+  it("accept MANAGER invite grants tournament manager role", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const invite = await createInvite(fixtures.tournamentId, {
+      email: "tourmgr@test.club",
+      kind: "MANAGER",
+    });
+
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", { email: "tourmgr@test.club" }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
+    const acceptRes = await readJson(
+      await acceptInvite(
+        jsonRequest("POST", `/api/v1/invites/${invite.token}/accept`, undefined, cookie),
+        params({ token: invite.token }),
+      ),
+    );
+    expect(acceptRes.status).toBe(200);
+
+    const tourMgr = await prisma.tournamentManager.findFirst({
+      where: {
+        tournamentId: fixtures.tournamentId,
+        user: { email: "tourmgr@test.club" },
+      },
+    });
+    expect(tourMgr?.role).toBe("MANAGER");
+
+    const membership = await prisma.orgMembership.findFirst({
+      where: {
+        organizationId: fixtures.orgId,
+        user: { email: "tourmgr@test.club" },
+      },
+    });
+    expect(membership).toBeNull();
   });
 });

@@ -184,8 +184,8 @@ export default function MobileScoreScreen() {
     if (!ctx.scoringLock.canScore) {
       setError(
         ctx.scoringLock.lockedByOther
-          ? `${ctx.scoringLock.holderName ?? "Another coach"} is already scoring`
-          : "Sign in as a club coach to score",
+          ? `${ctx.scoringLock.holderName ?? "Another manager"} is already scoring`
+          : "Sign in as a club manager to score",
       );
       return;
     }
@@ -781,7 +781,7 @@ export default function MobileScoreScreen() {
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Scoring locked</Text>
           <Text style={styles.lockBody}>
-            {ctx.scoringLock.holderName ?? "Another coach"} is scoring this match.
+            {ctx.scoringLock.holderName ?? "Another manager"} is scoring this match.
             Follow the live scorecard on the web.
           </Text>
         </View>
@@ -791,7 +791,7 @@ export default function MobileScoreScreen() {
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Sign in to score</Text>
           <Text style={styles.lockBody}>
-            Club coaches and invited scorers must sign in before scoring this match.
+            Club managers and invited scorers must sign in before scoring this match.
           </Text>
           <Pressable
             style={[styles.signInBtn, (!google.ready || google.busy) && styles.btnDisabled]}

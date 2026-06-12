@@ -34,7 +34,11 @@ export default async function TournamentDashboardPage({
   if (tournament.organizationId !== orgId) notFound();
 
   const invites = await listInvites(tournamentId);
+  const enrolledTeamIds = new Set(tournament.teams.map((tt) => tt.teamId));
   const orgTeams = org.teams.map((t) => ({ id: t.id, name: t.name }));
+  const availableOrgTeams = org.teams
+    .filter((t) => !enrolledTeamIds.has(t.id))
+    .map((t) => ({ id: t.id, name: t.name }));
   const tournamentTeams = tournament.teams.map((tt) => ({
     id: tt.id,
     name: tt.team.name,
@@ -106,18 +110,19 @@ export default async function TournamentDashboardPage({
             </li>
           ))}
         </ul>
-        <AddTournamentTeamForm tournamentId={tournamentId} teams={orgTeams} />
+        <AddTournamentTeamForm tournamentId={tournamentId} teams={availableOrgTeams} />
       </section>
 
       <section>
         <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
-          Coach invites
+          Manager invites
         </h2>
         {invites.length > 0 && (
           <ul style={{ listStyle: "none", marginBottom: 16 }}>
             {invites.map((inv) => (
               <li key={inv.id} style={card}>
-                <strong>{inv.email}</strong> — {inv.role}
+                <strong>{inv.email}</strong> —{" "}
+                {inv.kind === "MANAGER" ? "Tournament manager" : inv.role}
                 {inv.team ? ` (${inv.team.name})` : ""}
                 <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
                   {inv.acceptedAt ? "Accepted" : "Pending"} ·{" "}

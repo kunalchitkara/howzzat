@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { canUserScoreMatch } from "./tournament-access";
 import { getMatch } from "./matches";
 
-export const SCORING_ROLES = ["OWNER", "MANAGER", "COACH", "SCORER"] as const;
+export const SCORING_ROLES = ["OWNER", "MANAGER", "SCORER"] as const;
 
 const DEMO_SLUGS = new Set(["u9-live", "ios-live"]);
 
@@ -93,7 +93,7 @@ export async function claimMatchScoring(
   if (!authorized) {
     throw new ApiError(
       403,
-      "Only club coaches can score this match",
+      "Only club managers can score this match",
       "FORBIDDEN",
     );
   }
@@ -102,7 +102,7 @@ export async function claimMatchScoring(
     const holder =
       match.scoringUser ??
       (await prisma.user.findUnique({ where: { id: match.scoringUserId } }));
-    const name = holder ? scorerDisplayName(holder) : "Another coach";
+    const name = holder ? scorerDisplayName(holder) : "Another manager";
     throw new ApiError(
       409,
       `${name} is already scoring this match`,
@@ -142,7 +142,7 @@ export async function assertCanMutateScoring(
   if (!authorized) {
     throw new ApiError(
       403,
-      "Only club coaches can score this match",
+      "Only club managers can score this match",
       "FORBIDDEN",
     );
   }
@@ -151,7 +151,7 @@ export async function assertCanMutateScoring(
     const holder =
       match.scoringUser ??
       (await prisma.user.findUnique({ where: { id: match.scoringUserId } }));
-    const name = holder ? scorerDisplayName(holder) : "Another coach";
+    const name = holder ? scorerDisplayName(holder) : "Another manager";
     throw new ApiError(
       409,
       `${name} is already scoring this match`,

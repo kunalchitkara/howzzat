@@ -94,6 +94,51 @@ describe("teams and tournaments service", () => {
     expect(tournament.id).toBe(fixtures.tournamentId);
     expect(tournament.teams).toHaveLength(2);
   });
+
+  it("reuses the same player across tournaments via team membership", async () => {
+    const org = await createOrganization({ name: "Reuse Club" });
+    const team = await createTeam(org.id, { name: "U9 Lions", ageGroup: "U9" });
+    const membership = await addPlayerToTeam(team.id, {
+      legalName: "Jamie",
+      shirtNumber: 7,
+    });
+    const { version } = await seedRulesProfile(prisma);
+
+    const summer = await createTournament(org.id, {
+      name: "Summer Cup",
+      ageGroup: "U9",
+      rulesProfileVersionId: version.id,
+    });
+    const winter = await createTournament(org.id, {
+      name: "Winter Cup",
+      ageGroup: "U10",
+      rulesProfileVersionId: version.id,
+    });
+
+    await addTeamToTournament(summer.id, team.id);
+    await addTeamToTournament(winter.id, team.id);
+
+    const playerCount = await prisma.player.count({
+      where: { legalName: "Jamie" },
+    });
+    expect(playerCount).toBe(1);
+    expect(membership.playerId).toBeTruthy();
+
+    const summerTour = await prisma.tournament.findUniqueOrThrow({
+      where: { id: summer.id },
+      include: { teams: { include: { team: { include: { memberships: true } } } } },
+    });
+    const winterTour = await prisma.tournament.findUniqueOrThrow({
+      where: { id: winter.id },
+      include: { teams: { include: { team: { include: { memberships: true } } } } },
+    });
+    const summerPlayerIds =
+      summerTour.teams[0]?.team.memberships.map((m) => m.playerId) ?? [];
+    const winterPlayerIds =
+      winterTour.teams[0]?.team.memberships.map((m) => m.playerId) ?? [];
+    expect(summerPlayerIds).toContain(membership.playerId);
+    expect(winterPlayerIds).toContain(membership.playerId);
+  });
 });
 
 describe("rules service", () => {

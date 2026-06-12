@@ -27,7 +27,7 @@ export function userHasOrgRole(
 export function requireOrgRole(
   user: AuthUser,
   organizationId: string,
-  roles: string[] = ["OWNER", "MANAGER", "COACH"],
+  roles: string[] = ["OWNER", "MANAGER"],
 ) {
   if (!userHasOrgRole(user, organizationId, roles)) {
     throw new ApiError(403, "Insufficient permissions", "FORBIDDEN");

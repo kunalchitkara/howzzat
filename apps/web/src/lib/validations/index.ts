@@ -3,7 +3,6 @@ import { z } from "zod";
 export const orgRoleSchema = z.enum([
   "OWNER",
   "MANAGER",
-  "COACH",
   "SCORER",
   "VIEWER",
 ]);
@@ -167,7 +166,10 @@ export const ruleChangeSchema = z.object({
 
 export const createInviteSchema = z.object({
   email: z.string().email(),
-  kind: z.enum(["MANAGER", "ORG_COACH"]).optional(),
+  kind: z
+    .enum(["MANAGER", "ORG_MANAGER", "ORG_COACH"])
+    .optional()
+    .transform((k) => (k === "ORG_COACH" ? "ORG_MANAGER" : k)),
   role: orgRoleSchema.optional(),
   teamId: z.string().cuid().optional(),
 });

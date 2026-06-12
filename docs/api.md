@@ -54,7 +54,7 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 | GET | `/tournaments/:tournamentId/matches` | — | List fixtures |
 | POST | `/tournaments/:tournamentId/matches` | `{ homeTeamId, awayTeamId, matchNumber?, scheduledAt?, venue?, playersPerSide? }` | Create match |
 | GET | `/tournaments/:tournamentId/invites` | — | List invites |
-| POST | `/tournaments/:tournamentId/invites` | `{ email, role?, teamId? }` | Invite coach |
+| POST | `/tournaments/:tournamentId/invites` | `{ email, kind?, role?, teamId? }` | Invite manager (`kind`: `MANAGER` or `ORG_MANAGER`) |
 | POST | `/tournaments/:tournamentId/rules/preview` | `{ mode, toVersionId? \| overrides? }` | Preview rule change impact |
 | POST | `/tournaments/:tournamentId/rules/apply` | `{ mode, toVersionId? \| overrides?, effectiveFromMatchId? }` | Apply BACKFILL or FUTURE_ONLY |
 
@@ -135,7 +135,7 @@ curl -X POST localhost:3000/api/v1/deliveries \
 
 | Path | Description |
 |------|-------------|
-| `/login` | Manager/coach sign-in |
+| `/login` | Manager sign-in |
 | `/dashboard` | Club management (orgs, teams, tournaments, invites) |
 | `/invite/:token` | Accept tournament invite |
 | `/orgs/:orgSlug/tournaments/:tournamentSlug` | Public tournament page |
