@@ -83,6 +83,17 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
 model Session {
   id        String   @id @default(cuid())
   userId    String

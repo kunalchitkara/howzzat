@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/dashboard/LoginForm";
 import { googleRedirectUri } from "@/lib/auth/google";
 import { getServerUser } from "@/lib/auth/server";
 
-export const metadata = { title: "Sign in — Howzzat" };
+export const metadata = { title: "Sign in — Cricket Scoring" };
 
 export default async function LoginPage({
   searchParams,
@@ -25,17 +25,18 @@ export default async function LoginPage({
   return (
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "2rem 1rem" }}>
       <header style={{ marginBottom: 24, textAlign: "center" }}>
-        <h1 style={{ color: "var(--dk)", fontSize: "2rem", fontWeight: 800 }}>Howzzat</h1>
-        <p style={{ color: "#666", marginTop: 8 }}>
-          Sign in to manage tournaments, squads, and scores
-        </p>
+        <h1 style={{ color: "var(--dk)", fontSize: "2rem", fontWeight: 800 }}>Cricket Scoring</h1>
+        <p style={{ color: "#666", marginTop: 8 }}>by Howzzat</p>
       </header>
       <LoginForm
         redirectTo={redirectTo ?? "/dashboard"}
         initialError={errorMessage}
         setupHints={{
           googleRedirectUri: googleRedirectUri(),
-          smsReady: Boolean(process.env.TWILIO_AUTH_TOKEN?.trim()),
+          emailOtpReady: Boolean(
+            process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim(),
+          ),
+          smsReady: Boolean(process.env.TWILIO_VERIFY_SERVICE_SID?.trim()),
         }}
       />
       <p style={{ textAlign: "center", marginTop: 16, fontSize: "0.9rem" }}>

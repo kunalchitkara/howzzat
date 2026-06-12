@@ -350,7 +350,12 @@ Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also
 | `apps/web/.env.local` | `DATABASE_URL` | `file:../../packages/db/prisma/dev.db` or `libsql://…` (Turso) |
 | `apps/web/.env.local` | `DATABASE_AUTH_TOKEN` | Turso auth token (production) |
 | `apps/web/.env.local` | `COUPON_ADMIN_SECRET` | Platform admin — `X-Admin-Secret` header for `POST /api/v1/admin/coupons` |
-| `apps/web/.env.local` | `GOOGLE_*`, `TWILIO_*`, `STRIPE_*` | OAuth, SMS OTP, wallet top-ups |
+| `apps/web/.env.local` | `GOOGLE_*`, `RESEND_*`, `EMAIL_FROM` | Google OAuth, email OTP sign-in |
+| `apps/web/.env.local` | `TWILIO_*` (optional) | SMS OTP — hidden on login unless configured |
+| `apps/web/.env.local` | `STRIPE_*` | Wallet top-ups |
+
+**Sign-in (web):** Google OAuth, email one-time code (Resend), or email + password at `/login`.  
+**Mobile:** Google sign-in today; email OTP/password via web until native screens ship.
 
 **Wallet coupons:** create codes via admin API (`POST /api/v1/admin/coupons` with `X-Admin-Secret`) or `pnpm exec tsx scripts/generate-coupon.ts --amount 2000`. Tournament managers redeem at `POST /api/v1/tournaments/:id/wallet/redeem-coupon`.
 

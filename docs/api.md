@@ -14,7 +14,11 @@ All successful responses use `{ "data": ... }`. Errors use `{ "error", "code", "
 
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
-| POST | `/auth/login` | `{ email, name? }` | Sign in (demo: email-only, no password). Sets `howzzat_session` cookie. |
+| POST | `/auth/email/send` | `{ email }` | Send 6-digit email OTP (Resend). |
+| POST | `/auth/email/verify` | `{ email, code, name? }` | Verify email OTP; creates session. |
+| POST | `/auth/register` | `{ email, password, name? }` | Create account (password min 8 chars). |
+| POST | `/auth/login/password` | `{ email, password }` | Sign in with password. |
+| POST | `/auth/login` | `{ email, name? }` | Dev/test only: passwordless sign-in. |
 | POST | `/auth/logout` | — | Clear session |
 | GET | `/auth/me` | — | Current user + org memberships, or `null` |
 | GET | `/me/organizations` | — | Organizations for signed-in user |

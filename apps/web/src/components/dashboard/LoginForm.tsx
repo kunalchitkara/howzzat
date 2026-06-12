@@ -5,6 +5,8 @@ import { useState } from "react";
 import { apiFetch } from "@/lib/client/api";
 import { btn, card, Field, input } from "./ui";
 
+type AuthTab = "google" | "email-code" | "email-password";
+
 export function LoginForm({
   redirectTo = "/dashboard",
   initialError,
@@ -14,30 +16,79 @@ export function LoginForm({
   initialError?: string | null;
   setupHints?: {
     googleRedirectUri: string;
+    emailOtpReady: boolean;
     smsReady: boolean;
   };
 }) {
   const router = useRouter();
+  const [tab, setTab] = useState<AuthTab>("email-code");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [emailOtpStep, setEmailOtpStep] = useState<"email" | "code">("email");
   const [smsStep, setSmsStep] = useState<"phone" | "code">("phone");
+  const [passwordMode, setPasswordMode] = useState<"sign-in" | "register">("sign-in");
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [busy, setBusy] = useState(false);
 
   const googleHref = `/api/v1/auth/google?redirect=${encodeURIComponent(redirectTo)}`;
 
-  async function submitEmail(e: React.FormEvent) {
+  async function sendEmailCode(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      await apiFetch("/api/v1/auth/login", {
+      await apiFetch("/api/v1/auth/email/send", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setEmailOtpStep("code");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyEmailCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch("/api/v1/auth/email/verify", {
         method: "POST",
         body: JSON.stringify({
           email,
+          code,
           name: name.trim() || undefined,
+        }),
+      });
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const path =
+        passwordMode === "register"
+          ? "/api/v1/auth/register"
+          : "/api/v1/auth/login/password";
+      await apiFetch(path, {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+          name: passwordMode === "register" ? name.trim() || undefined : undefined,
         }),
       });
       router.push(redirectTo);
@@ -88,6 +139,18 @@ export function LoginForm({
     }
   }
 
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    padding: "10px 8px",
+    border: "1px solid #dadce0",
+    borderRadius: 8,
+    background: active ? "var(--md)" : "#fff",
+    color: active ? "#fff" : "#333",
+    fontWeight: 600,
+    fontSize: "0.85rem",
+    cursor: "pointer",
+  });
+
   return (
     <div style={card}>
       {setupHints && process.env.NODE_ENV === "development" && (
@@ -112,106 +175,142 @@ export function LoginForm({
                 {setupHints.googleRedirectUri}
               </code>
             </li>
-            {!setupHints.smsReady && (
+            {!setupHints.emailOtpReady && (
               <li>
-                <strong>SMS:</strong> set <code>TWILIO_AUTH_TOKEN</code> in{" "}
-                <code>apps/web/.env.local</code> and restart the server.
+                <strong>Email code:</strong> set <code>RESEND_API_KEY</code> and{" "}
+                <code>EMAIL_FROM</code> in <code>apps/web/.env.local</code>, or use{" "}
+                <code>DEV_EMAIL_BYPASS_EMAIL</code> / <code>DEV_EMAIL_BYPASS_CODE</code>.
               </li>
             )}
           </ul>
         </div>
       )}
-      <a
-        href={googleHref}
-        style={{
-          ...btn,
-          display: "block",
-          textAlign: "center",
-          textDecoration: "none",
-          marginBottom: 16,
-          background: "#fff",
-          color: "#333",
-          border: "1px solid #dadce0",
-        }}
-      >
-        Continue with Google
-      </a>
 
-      <form onSubmit={smsStep === "phone" ? sendSmsCode : verifySmsCode} style={{ marginBottom: 20 }}>
-        <p style={{ marginBottom: 12, color: "#666", fontSize: "0.95rem" }}>
-          {smsStep === "phone"
-            ? "Or sign in with your UK mobile — we’ll text a one-time code."
-            : `Enter the code we sent to ${phone}.`}
-        </p>
-        {smsStep === "phone" ? (
-          <Field label="UK mobile">
-            <input
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              style={input}
-              placeholder="07xxx xxxxxx"
-              autoComplete="tel"
-            />
-          </Field>
-        ) : (
-          <>
-            <Field label="Verification code">
-              <input
-                type="text"
-                required
-                inputMode="numeric"
-                pattern="\d{4,8}"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                style={input}
-                placeholder="123456"
-                autoComplete="one-time-code"
-              />
-            </Field>
-            <Field label="Name (optional, first time only)">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={input}
-                placeholder="Your name"
-              />
-            </Field>
-            <button
-              type="button"
-              onClick={() => {
-                setSmsStep("phone");
-                setCode("");
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--md)",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-                marginBottom: 12,
-                padding: 0,
-              }}
-            >
-              ← Use a different number
-            </button>
-          </>
-        )}
-        {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-        <button type="submit" disabled={busy} style={btn}>
-          {busy
-            ? "Please wait…"
-            : smsStep === "phone"
-              ? "Send code"
-              : "Verify & sign in"}
+      <p style={{ marginBottom: 16, color: "#444", fontSize: "0.95rem", textAlign: "center" }}>
+        Sign in to Cricket Scoring — manage tournaments, squads, and live scores.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <button type="button" style={tabStyle(tab === "google")} onClick={() => setTab("google")}>
+          Google
         </button>
-      </form>
+        <button
+          type="button"
+          style={tabStyle(tab === "email-code")}
+          onClick={() => setTab("email-code")}
+        >
+          Email code
+        </button>
+        <button
+          type="button"
+          style={tabStyle(tab === "email-password")}
+          onClick={() => setTab("email-password")}
+        >
+          Password
+        </button>
+      </div>
 
-      <details style={{ fontSize: "0.9rem", color: "#666" }}>
-        <summary style={{ cursor: "pointer", marginBottom: 8 }}>Demo email sign-in</summary>
-        <form onSubmit={submitEmail}>
+      {tab === "google" && (
+        <div>
+          <a
+            href={googleHref}
+            style={{
+              ...btn,
+              display: "block",
+              textAlign: "center",
+              textDecoration: "none",
+              background: "#fff",
+              color: "#333",
+              border: "1px solid #dadce0",
+            }}
+          >
+            Continue with Google
+          </a>
+        </div>
+      )}
+
+      {tab === "email-code" && (
+        <form onSubmit={emailOtpStep === "email" ? sendEmailCode : verifyEmailCode}>
+          <p style={{ marginBottom: 12, color: "#666", fontSize: "0.95rem" }}>
+            {emailOtpStep === "email"
+              ? "We'll email a one-time 6-digit code to sign you in."
+              : `Enter the code we sent to ${email}.`}
+          </p>
+          {emailOtpStep === "email" ? (
+            <Field label="Email">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={input}
+                placeholder="you@club.org"
+                autoComplete="email"
+              />
+            </Field>
+          ) : (
+            <>
+              <Field label="Verification code">
+                <input
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  style={input}
+                  placeholder="123456"
+                  autoComplete="one-time-code"
+                />
+              </Field>
+              <Field label="Name (optional, first time only)">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={input}
+                  placeholder="Your name"
+                />
+              </Field>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailOtpStep("email");
+                  setCode("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--md)",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  marginBottom: 12,
+                  padding: 0,
+                }}
+              >
+                ← Use a different email
+              </button>
+            </>
+          )}
+          {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+          <button type="submit" disabled={busy} style={btn}>
+            {busy
+              ? "Please wait…"
+              : emailOtpStep === "email"
+                ? "Send code"
+                : "Verify & sign in"}
+          </button>
+        </form>
+      )}
+
+      {tab === "email-password" && (
+        <form onSubmit={submitPassword}>
+          <p style={{ marginBottom: 12, color: "#666", fontSize: "0.95rem" }}>
+            {passwordMode === "sign-in"
+              ? "Sign in with your email and password."
+              : "Create an account with email and password."}
+          </p>
           <Field label="Email">
             <input
               type="email"
@@ -220,13 +319,133 @@ export function LoginForm({
               onChange={(e) => setEmail(e.target.value)}
               style={input}
               placeholder="you@club.org"
+              autoComplete="email"
             />
           </Field>
-          <button type="submit" disabled={busy} style={{ ...btn, marginTop: 8 }}>
-            {busy ? "Signing in…" : "Sign in with email"}
+          <Field label="Password">
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={input}
+              placeholder={passwordMode === "register" ? "At least 8 characters" : "Your password"}
+              autoComplete={
+                passwordMode === "register" ? "new-password" : "current-password"
+              }
+            />
+          </Field>
+          {passwordMode === "register" && (
+            <Field label="Name (optional)">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={input}
+                placeholder="Your name"
+              />
+            </Field>
+          )}
+          {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+          <button type="submit" disabled={busy} style={btn}>
+            {busy
+              ? "Please wait…"
+              : passwordMode === "sign-in"
+                ? "Sign in"
+                : "Create account"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPasswordMode(passwordMode === "sign-in" ? "register" : "sign-in");
+              setError(null);
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              marginTop: 12,
+              background: "none",
+              border: "none",
+              color: "var(--md)",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+            }}
+          >
+            {passwordMode === "sign-in"
+              ? "Need an account? Create one"
+              : "Already have an account? Sign in"}
           </button>
         </form>
-      </details>
+      )}
+
+      {setupHints?.smsReady && (
+        <details style={{ fontSize: "0.9rem", color: "#666", marginTop: 20 }}>
+          <summary style={{ cursor: "pointer", marginBottom: 8 }}>
+            Sign in with SMS (optional)
+          </summary>
+          <form onSubmit={smsStep === "phone" ? sendSmsCode : verifySmsCode}>
+            <p style={{ marginBottom: 12, fontSize: "0.9rem" }}>
+              {smsStep === "phone"
+                ? "UK mobile — we'll text a one-time code."
+                : `Enter the code we sent to ${phone}.`}
+            </p>
+            {smsStep === "phone" ? (
+              <Field label="UK mobile">
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  style={input}
+                  placeholder="07xxx xxxxxx"
+                  autoComplete="tel"
+                />
+              </Field>
+            ) : (
+              <>
+                <Field label="Verification code">
+                  <input
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    pattern="\d{4,8}"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    style={input}
+                    placeholder="123456"
+                    autoComplete="one-time-code"
+                  />
+                </Field>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSmsStep("phone");
+                    setCode("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--md)",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    marginBottom: 12,
+                    padding: 0,
+                  }}
+                >
+                  ← Use a different number
+                </button>
+              </>
+            )}
+            {error && tab !== "email-code" && tab !== "email-password" && (
+              <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>
+            )}
+            <button type="submit" disabled={busy} style={btn}>
+              {busy ? "Please wait…" : smsStep === "phone" ? "Send code" : "Verify & sign in"}
+            </button>
+          </form>
+        </details>
+      )}
     </div>
   );
 }

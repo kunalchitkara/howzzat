@@ -12,23 +12,46 @@ Set `BASE=http://localhost:3005` for the commands below.
    - Authorized JavaScript origin: `http://localhost:3005`
    - Authorized redirect URI: `http://localhost:3005/api/v1/auth/google/callback`  
    Production checklist: see `docs/cloudflare-setup.md` §9 (`https://app.howzzat.uk/...`).
-4. For **SMS OTP**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`.  
-   Twilio Verify service **Friendly Name** should be `Howzzat` (avoids “Sample” in SMS).  
-   **Dev bypass** (no Twilio): set `DEV_SMS_BYPASS_PHONE` and `DEV_SMS_BYPASS_CODE` in `.env.local`.
+4. For **Email OTP** (recommended): `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `Howzzat <onboarding@resend.dev>` for dev).  
+   **Dev bypass** (no Resend): set `DEV_EMAIL_BYPASS_EMAIL` and `DEV_EMAIL_BYPASS_CODE` in `.env.local`.
+5. For **Email + password**: no extra services — register via API or login UI **Password** tab.
+6. For **Google OAuth**: see step 3 above.
+7. **SMS OTP** (optional, deprioritized): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`.  
+   Shown on login only when `TWILIO_VERIFY_SERVICE_SID` is set.  
+   **Dev bypass**: `DEV_SMS_BYPASS_PHONE` and `DEV_SMS_BYPASS_CODE`.
 
-## 1. Sign in (demo email — no external services)
+## 1. Sign in
+
+### Option A — password (no external services)
 
 ```bash
 BASE=http://localhost:3005
 
-curl -s -c /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/login" \
+curl -s -c /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"manager@local.club","name":"Local Manager"}' | jq .
+  -d '{"email":"manager@local.club","password":"localpass123","name":"Local Manager"}' | jq .
 
 curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
 ```
 
-Browser: [http://localhost:3005/login](http://localhost:3005/login) → expand **Demo email sign-in**.
+Browser: [http://localhost:3005/login](http://localhost:3005/login) → **Password** tab.
+
+### Option B — email OTP (Resend or dev bypass)
+
+```bash
+curl -s -X POST "$BASE/api/v1/auth/email/send" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"manager@local.club"}' | jq .
+
+# Use code from email (or DEV_EMAIL_BYPASS_CODE)
+curl -s -c /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/email/verify" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"manager@local.club","code":"123456","name":"Local Manager"}' | jq .
+```
+
+### Option C — dev-only passwordless (automated tests)
+
+`POST /api/v1/auth/login` with `{ email, name? }` still works when `NODE_ENV` is not `production`.
 
 ## 2. Create organization
 
@@ -101,9 +124,9 @@ Dashboard: tournament page → **Coach invites** section.
 ## 7. Coach accepts invite
 
 ```bash
-curl -s -c /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/auth/login" \
+curl -s -c /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"coach@local.club","name":"Local Coach"}' | jq .
+  -d '{"email":"coach@local.club","password":"coachpass123","name":"Local Coach"}' | jq .
 
 curl -s -b /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/invites/$TOKEN/accept" | jq .
 
@@ -175,7 +198,7 @@ curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
 | `DATABASE_AUTH_TOKEN` | All (Turso) | Turso auth token |
 | `COUPON_ADMIN_SECRET` | Wallet coupons (Phase 6) | `X-Admin-Secret` header |
 
-`DEV_SMS_BYPASS_*` — **local dev only**; do not set in production.
+`DEV_EMAIL_BYPASS_*` and `DEV_SMS_BYPASS_*` — **local dev only**; do not set in production.
 
 ## Automated tests
 

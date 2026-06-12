@@ -64,7 +64,8 @@ Stripe website URL: **https://howzzat.uk**
    | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_…` |
    | `STRIPE_SECRET_KEY` | `sk_live_…` |
    | `STRIPE_WEBHOOK_SECRET` | `whsec_…` |
-   | Twilio vars | … |
+   | `RESEND_API_KEY` / `EMAIL_FROM` | Email OTP sign-in |
+   | Twilio vars (optional) | SMS OTP |
 
 4. Vercel → **Domains** → add `app.howzzat.uk`
 
@@ -113,7 +114,14 @@ Local dev (same Web client or a separate one):
 
 If you see **Error 400: redirect_uri_mismatch**, the URI in the error details must be added verbatim to **Authorized redirect URIs**.
 
-### 10. Twilio Verify SMS (production)
+### 10. Resend (email OTP sign-in)
+
+1. [resend.com](https://resend.com) → create API key → `RESEND_API_KEY` on Vercel.
+2. **Domains** → add `howzzat.uk` → add the DNS records Resend shows (SPF, DKIM) in Cloudflare DNS.
+3. Wait for verification, then set `EMAIL_FROM=Howzzat <hello@howzzat.uk>` (or `noreply@howzzat.uk`).
+4. For local dev before domain verification: use `EMAIL_FROM=Howzzat <onboarding@resend.dev>` and send only to your Resend account email.
+
+### 11. Twilio Verify SMS (optional)
 
 Twilio Console → **Verify → Services** → your service (`TWILIO_VERIFY_SERVICE_SID`):
 
