@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CreateTeamForm } from "@/components/dashboard/forms";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
 import { ApiError } from "@/lib/api/http";
 
@@ -22,7 +22,13 @@ export default async function TeamsPage({
   return (
     <PageShell title="Teams" subtitle={org.name}>
       <p style={{ marginBottom: 16 }}>
-        <Link href={`/dashboard/organizations/${orgId}`}>← {org.name}</Link>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}`}
+          variant="secondary"
+          className="btn-nav"
+        >
+          ← {org.name}
+        </BtnLink>
       </p>
 
       <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>

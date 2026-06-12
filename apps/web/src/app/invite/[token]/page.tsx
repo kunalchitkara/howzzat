@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { AcceptInviteButton } from "@/components/dashboard/forms";
 import { LoginForm } from "@/components/dashboard/LoginForm";
-import { card, PageShell } from "@/components/dashboard/ui";
+import { BtnLink, card, PageShell } from "@/components/dashboard/ui";
 import { getServerUser } from "@/lib/auth/server";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -74,11 +73,14 @@ export default async function InvitePage({
           </>
         )}
 
-        <p style={{ marginTop: 16, fontSize: "0.9rem" }}>
-          <Link href="/dashboard">Go to dashboard</Link>
-          {" · "}
-          <Link href="/">Home</Link>
-        </p>
+        <div className="btn-group" style={{ marginTop: 16 }}>
+          <BtnLink href="/dashboard" variant="secondary" className="btn-nav">
+            Dashboard
+          </BtnLink>
+          <BtnLink href="/" variant="secondary" className="btn-nav">
+            Home
+          </BtnLink>
+        </div>
       </PageShell>
     </main>
   );

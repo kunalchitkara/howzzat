@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
 import { ApiError } from "@/lib/api/http";
 
@@ -23,7 +23,9 @@ export default async function OrganizationPage({
   return (
     <PageShell title={org.name} subtitle={org.homeGround ?? org.slug}>
       <p style={{ marginBottom: 16 }}>
-        <Link href="/dashboard">← Dashboard</Link>
+        <BtnLink href="/dashboard" variant="secondary" className="btn-nav">
+          ← Dashboard
+        </BtnLink>
       </p>
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
@@ -49,12 +51,14 @@ export default async function OrganizationPage({
       {org.tournaments[0]?.isPublic && (
         <div style={{ ...card, marginTop: 12 }}>
           <strong>Public page</strong>
-          <p style={{ marginTop: 8, fontSize: "0.9rem" }}>
-            <Link
+          <p style={{ marginTop: 10 }}>
+            <BtnLink
               href={`/orgs/${org.slug}/tournaments/${org.tournaments[0].slug}`}
+              variant="secondary"
+              className="btn-nav"
             >
-              /orgs/{org.slug}/tournaments/{org.tournaments[0].slug}
-            </Link>
+              View public tournament
+            </BtnLink>
           </p>
         </div>
       )}

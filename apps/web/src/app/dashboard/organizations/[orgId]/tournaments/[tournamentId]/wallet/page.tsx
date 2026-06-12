@@ -1,8 +1,7 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TournamentWalletPanel } from "@/components/dashboard/TournamentWalletPanel";
-import { PageShell } from "@/components/dashboard/ui";
+import { BtnLink, PageShell } from "@/components/dashboard/ui";
 import { getTournament } from "@/lib/services/tournaments";
 import { getOrganization } from "@/lib/services/organizations";
 import { ApiError } from "@/lib/api/http";
@@ -32,11 +31,18 @@ export default async function TournamentWalletPage({
 
   return (
     <PageShell title="Tournament wallet" subtitle={tournament.name}>
-      <p style={{ marginBottom: 16 }}>
-        <Link href={tournamentHref}>← {tournament.name}</Link>
-        {" · "}
-        <Link href={`/dashboard/organizations/${orgId}/tournaments`}>Tournaments</Link>
-      </p>
+      <div className="btn-group" style={{ marginBottom: 16 }}>
+        <BtnLink href={tournamentHref} variant="secondary" className="btn-nav">
+          ← {tournament.name}
+        </BtnLink>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}/tournaments`}
+          variant="secondary"
+          className="btn-nav"
+        >
+          Tournaments
+        </BtnLink>
+      </div>
 
       <Suspense fallback={null}>
         <TournamentWalletPanel

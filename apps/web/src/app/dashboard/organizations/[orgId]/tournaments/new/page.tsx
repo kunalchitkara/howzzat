@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CreateTournamentForm } from "@/components/dashboard/forms";
-import { PageShell } from "@/components/dashboard/ui";
+import { BtnLink, PageShell } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
 import { listRulesTemplates } from "@/lib/services/rules";
 import { ApiError } from "@/lib/api/http";
@@ -23,9 +22,13 @@ export default async function NewTournamentPage({
   return (
     <PageShell title="New tournament" subtitle={org.name}>
       <p style={{ marginBottom: 16 }}>
-        <Link href={`/dashboard/organizations/${orgId}/tournaments`}>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}/tournaments`}
+          variant="secondary"
+          className="btn-nav"
+        >
           ← Tournaments
-        </Link>
+        </BtnLink>
       </p>
       <CreateTournamentForm
         orgId={orgId}

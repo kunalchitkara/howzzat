@@ -27,24 +27,14 @@ export default async function LoginPage({
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "2rem 1rem" }}>
       <header style={{ marginBottom: 24, textAlign: "center" }}>
         <Image
-          src="/logo-icon.png"
-          alt="Howzzat"
-          width={72}
-          height={72}
+          src="/logo-full.png"
+          alt="Howzzat — Cricket Scoring App"
+          width={260}
+          height={78}
           priority
-          style={{ margin: "0 auto" }}
+          style={{ height: "auto", maxWidth: "100%", margin: "0 auto" }}
         />
-        <h1
-          style={{
-            color: "var(--brand-navy)",
-            fontSize: "1.5rem",
-            fontWeight: 800,
-            marginTop: 12,
-          }}
-        >
-          Cricket Scoring
-        </h1>
-        <p style={{ color: "#666", marginTop: 4 }}>Sign in to your club dashboard</p>
+        <p style={{ color: "#666", marginTop: 12 }}>Sign in to your club dashboard</p>
       </header>
       <LoginForm
         redirectTo={redirectTo ?? "/dashboard"}

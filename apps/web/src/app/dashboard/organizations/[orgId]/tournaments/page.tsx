@@ -26,7 +26,13 @@ export default async function TournamentsPage({
         </BtnLink>
       </p>
       <p style={{ marginBottom: 16 }}>
-        <Link href={`/dashboard/organizations/${orgId}`}>← {org.name}</Link>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}`}
+          variant="secondary"
+          className="btn-nav"
+        >
+          ← {org.name}
+        </BtnLink>
       </p>
 
       <ul style={{ listStyle: "none" }}>

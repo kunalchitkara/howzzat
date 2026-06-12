@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddPlayerForm, EditTeamForm } from "@/components/dashboard/forms";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +27,13 @@ export default async function TeamPage({
   return (
     <PageShell title={team.name} subtitle={`${team.organization.name} roster`}>
       <p style={{ marginBottom: 16 }}>
-        <Link href={`/dashboard/organizations/${orgId}/teams`}>← Teams</Link>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}/teams`}
+          variant="secondary"
+          className="btn-nav"
+        >
+          ← Teams
+        </BtnLink>
       </p>
 
       <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   AddTournamentTeamForm,
@@ -49,23 +48,24 @@ export default async function TournamentDashboardPage({
       title={tournament.name}
       subtitle={`${org.name} · ${tournament.ageGroup ?? ""} ${tournament.seasonLabel ?? ""}`.trim()}
     >
-      <p style={{ marginBottom: 16 }}>
-        <Link href={`/dashboard/organizations/${orgId}/tournaments`}>
+      <div className="btn-group" style={{ marginBottom: 16 }}>
+        <BtnLink
+          href={`/dashboard/organizations/${orgId}/tournaments`}
+          variant="secondary"
+          className="btn-nav"
+        >
           ← Tournaments
-        </Link>
+        </BtnLink>
         {tournament.isPublic && (
-          <>
-            {" · "}
-            <BtnLink
-              href={`/orgs/${org.slug}/tournaments/${tournament.slug}`}
-              variant="secondary"
-              className="btn-nav"
-            >
-              Public page
-            </BtnLink>
-          </>
+          <BtnLink
+            href={`/orgs/${org.slug}/tournaments/${tournament.slug}`}
+            variant="secondary"
+            className="btn-nav"
+          >
+            Public page
+          </BtnLink>
         )}
-      </p>
+      </div>
 
       <TournamentBalanceSummary
         orgId={orgId}
