@@ -167,6 +167,7 @@ export const ruleChangeSchema = z.object({
 
 export const createInviteSchema = z.object({
   email: z.string().email(),
+  kind: z.enum(["MANAGER", "ORG_COACH"]).optional(),
   role: orgRoleSchema.optional(),
   teamId: z.string().cuid().optional(),
 });

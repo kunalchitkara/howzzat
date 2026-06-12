@@ -17,7 +17,7 @@ describe("buildHostResultLine", () => {
       chaseContinuedAfterTarget: false,
       innings: [
         { battingTeamId: home.id, totalRuns: 245, deliveries: [{ isLegalBall: true }] },
-        { battingTeamId: away.id, totalRuns: 230, deliveries: Array(24).fill({ isLegalBall: true }) },
+        { battingTeamId: away.id, totalRuns: 230, deliveries: Array(23).fill({ isLegalBall: true }) },
       ],
     });
     expect(line).toBe("Blues won by 15 runs");
@@ -42,7 +42,7 @@ describe("buildHostResultLine", () => {
         },
       ],
     });
-    expect(line).toBe("Blues won with 1.0 overs to spare");
+    expect(line).toBe("Blues won with 0.5 overs to spare");
   });
 
   it("host chasing continued wins by runs", () => {

@@ -251,6 +251,26 @@ button.sp-ball-bubble.selected {
   opacity: 0.5;
 }
 
+.sp-scoring-lock {
+  margin: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #5c4a00;
+}
+
+.sp-scoring-lock strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #3d2f00;
+}
+
+.sp-scoring-lock a {
+  color: var(--md);
+  font-weight: 600;
+}
+
 .sp-setup-recap {
   margin-bottom: 16px;
   padding: 12px 14px;

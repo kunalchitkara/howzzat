@@ -25,7 +25,7 @@ describe("match simulator", () => {
       rng: () => 0.3,
     });
 
-    expect(deliveries.filter((d) => d.isLegalBall)).toHaveLength(96);
+    expect(deliveries.filter((d) => d.isLegalBall)).toHaveLength(95);
     const totals = finalizeInnings(
       replayInnings(
         profile,

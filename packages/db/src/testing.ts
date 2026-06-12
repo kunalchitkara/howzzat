@@ -15,6 +15,10 @@ export function getU9ProfileJson(): string {
 
 /** Delete all rows in FK-safe order (for test isolation). */
 export async function resetDatabase(prisma: PrismaClient) {
+  await prisma.walletCouponRedemption.deleteMany();
+  await prisma.walletCoupon.deleteMany();
+  await prisma.walletTopUp.deleteMany();
+  await prisma.usageLedger.deleteMany();
   await prisma.delivery.deleteMany();
   await prisma.innings.deleteMany();
   await prisma.matchSquadPlayer.deleteMany();

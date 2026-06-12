@@ -2,6 +2,7 @@ import {
   applyDelivery,
   createInningsState,
   finalizeInnings,
+  maxLegalBalls,
 } from "./engine.js";
 import { resolveInningsConfig } from "./profiles.js";
 import {
@@ -285,7 +286,7 @@ export function simulateInnings(input: {
   const deliveries: DeliveryEvent[] = [];
   let state = createInningsState(profile, config);
   let legalBalls = 0;
-  const targetLegal = config.totalOvers * 6;
+  const targetLegal = maxLegalBalls(config.totalOvers);
 
   let striker = battingPlayers[0]!;
   let nonStriker = battingPlayers[1] ?? battingPlayers[0]!;

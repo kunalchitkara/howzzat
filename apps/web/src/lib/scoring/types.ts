@@ -83,6 +83,16 @@ export interface SuggestedResult {
   hostWon: boolean;
 }
 
+export interface ScoringLockInfo {
+  requiresAuth: boolean;
+  canScore: boolean;
+  lockedByOther: boolean;
+  isHolder: boolean;
+  holderUserId: string | null;
+  holderName: string | null;
+  claimedAt: string | null;
+}
+
 export interface MatchScoringContext {
   matchId: string;
   status: string;
@@ -130,4 +140,5 @@ export interface MatchScoringContext {
   canFinalize: boolean;
   chase: ChaseInfo | null;
   suggestedResult: SuggestedResult | null;
+  scoringLock: ScoringLockInfo;
 }

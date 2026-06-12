@@ -10,16 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const profiles = listBuiltinProfiles();
   const u9 = getBuiltinProfile("u9-softball-london-v1");
-  const [demoMatch, u9DemoMatch] = await Promise.all([
-    prisma.match.findFirst({
-      where: { publicSlug: "demo-score" },
-      select: { id: true },
-    }),
-    prisma.match.findFirst({
-      where: { publicSlug: "u9-live" },
-      select: { id: true },
-    }),
-  ]);
+  const demoMatch = await prisma.match.findFirst({
+    where: { publicSlug: "demo-score" },
+    select: { id: true },
+  });
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -34,9 +28,33 @@ export default async function HomePage() {
       >
         <h1 style={{ fontSize: "2rem", fontWeight: 800 }}>Howzzat</h1>
         <p style={{ marginTop: 8, opacity: 0.9 }}>
-          Junior cricket scoring, rules-aware stats, and public dashboards.
+          Cricket Scoring — rules-aware stats, live scorecards, and public dashboards.
         </p>
       </header>
+
+      <section
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          padding: "1.5rem",
+          marginBottom: "1rem",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        }}
+      >
+        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Who it&apos;s for</h2>
+        <ul style={{ listStyle: "none", fontSize: "0.95rem", color: "#444" }}>
+          <li style={{ padding: "6px 0" }}>
+            <strong>Managers</strong> — tournaments, squads, and fixtures
+          </li>
+          <li style={{ padding: "6px 0" }}>
+            <strong>Scorers</strong> — live ball-by-ball on web or mobile
+          </li>
+          <li style={{ padding: "6px 0" }}>
+            <strong>Spectators</strong> — live and post-match scorecards via public link (no
+            account)
+          </li>
+        </ul>
+      </section>
 
       <section
         style={{
@@ -89,12 +107,8 @@ export default async function HomePage() {
               <Link href={`/match/${demoMatch.id}/score`}>U9 full squad scorer</Link>
             </>
           )}
-          {u9DemoMatch && (
-            <>
-              {" · "}
-              <Link href={`/match/${u9DemoMatch.id}/score`}>U9 4-over demo</Link>
-            </>
-          )}
+          {" · "}
+          <Link href="/demo/u9-score">U9 4-over demo</Link>
         </p>
         <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
           Reset U9 demo: <code>POST /api/v1/demo/u9-match</code> — pick 2–11 from 10 per

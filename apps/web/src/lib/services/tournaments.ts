@@ -1,6 +1,6 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
-import { slugify } from "../api/slug";
+import { randomToken, slugify } from "../api/slug";
 import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
 import type { createTournamentSchema } from "../validations";
 import type { z } from "zod";
@@ -124,6 +124,7 @@ export async function createTournament(orgId: string, input: CreateTournamentInp
       organizationId: orgId,
       name: input.name,
       slug,
+      publicToken: randomToken(),
       ageGroup: input.ageGroup,
       seasonLabel: input.seasonLabel,
       rulesProfileVersionId: rulesVersion.id,

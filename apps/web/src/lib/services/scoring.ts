@@ -15,7 +15,9 @@ import { resolveInningsConfigForBatting } from "@/lib/scoring/innings-config";
 import { buildHostResultLine } from "@/lib/scoring/match-result";
 import { deliverySymbol } from "@/lib/scoring/delivery-symbol";
 import { buildRecentBalls } from "@/lib/scoring/recent-balls";
+import type { AuthUser } from "@/lib/auth/session";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
+import { buildScoringLockInfo } from "./scoring-lock";
 import {
   ageOnDate,
   isOverAgeGroup,
@@ -91,6 +93,7 @@ function squadPlayers(
 
 export async function getMatchScoringContext(
   matchId: string,
+  user: AuthUser | null = null,
 ): Promise<MatchScoringContext> {
   const match = await getMatch(matchId);
   const profile = await getRulesProfileFromVersion(
@@ -158,6 +161,11 @@ export async function getMatchScoringContext(
       nextBall,
     );
     const legalBallsBowled = countLegalBalls(innings.deliveries);
+    const inningsComplete = isInningsComplete(
+      innings.deliveries,
+      inningsConfig.totalOvers,
+      innings.endedAt,
+    );
     const lastBall = lastBallAfterDeliveries(innings.deliveries);
     const battingTeamId = innings.battingTeamId;
     const bowlingTeamId =
@@ -177,13 +185,11 @@ export async function getMatchScoringContext(
       netRuns: totals.netRuns,
       oversBowled: totals.oversBowled,
       legalBallsBowled,
-      displayOvers: formatOversFromLegalBalls(legalBallsBowled),
+      displayOvers: inningsComplete
+        ? `${inningsConfig.totalOvers}.0`
+        : formatOversFromLegalBalls(legalBallsBowled),
       deliveryCount: innings.deliveries.length,
-      complete: isInningsComplete(
-        innings.deliveries,
-        inningsConfig.totalOvers,
-        innings.endedAt,
-      ),
+      complete: inningsComplete,
       nextBall,
       lastBall,
       recentBalls: buildRecentBalls(innings.deliveries),
@@ -358,5 +364,6 @@ export async function getMatchScoringContext(
     suggestedResult: resultLine
       ? { line: resultLine, hostWon }
       : null,
+    scoringLock: buildScoringLockInfo(match, user),
   };
 }

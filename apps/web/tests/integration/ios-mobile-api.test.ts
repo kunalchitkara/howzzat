@@ -21,8 +21,8 @@ describe("iOS mobile API (no auth)", () => {
     );
     expect(res.status).toBe(201);
     expect(res.body.data).toMatchObject({
-      homeTeam: "iOS Blues",
-      awayTeam: "iOS Golds",
+      homeTeam: "Edgware U9",
+      awayTeam: "Hayes",
       totalOvers: 2,
       reset: false,
     });

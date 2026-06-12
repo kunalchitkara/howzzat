@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Howzzat — Junior cricket scoring & dashboards",
+  title: "Howzzat — Cricket Scoring",
   description:
-    "Ball-by-ball scoring, tournament rules, and public dashboards for youth cricket in London and beyond.",
+    "Ball-by-ball cricket scoring, tournament rules, and public dashboards — for managers, scorers, and spectators.",
 };
 
 export default function RootLayout({

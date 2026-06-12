@@ -1,6 +1,7 @@
 {
   "name": "@howzzat/web",
   "version": "0.0.1",
+  "description": "Cricket Scoring — web app for tournaments, live scoring, and public scorecards.",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

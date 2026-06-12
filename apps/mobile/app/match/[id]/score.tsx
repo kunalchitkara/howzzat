@@ -15,11 +15,13 @@ import {
 import { formatBallLabel } from "../../../lib/ball-label";
 import {
   apiFetch,
+  claimScoring,
   continueChase,
   endInningsEarly,
   fetchScoringContext,
   type ScoringContext,
 } from "../../../lib/api";
+import { getSessionToken } from "../../../lib/session";
 
 type WicketKind = "bowled" | "caught" | "run_out" | "lbw" | "stumped";
 type ExtrasPanel = "wide" | "no_ball" | "bye" | "leg_bye" | null;
@@ -46,6 +48,7 @@ export default function MobileScoreScreen() {
   const [wicketType, setWicketType] = useState<WicketKind>("bowled");
   const [fielderId, setFielderId] = useState("");
   const [dismissedId, setDismissedId] = useState("");
+  const [claimAttempted, setClaimAttempted] = useState(false);
 
   const refresh = useCallback(async () => {
     const data = await fetchScoringContext(matchId);
@@ -56,6 +59,21 @@ export default function MobileScoreScreen() {
   useEffect(() => {
     refresh().catch((e) => setError(e instanceof Error ? e.message : "Load failed"));
   }, [refresh]);
+
+  useEffect(() => {
+    if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
+    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.requiresAuth) return;
+    setClaimAttempted(true);
+    void getSessionToken().then((token) => {
+      if (!token) return;
+      claimScoring(matchId)
+        .then(setCtx)
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : "Could not claim scoring");
+          void refresh();
+        });
+    });
+  }, [ctx, claimAttempted, matchId, refresh]);
 
   const activeInnings = useMemo(
     () => ctx?.innings.find((i) => i.id === ctx.activeInningsId) ?? null,
@@ -150,7 +168,15 @@ export default function MobileScoreScreen() {
   }
 
   async function recordDelivery(body: Record<string, unknown>) {
-    if (!activeInnings) return;
+    if (!activeInnings || !ctx) return;
+    if (!ctx.scoringLock.canScore) {
+      setError(
+        ctx.scoringLock.lockedByOther
+          ? `${ctx.scoringLock.holderName ?? "Another coach"} is already scoring`
+          : "Sign in as a club coach to score",
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -296,7 +322,7 @@ export default function MobileScoreScreen() {
         </Pressable>
       )}
 
-      {activeInnings && !activeInnings.complete && (
+      {activeInnings && !activeInnings.complete && ctx.scoringLock.canScore && (
         <>
           <View style={styles.inningsHeader}>
             <Text style={styles.inningsLabel}>
@@ -739,6 +765,26 @@ export default function MobileScoreScreen() {
         </Pressable>
       )}
 
+      {ctx.scoringLock.lockedByOther && (
+        <View style={styles.lockBanner}>
+          <Text style={styles.lockTitle}>Scoring locked</Text>
+          <Text style={styles.lockBody}>
+            {ctx.scoringLock.holderName ?? "Another coach"} is scoring this match.
+            Follow the live scorecard on the web.
+          </Text>
+        </View>
+      )}
+
+      {ctx.scoringLock.requiresAuth && (
+        <View style={styles.lockBanner}>
+          <Text style={styles.lockTitle}>Sign in to score</Text>
+          <Text style={styles.lockBody}>
+            Club coaches must sign in on the web scorer. Parents can watch the live
+            scorecard.
+          </Text>
+        </View>
+      )}
+
       {error && <Text style={styles.error}>{error}</Text>}
     </ScrollView>
   );
@@ -929,4 +975,14 @@ const styles = StyleSheet.create({
   msg: { fontSize: 15, color: "#666", marginBottom: 12, textAlign: "center" },
   link: { color: "#54ACEE", fontWeight: "700" },
   error: { color: "#c0392b", textAlign: "center", marginTop: 12 },
+  lockBanner: {
+    backgroundColor: "#fff3cd",
+    borderColor: "#ffc107",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  lockTitle: { fontWeight: "800", color: "#3d2f00", marginBottom: 6 },
+  lockBody: { color: "#5c4a00", lineHeight: 20 },
 });

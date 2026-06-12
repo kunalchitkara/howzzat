@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -5,6 +6,7 @@ import {
   CreateMatchForm,
   InviteForm,
 } from "@/components/dashboard/forms";
+import { TournamentWalletPanel } from "@/components/dashboard/TournamentWalletPanel";
 import { PageShell, card } from "@/components/dashboard/ui";
 import { getTournament } from "@/lib/services/tournaments";
 import { getOrganization } from "@/lib/services/organizations";
@@ -57,6 +59,14 @@ export default async function TournamentDashboardPage({
           </>
         )}
       </p>
+
+      <Suspense fallback={null}>
+        <TournamentWalletPanel
+          tournamentId={tournamentId}
+          orgId={orgId}
+          balancePence={tournament.balancePence}
+        />
+      </Suspense>
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>

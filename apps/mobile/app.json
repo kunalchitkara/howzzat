@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Howzzat",
+    "description": "Cricket Scoring — live ball-by-ball scoring for matches and tournaments.",
     "slug": "howzzat",
     "version": "0.0.1",
     "orientation": "portrait",
@@ -9,7 +10,16 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.howzzat.scorer"
+      "bundleIdentifier": "com.howzzat.scorer",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.472584021178-e5e21285ib9rkt58e282fhfr5osne666"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +29,10 @@
     },
     "plugins": ["expo-router"],
     "extra": {
-      "apiUrl": "http://localhost:3005"
+      "apiUrl": "https://app.howzzat.uk",
+      "googleWebClientId": "472584021178-rns0n92evlhgap8a92iat5dfmrtm1tmo.apps.googleusercontent.com",
+      "googleIosClientId": "472584021178-e5e21285ib9rkt58e282fhfr5osne666.apps.googleusercontent.com",
+      "googleAndroidClientId": "472584021178-5gkp9hdb1dm14hrp7fu0p9fsqqdncdjs.apps.googleusercontent.com"
     },
     "experiments": {
       "typedRoutes": true

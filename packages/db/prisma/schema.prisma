@@ -44,6 +44,8 @@ model User {
   matchScorerInvitesAccepted MatchScorerInvite[] @relation("MatchScorerAcceptedBy")
   tournamentManagers    TournamentManager[]
   walletTopUps          WalletTopUp[]
+  walletCouponsCreated  WalletCoupon[]
+  walletCouponRedemptions WalletCouponRedemption[]
   passwordResetTokens   PasswordResetToken[]
   sessions              Session[]
   scoringMatches        Match[]               @relation("MatchScorer")
@@ -179,6 +181,7 @@ model Tournament {
   invites             TournamentInvite[]
   managers            TournamentManager[]
   walletTopUps        WalletTopUp[]
+  walletCouponRedemptions WalletCouponRedemption[]
   usageLedger         UsageLedger[]
   rulesBindings       TournamentRulesBinding[]
   ruleChangeRequests  RuleChangeRequest[]
@@ -321,6 +324,42 @@ model WalletTopUp {
   paidBy     User       @relation(fields: [paidByUserId], references: [id])
 
   @@index([tournamentId])
+}
+
+/// Platform-admin coupon codes redeemable for tournament wallet credit (no Stripe).
+model WalletCoupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  amountPence     Int
+  maxRedemptions  Int       @default(1)
+  redemptionCount Int       @default(0)
+  expiresAt       DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+  createdByUserId String?
+
+  createdBy   User?                    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  redemptions WalletCouponRedemption[]
+
+  @@index([code])
+}
+
+/// One redemption per coupon per tournament; global cap via WalletCoupon.maxRedemptions.
+model WalletCouponRedemption {
+  id           String   @id @default(cuid())
+  couponId     String
+  tournamentId String
+  userId       String
+  amountPence  Int
+  redeemedAt   DateTime @default(now())
+
+  coupon     WalletCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  tournament Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id])
+
+  @@unique([couponId, tournamentId])
+  @@index([tournamentId])
+  @@index([userId])
 }
 
 model UsageLedger {

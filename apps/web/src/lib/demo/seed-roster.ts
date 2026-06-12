@@ -42,11 +42,21 @@ export async function seedTeamRoster(
         shirtNumber: i + 1,
         seasonLabel,
       },
-      update: { shirtNumber: i + 1 },
+      update: { shirtNumber: i + 1, active: true },
     });
 
     playerIds.push(player.id);
   }
+
+  await prisma.teamMembership.updateMany({
+    where: {
+      teamId,
+      seasonLabel,
+      active: true,
+      playerId: { notIn: playerIds },
+    },
+    data: { active: false },
+  });
 
   return playerIds;
 }

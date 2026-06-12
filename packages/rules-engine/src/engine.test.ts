@@ -3,6 +3,7 @@ import {
   applyDelivery,
   createInningsState,
   finalizeInnings,
+  maxLegalBalls,
   netRuns,
   replayInnings,
 } from "./engine.js";
@@ -22,6 +23,7 @@ describe("u9-softball-london-v1", () => {
     const cfg = resolveInningsConfig(profile, 8);
     expect(cfg.totalOvers).toBe(16);
     expect(cfg.pairCount).toBe(4);
+    expect(maxLegalBalls(cfg.totalOvers)).toBe(95);
   });
 
   it("starts innings at 200", () => {

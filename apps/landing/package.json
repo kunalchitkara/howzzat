@@ -1,0 +1,9 @@
+{
+  "name": "@howzzat/landing",
+  "version": "0.0.1",
+  "description": "Marketing site for Howzzat — Cricket Scoring.",
+  "private": true,
+  "scripts": {
+    "deploy:pages": "wrangler pages deploy public --project-name=howzzat-landing"
+  }
+}

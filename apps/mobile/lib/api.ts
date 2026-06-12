@@ -1,15 +1,26 @@
 import { getApiBase } from "./config";
+import { getSessionToken, sessionCookieHeader } from "./session";
 
 export function apiUrl(path: string): string {
   return `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+type ApiFetchInit = RequestInit & { skipAuth?: boolean };
+
+export async function apiFetch<T>(path: string, init?: ApiFetchInit): Promise<T> {
+  const { skipAuth, ...requestInit } = init ?? {};
+  const authHeaders: Record<string, string> = {};
+  if (!skipAuth) {
+    const token = await getSessionToken();
+    if (token) authHeaders.Cookie = sessionCookieHeader(token);
+  }
+
   const res = await fetch(apiUrl(path), {
-    ...init,
+    ...requestInit,
     headers: {
       "Content-Type": "application/json",
-      ...init?.headers,
+      ...authHeaders,
+      ...requestInit.headers,
     },
   });
   const body = await res.json();
@@ -101,7 +112,22 @@ export type ScoringContext = {
     targetReached: boolean;
   } | null;
   suggestedResult: { line: string; hostWon: boolean } | null;
+  scoringLock: {
+    requiresAuth: boolean;
+    canScore: boolean;
+    lockedByOther: boolean;
+    isHolder: boolean;
+    holderUserId: string | null;
+    holderName: string | null;
+    claimedAt: string | null;
+  };
 };
+
+export async function claimScoring(matchId: string) {
+  return apiFetch<ScoringContext>(`/api/v1/matches/${matchId}/scoring/claim`, {
+    method: "POST",
+  });
+}
 
 export async function confirmSquads(matchId: string) {
   return apiFetch<{ squadsConfirmedAt: string }>(

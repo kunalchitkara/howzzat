@@ -98,6 +98,7 @@ describe("Auth API", () => {
     const fixtures = await seedTestFixtures(prisma);
     const invite = await createInvite(fixtures.tournamentId, {
       email: "newcoach@test.club",
+      kind: "ORG_COACH",
       role: "COACH",
     });
 

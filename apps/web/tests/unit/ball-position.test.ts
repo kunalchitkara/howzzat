@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatBallLabel } from "@/lib/scoring/ball-label";
 import {
   canAcceptDelivery,
   currentOverBowler,
@@ -9,6 +10,14 @@ import {
   nextBallAfterDeliveries,
   oversToSpare,
 } from "@/lib/scoring/ball-position";
+
+function legalDeliveries(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    overNumber: Math.floor(i / 6) + 1,
+    ballInOver: (i % 6) + 1,
+    isLegalBall: true,
+  }));
+}
 
 describe("ball position", () => {
   it("starts at 1.1 with no deliveries", () => {
@@ -63,11 +72,11 @@ describe("ball position", () => {
   });
 
   it("detects innings complete", () => {
-    const deliveries = Array.from({ length: 96 }, () => ({
+    const deliveries = Array.from({ length: 95 }, () => ({
       isLegalBall: true,
     }));
     expect(isInningsComplete(deliveries, 16)).toBe(true);
-    expect(isInningsComplete(deliveries.slice(0, 95), 16)).toBe(false);
+    expect(isInningsComplete(deliveries.slice(0, 94), 16)).toBe(false);
   });
 
   it("last ball reflects bowled delivery not next", () => {
@@ -78,17 +87,32 @@ describe("ball position", () => {
   });
 
   it("formats overs spare", () => {
-    expect(oversToSpare(4, 18)).toBe("1.0");
+    expect(oversToSpare(4, 18)).toBe("0.5");
     expect(formatOversFromLegalBalls(18)).toBe("3.0");
   });
 
-  it("caps innings at totalOvers * 6 legal balls", () => {
-    expect(maxLegalBalls(2)).toBe(12);
-    const twelve = Array.from({ length: 12 }, () => ({ isLegalBall: true }));
-    expect(isInningsComplete(twelve, 2)).toBe(true);
-    expect(canAcceptDelivery(twelve, 2, true).ok).toBe(false);
-    expect(canAcceptDelivery(twelve, 2, false).ok).toBe(false);
-    expect(canAcceptDelivery(twelve.slice(0, 11), 2, true).ok).toBe(true);
-    expect(canAcceptDelivery(twelve.slice(0, 11), 2, false).ok).toBe(true);
+  it("caps MJCA innings before the final N.0 marker ball", () => {
+    expect(maxLegalBalls(1)).toBe(6);
+    expect(maxLegalBalls(2)).toBe(11);
+    expect(maxLegalBalls(4)).toBe(23);
+    expect(maxLegalBalls(16)).toBe(95);
+
+    const eleven = legalDeliveries(11);
+    expect(isInningsComplete(eleven, 2)).toBe(true);
+    expect(canAcceptDelivery(eleven, 2, true).ok).toBe(false);
+    expect(canAcceptDelivery(eleven.slice(0, 10), 2, true).ok).toBe(true);
+  });
+
+  it("2-over innings: last scorable prompt is MJCA 1.5 (over 2 ball 5)", () => {
+    const ten = legalDeliveries(10);
+    const next = nextBallAfterDeliveries(ten, 2);
+    expect(next).toEqual({ overNumber: 2, ballInOver: 5 });
+    expect(formatBallLabel(next.overNumber, next.ballInOver)).toBe("1.5");
+    expect(isInningsComplete(ten, 2)).toBe(false);
+
+    const eleven = legalDeliveries(11);
+    expect(isInningsComplete(eleven, 2)).toBe(true);
+    expect(formatBallLabel(2, 5)).toBe("1.5");
+    expect(formatBallLabel(2, 6)).toBe("2.0");
   });
 });

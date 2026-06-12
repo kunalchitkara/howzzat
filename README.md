@@ -1,6 +1,6 @@
 # Howzzat
 
-**Ball-by-ball scoring, configurable junior cricket rules, and public team dashboards** — a lightweight alternative to spreadsheet + manual HTML workflows for youth clubs.
+**Cricket Scoring** — ball-by-ball live scoring, configurable rules, and public dashboards for clubs and leagues.
 
 Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 starting score, shared county rules), designed to scale to more formats and adult cricket later.
 
@@ -24,7 +24,7 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
 8. [Data model (overview)](#data-model-overview)
 9. [Getting started](#getting-started)
 10. [Development workflow](#development-workflow)
-11. [Deploying to Cloudflare](#deploying-to-cloudflare)
+11. [Deploying to production](#deploying-to-production)
 12. [Roadmap](#roadmap)
 13. [Migrating from edgeware-u9](#migrating-from-edgeware-u9)
 14. [Contributing & license](#contributing--license)
@@ -43,7 +43,7 @@ That pipeline works — [edgeware-u9](https://kunalchitkara.github.io/edgeware-u
 
 - Managers **create tournaments** and invite coaches
 - Scorers record **ball-by-ball** on mobile
-- Parents get **public dashboards** without login
+- Spectators get **public dashboards** without login
 - **Player history** spans seasons and tournaments
 - **Rules profiles** can be cloned and tweaked per competition
 
@@ -68,11 +68,11 @@ Season 1 goal: **free for London junior leagues** to gain adoption; monetisation
 - Live innings view driven by the **rules engine** (not hard-coded UI logic)
 - Official vs **practice** matches (practice stats excluded from season tables)
 
-### For parents & players
+### For spectators
 
-- Season overview, fixtures, scorecards, player cards, leaderboards
+- Live and post-match scorecards via public link (no account)
+- Season overview, fixtures, player cards, leaderboards
 - Rules guide generated from the active profile
-- No account required for public pages
 
 ### Analytics (design target)
 
@@ -142,10 +142,11 @@ See [docs/architecture.md](./docs/architecture.md) for deployment notes.
 ```text
 howzzat/
 ├── apps/
-│   ├── web/                      # Next.js — web + API
+│   ├── web/                      # Next.js — web + API (Vercel)
 │   │   └── src/app/              # App Router pages & /api routes
-│   └── mobile/                   # Expo Router — scorer
-│       └── app/                  # index, score (demo tap UI)
+│   ├── mobile/                   # Expo Router — scorer
+│   │   └── app/                  # index, match flow (no-auth demo)
+│   └── landing/                  # Static marketing site (Cloudflare Pages)
 ├── packages/
 │   ├── rules-engine/             # Core scoring logic + profiles/*.json
 │   ├── db/                       # Prisma schema, migrations, seed
@@ -181,6 +182,8 @@ Used across many **Middlesex / London junior Sunday leagues**. Matches the conve
 | Net runs (display) | Bat runs − (5 × wickets) |
 | Strike after wicket | Yes (pair continues batting) |
 | Run out | Fielder credit; bowler does **not** get a wicket |
+
+**MJCA ball notation:** each full over has six legal balls, but the final over ends at ball five — the `N.0` label marks completion, not a seventh scorable delivery (e.g. 2 overs → balls `1.1`–`1.5`, `2.1`–`2.5`). The engine exposes this as `maxLegalBalls(totalOvers)` (`2 → 11`, `4 → 23`, `16 → 95`).
 
 Profile JSON: [`packages/rules-engine/profiles/u9-softball-london-v1.json`](./packages/rules-engine/profiles/u9-softball-london-v1.json)
 
@@ -261,16 +264,29 @@ Seeds the `u9-softball-london-v1` template into the database.
 
 ```bash
 pnpm dev:web
+# or, if port 3000 is taken:
+cd apps/web && pnpm dev --port 3005
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3005](http://localhost:3005) (default when 3000 is busy).
 
 | Page | Description |
 |------|-------------|
-| `/` | Landing + links to demos |
-| `/demo/scorecard` | Sample Edgware-style scorecard |
+| `/` | Home + links to demos |
+| `/demo/u9-score` | Reset **Edgware U9 vs Hayes** 4-over demo and open scorer |
+| `/demo/scorecard` | Static Hayes vs Edgware scorecard (M4 sample) |
 | `/demo/simulated` | Simulated full U9 match (scorecard + ball-by-ball) |
-| `/match/demo-score/score` | Live scorer demo (run seed first) |
+| `/match/{matchId}/score` | Live scorer for a match |
+
+**Reset demos** (no auth):
+
+```bash
+# U9 4-over pairs — Edgware U9 vs Hayes, pick 2–11 from 10 per side
+curl -X POST http://localhost:3005/api/v1/demo/u9-match
+
+# iOS/mobile 2-over pairs demo (public slug ios-live)
+curl -X POST http://localhost:3005/api/v1/demo/ios-match
+```
 
 | Endpoint | Description |
 |----------|-------------|
@@ -286,7 +302,9 @@ Open [http://localhost:3000](http://localhost:3000)
 pnpm dev:mobile
 ```
 
-Scan the QR code with Expo Go. **Score** tab is a minimal tap UI (0–6, wicket) wired to the rules engine.
+Point the app at your local API: `EXPO_PUBLIC_API_URL=http://localhost:3005 pnpm dev:mobile` (or set in `apps/mobile/app.json` → `extra.apiUrl`).
+
+Scan the QR code with Expo Go. **Start demo** runs a full 2-over **Edgware U9 vs Hayes** match without signing in (squads → toss → score → result). Optional Google sign-in for authenticated scoring later.
 
 ### Run all tests
 
@@ -320,31 +338,31 @@ pnpm db:studio
 
 ### Environment variables
 
+Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also `packages/db/.env` for Prisma CLI.
+
 | Location | Variable | Purpose |
 |----------|----------|---------|
 | `packages/db/.env` | `DATABASE_URL` | `file:./prisma/dev.db` locally |
+| `apps/web/.env.local` | `DATABASE_URL` | `file:../../packages/db/prisma/dev.db` or `libsql://…` (Turso) |
+| `apps/web/.env.local` | `DATABASE_AUTH_TOKEN` | Turso auth token (production) |
+| `apps/web/.env.local` | `COUPON_ADMIN_SECRET` | Platform admin — `X-Admin-Secret` header for `POST /api/v1/admin/coupons` |
+| `apps/web/.env.local` | `GOOGLE_*`, `TWILIO_*`, `STRIPE_*` | OAuth, SMS OTP, wallet top-ups |
 
-Production D1 uses Wrangler bindings — no connection string in the app bundle.
+**Wallet coupons:** create codes via admin API (`POST /api/v1/admin/coupons` with `X-Admin-Secret`) or `pnpm exec tsx scripts/generate-coupon.ts --amount 2000`. Tournament managers redeem at `POST /api/v1/tournaments/:id/wallet/redeem-coupon`.
 
 ---
 
-## Deploying to Cloudflare
+## Deploying to production
 
-Howzzat targets **low cost at scale** (free tier for clubs, minimal ops burn):
+**Current setup:** Next.js on **Vercel** (`app.howzzat.uk`) with **Turso** (libSQL) for production data; landing page on **Cloudflare Pages** (`howzzat.uk`). Local dev uses SQLite via the same Prisma schema.
 
-1. **Create D1 database**
+1. **Database** — Turso: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN` on Vercel. `apps/web/src/lib/db.ts` switches adapter automatically.
+2. **App** — import `apps/web` in Vercel; set env vars from `apps/web/.env.example`.
+3. **Landing** — `pnpm landing:deploy` (Wrangler Pages).
 
-   ```bash
-   npx wrangler d1 create howzzat
-   ```
+Step-by-step DNS, Stripe webhooks, and email routing: [`docs/cloudflare-setup.md`](./docs/cloudflare-setup.md).
 
-   Copy `database_id` into [`wrangler.toml`](./wrangler.toml).
-
-2. **Apply schema** — export from Prisma or maintain SQL migrations under `packages/db/d1-migrations/` (TODO).
-
-3. **Deploy Next.js** — use [@opennextjs/cloudflare](https://opennext.cloudflare.net/) so API routes and D1 share the edge.
-
-Until production deploy is wired, local development uses SQLite with the same Prisma schema.
+Cloudflare D1 remains an option for edge-native deploy later ([`wrangler.toml`](./wrangler.toml)).
 
 ---
 
@@ -353,12 +371,12 @@ Until production deploy is wired, local development uses SQLite with the same Pr
 | Phase | Deliverable | Status |
 |-------|-------------|--------|
 | **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
-| **1** | Auth, org/tournament CRUD, invite coaches | 🔲 |
+| **1** | Auth (Google, SMS), org/tournament CRUD, invites | 🟡 |
 | **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🟡 ScorePad + API |
 | **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball UI |
 | **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |
-| **5** | Live scoring (SSE / Realtime), D1 production | 🔲 |
-| **6** | Monetisation (per-tournament Pro), custom domains | 🔲 |
+| **5** | Live scoring (SSE / Realtime), Turso production | 🟡 Vercel + Turso live |
+| **6** | Monetisation (wallet coupons, Stripe top-ups) | 🟡 |
 
 ---
 

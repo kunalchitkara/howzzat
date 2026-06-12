@@ -30,10 +30,13 @@ export async function createInvite(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 14);
 
+  const kind = input.kind ?? "MANAGER";
+
   return prisma.tournamentInvite.create({
     data: {
       tournamentId,
       email: input.email.toLowerCase(),
+      kind,
       role: input.role ?? "COACH",
       teamId: input.teamId,
       token: randomToken(),
@@ -61,23 +64,40 @@ export async function acceptInvite(token: string, userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found", "USER_NOT_FOUND");
 
-  await prisma.orgMembership.upsert({
-    where: {
-      organizationId_userId: {
+  if (invite.kind === "MANAGER") {
+    await prisma.tournamentManager.upsert({
+      where: {
+        tournamentId_userId: {
+          tournamentId: invite.tournamentId,
+          userId,
+        },
+      },
+      create: {
+        tournamentId: invite.tournamentId,
+        userId,
+        role: "MANAGER",
+      },
+      update: {},
+    });
+  } else {
+    await prisma.orgMembership.upsert({
+      where: {
+        organizationId_userId: {
+          organizationId: invite.tournament.organizationId,
+          userId,
+        },
+      },
+      create: {
         organizationId: invite.tournament.organizationId,
         userId,
+        role: invite.role,
       },
-    },
-    create: {
-      organizationId: invite.tournament.organizationId,
-      userId,
-      role: invite.role,
-    },
-    update: { role: invite.role },
-  });
+      update: { role: invite.role },
+    });
+  }
 
   return prisma.tournamentInvite.update({
     where: { id: invite.id },
-    data: { acceptedAt: new Date(), invitedById: userId },
+    data: { acceptedAt: new Date() },
   });
 }

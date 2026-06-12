@@ -4,6 +4,7 @@ export interface RecentBallBubble {
   id: string;
   symbol: string;
   overNumber: number;
+  ballInOver: number;
   /** True after the 6th legal ball of an over (over separator). */
   isOverEnd: boolean;
 }

@@ -11,6 +11,8 @@ import { POST as finalizeRoute } from "@/app/api/v1/matches/[matchId]/finalize/r
 import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { prisma } from "@howzzat/db";
 import { resetDatabase } from "@howzzat/db/testing";
+import { formatBallLabel } from "@/lib/scoring/ball-label";
+import { maxLegalBalls } from "@/lib/scoring/ball-position";
 import { emptyParams, jsonRequest, params, readJson } from "../helpers/request";
 
 async function bowlOvers(
@@ -72,9 +74,9 @@ describe("iOS demo integration flow", () => {
     expect(ctx0.canStartInnings).toBeNull();
     expect(ctx0.squads.home.length).toBe(2);
     expect(ctx0.squads.away.length).toBe(2);
-    expect(ctx0.rosters.home.length).toBe(8);
-    expect(ctx0.rosters.away.length).toBe(8);
-    expect(ctx0.squads.home[0]?.name).toBe("Alex");
+    expect(ctx0.rosters.home.length).toBe(10);
+    expect(ctx0.rosters.away.length).toBe(10);
+    expect(ctx0.squads.home[0]?.name).toBe("Aanya");
     expect(ctx0.squads.home[0]?.isCaptain).toBe(true);
 
     expect(scoring0.body.data.squadsConfirmed).toBe(false);
@@ -119,7 +121,7 @@ describe("iOS demo integration flow", () => {
     expect(inningsRes.status).toBe(201);
     const innings1Id = inningsRes.body.data.id as string;
 
-    const runsSequence = [4, 1, 0, 2, 6, 0, 3, 1, 4, 0, 2, 1];
+    const runsSequence = [4, 1, 0, 2, 6, 0, 3, 1, 4, 0, 2];
     await bowlOvers(innings1Id, runsSequence, strikerId, nonStrikerId, bowlerId);
 
     const scoringAfter1 = await readJson(
@@ -183,7 +185,7 @@ describe("iOS demo integration flow", () => {
     const bbb1 = cardRes.body.data.view.ballByBall?.innings[0];
     expect(bbb1?.overs.length).toBe(2);
     const ballCount1 = bbb1?.overs.reduce((n, o) => n + o.deliveries.length, 0) ?? 0;
-    expect(ballCount1).toBe(12);
+    expect(ballCount1).toBe(11);
 
     const finRes = await readJson(
       await finalizeRoute(
@@ -195,7 +197,7 @@ describe("iOS demo integration flow", () => {
     expect(finRes.body.data.status).toBe("COMPLETED");
   });
 
-  it("rejects a 13th legal ball in a 2-over innings", async () => {
+  it("last scorable ball in 2-over innings is MJCA 1.5 before innings ends", async () => {
     const created = await readJson(
       await createIosDemo(jsonRequest("POST", "/api/v1/demo/ios-match"), emptyParams()),
     );
@@ -242,14 +244,108 @@ describe("iOS demo integration flow", () => {
     );
     const inningsId = inningsRes.body.data.id as string;
 
-    await bowlOvers(inningsId, Array(12).fill(1), strikerId, nonStrikerId, bowlerId);
+    await bowlOvers(inningsId, Array(10).fill(1), strikerId, nonStrikerId, bowlerId);
+
+    const beforeLast = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    const inn = beforeLast.body.data.innings[0];
+    expect(inn?.complete).toBe(false);
+    expect(inn?.displayOvers).toBe("1.4");
+    expect(inn?.nextBall).toEqual({ overNumber: 2, ballInOver: 5 });
+    expect(formatBallLabel(inn?.nextBall.overNumber, inn?.nextBall.ballInOver)).toBe(
+      "1.5",
+    );
+
+    const lastBallRes = await readJson(
+      await recordDeliveryRoute(
+        jsonRequest("POST", "/api/v1/deliveries", {
+          inningsId,
+          overNumber: 2,
+          ballInOver: 5,
+          runsOffBat: 1,
+          strikerId,
+          nonStrikerId,
+          bowlerId,
+        }),
+        emptyParams(),
+      ),
+    );
+    expect(lastBallRes.status).toBe(201);
+
+    const afterLast = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    expect(afterLast.body.data.innings[0]?.complete).toBe(true);
+    expect(afterLast.body.data.innings[0]?.displayOvers).toBe("2.0");
+    expect(afterLast.body.data.innings[0]?.lastBall).toEqual({
+      overNumber: 2,
+      ballInOver: 5,
+    });
+    expect(maxLegalBalls(2)).toBe(11);
+  });
+
+  it("rejects a 12th legal ball in a 2-over innings", async () => {
+    const created = await readJson(
+      await createIosDemo(jsonRequest("POST", "/api/v1/demo/ios-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+
+    const scoring0 = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    const homeId = scoring0.body.data.homeTeam.id as string;
+    const strikerId = scoring0.body.data.squads.home[0]!.id as string;
+    const nonStrikerId = scoring0.body.data.squads.home[1]!.id as string;
+    const bowlerId = scoring0.body.data.squads.away[0]!.id as string;
+
+    await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    await readJson(
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeId,
+          electedTo: "bat",
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    const inningsRes = await readJson(
+      await createInningsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/innings`, {
+          battingTeamId: homeId,
+          inningsNumber: 1,
+        }),
+        params({ matchId }),
+      ),
+    );
+    const inningsId = inningsRes.body.data.id as string;
+
+    await bowlOvers(inningsId, Array(11).fill(1), strikerId, nonStrikerId, bowlerId);
 
     const extra = await readJson(
       await recordDeliveryRoute(
         jsonRequest("POST", "/api/v1/deliveries", {
           inningsId,
           overNumber: 2,
-          ballInOver: 6,
+          ballInOver: 5,
           runsOffBat: 1,
           strikerId,
           nonStrikerId,

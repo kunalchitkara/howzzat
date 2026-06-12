@@ -15,11 +15,14 @@ import { GET as publicTournament } from "@/app/api/v1/public/orgs/[orgSlug]/tour
 import { GET as listProfiles } from "@/app/api/v1/rules/profiles/route";
 import { prisma } from "@howzzat/db";
 import { resetDatabase, seedRulesProfile } from "@howzzat/db/testing";
+import { POST as login } from "@/app/api/v1/auth/login/route";
+import { SESSION_COOKIE } from "@/lib/auth/session";
 import {
   emptyParams,
   jsonRequest,
   params,
   readJson,
+  readResponse,
 } from "../helpers/request";
 
 describe("API v1 integration", () => {
@@ -85,9 +88,25 @@ describe("API v1 integration", () => {
   });
 
   it("full scoring flow via API routes", async () => {
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", {
+          email: "scorer@flow.club",
+          name: "Flow Scorer",
+        }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
     const orgRes = await readJson(
       await createOrg(
-        jsonRequest("POST", "/api/v1/organizations", { name: "Flow Club" }),
+        jsonRequest(
+          "POST",
+          "/api/v1/organizations",
+          { name: "Flow Club", slug: "flow-club" },
+          cookie,
+        ),
         emptyParams(),
       ),
     );
@@ -168,10 +187,15 @@ describe("API v1 integration", () => {
 
     const inningsRes = await readJson(
       await createInningsRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/innings`, {
-          battingTeamId: ttA.body.data.id,
-          inningsNumber: 1,
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/matches/${matchId}/innings`,
+          {
+            battingTeamId: ttA.body.data.id,
+            inningsNumber: 1,
+          },
+          cookie,
+        ),
         params({ matchId }),
       ),
     );
@@ -179,15 +203,20 @@ describe("API v1 integration", () => {
 
     const deliveryRes = await readJson(
       await recordDeliveryRoute(
-        jsonRequest("POST", "/api/v1/deliveries", {
-          inningsId,
-          overNumber: 1,
-          ballInOver: 1,
-          runsOffBat: 4,
-          strikerId: players[0],
-          nonStrikerId: players[1],
-          bowlerId: players[2],
-        }),
+        jsonRequest(
+          "POST",
+          "/api/v1/deliveries",
+          {
+            inningsId,
+            overNumber: 1,
+            ballInOver: 1,
+            runsOffBat: 4,
+            strikerId: players[0],
+            nonStrikerId: players[1],
+            bowlerId: players[2],
+          },
+          cookie,
+        ),
         emptyParams(),
       ),
     );

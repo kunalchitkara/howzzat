@@ -1,3 +1,5 @@
+import { maxLegalBalls } from "@howzzat/rules-engine";
+
 export interface BallPosition {
   overNumber: number;
   ballInOver: number;
@@ -7,6 +9,13 @@ export interface DeliveryBallInput {
   overNumber: number;
   ballInOver: number;
   isLegalBall: boolean;
+}
+
+function ballPositionForLegalIndex(index: number): BallPosition {
+  return {
+    overNumber: Math.floor(index / 6) + 1,
+    ballInOver: (index % 6) + 1,
+  };
 }
 
 export function nextBallAfterDeliveries(
@@ -22,16 +31,13 @@ export function nextBallAfterDeliveries(
     return { overNumber: last.overNumber, ballInOver: last.ballInOver };
   }
 
-  let over = last.overNumber;
-  let ball = last.ballInOver + 1;
-  if (ball > 6) {
-    over += 1;
-    ball = 1;
+  const legal = countLegalBalls(deliveries);
+  const cap = maxLegalBalls(totalOvers);
+  if (legal >= cap) {
+    return ballPositionForLegalIndex(cap - 1);
   }
-  if (over > totalOvers) {
-    return { overNumber: totalOvers, ballInOver: 6 };
-  }
-  return { overNumber: over, ballInOver: ball };
+
+  return ballPositionForLegalIndex(legal);
 }
 
 export function countLegalBalls(
@@ -40,9 +46,7 @@ export function countLegalBalls(
   return deliveries.filter((d) => d.isLegalBall).length;
 }
 
-export function maxLegalBalls(totalOvers: number): number {
-  return totalOvers * 6;
-}
+export { maxLegalBalls };
 
 export function isInningsComplete(
   deliveries: { isLegalBall: boolean }[],
@@ -98,7 +102,7 @@ export function formatOversFromLegalBalls(legalBalls: number): string {
 
 /** Overs (and balls) remaining in the innings e.g. 4 overs, 18 balls bowled → 1.0 */
 export function oversToSpare(totalOvers: number, legalBallsBowled: number): string {
-  const spareBalls = totalOvers * 6 - legalBallsBowled;
+  const spareBalls = maxLegalBalls(totalOvers) - legalBallsBowled;
   return formatOversFromLegalBalls(Math.max(0, spareBalls));
 }
 

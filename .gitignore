@@ -38,3 +38,7 @@ apps/mobile/dist
 **/*.db
 **/*.db-journal
 apps/web/.test-db.db
+.vercel
+
+# Reference archive (separate git repo)
+edgeware-u9/

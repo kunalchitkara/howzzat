@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { POST as loginRoute } from "@/app/api/v1/auth/login/route";
 import { POST as createU9Demo } from "@/app/api/v1/demo/u9-match/route";
+import { SESSION_COOKIE } from "@/lib/auth/session";
 import { POST as setSquadRoute } from "@/app/api/v1/matches/[matchId]/squad/route";
 import { POST as confirmSquadsRoute } from "@/app/api/v1/matches/[matchId]/squad/confirm/route";
 import { POST as reopenSquadsRoute } from "@/app/api/v1/matches/[matchId]/squad/reopen/route";
@@ -9,10 +11,18 @@ import { POST as createInningsRoute } from "@/app/api/v1/matches/[matchId]/innin
 import { POST as recordDeliveryRoute } from "@/app/api/v1/deliveries/route";
 import { PATCH as updateDeliveryRoute } from "@/app/api/v1/deliveries/[deliveryId]/route";
 import { POST as finalizeRoute } from "@/app/api/v1/matches/[matchId]/finalize/route";
+import { EDGWARE_U9_ROSTER, HAYES_ROSTER } from "@/lib/demo/demo-rosters";
+import { maxLegalBalls } from "@/lib/scoring/ball-position";
 import { parseApiErrorMessage } from "@/lib/client/api";
 import { prisma } from "@howzzat/db";
 import { resetDatabase } from "@howzzat/db/testing";
-import { emptyParams, jsonRequest, params, readJson } from "../helpers/request";
+import {
+  emptyParams,
+  jsonRequest,
+  params,
+  readJson,
+  readResponse,
+} from "../helpers/request";
 
 /** Mirrors web ScorePad: confirm squads → toss → both innings → finalize. */
 describe("squad confirm and scoring e2e", () => {
@@ -66,7 +76,7 @@ describe("squad confirm and scoring e2e", () => {
     bowlerId: string,
     runsPerBall = 1,
   ) {
-    for (let i = 0; i < overs * 6; i++) {
+    for (let i = 0; i < maxLegalBalls(overs); i++) {
       const over = Math.floor(i / 6) + 1;
       const ball = (i % 6) + 1;
       const res = await readJson(
@@ -86,6 +96,226 @@ describe("squad confirm and scoring e2e", () => {
       expect(res.status).toBe(201);
     }
   }
+
+  it("u9-live reset migrates stale team links and rosters", async () => {
+    const created = await readJson(
+      await createU9Demo(jsonRequest("POST", "/api/v1/demo/u9-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+    const match = await prisma.match.findUniqueOrThrow({
+      where: { id: matchId },
+      include: { tournament: true },
+    });
+
+    const orgId = match.tournament.organizationId;
+    const oldHome = await prisma.team.create({
+      data: { organizationId: orgId, name: "U9 Blues", slug: "u9-blues-stale", ageGroup: "U9" },
+    });
+    const oldAway = await prisma.team.create({
+      data: { organizationId: orgId, name: "U9 Golds", slug: "u9-golds-stale", ageGroup: "U9" },
+    });
+    for (const [teamId, names] of [
+      [oldHome.id, ["Gurfateh", "Arjun", "Avyaan", "Noah", "Leo"]],
+      [oldAway.id, ["Gurfateh", "Arjun", "Avyaan", "Noah", "Leo"]],
+    ] as const) {
+      for (const name of names) {
+        const player = await prisma.player.create({
+          data: { legalName: name, displayName: name },
+        });
+        await prisma.teamMembership.create({
+          data: { teamId, playerId: player.id, seasonLabel: "u9-demo", shirtNumber: 1 },
+        });
+      }
+    }
+    const oldHomeTt = await prisma.tournamentTeam.create({
+      data: { tournamentId: match.tournamentId, teamId: oldHome.id, publicSlug: "stale-blues" },
+    });
+    const oldAwayTt = await prisma.tournamentTeam.create({
+      data: { tournamentId: match.tournamentId, teamId: oldAway.id, publicSlug: "stale-golds" },
+    });
+    await prisma.match.update({
+      where: { id: matchId },
+      data: { homeTeamId: oldHomeTt.id, awayTeamId: oldAwayTt.id, venue: "Canons High School (U9 demo)" },
+    });
+
+    await readJson(
+      await createU9Demo(jsonRequest("POST", "/api/v1/demo/u9-match"), emptyParams()),
+    );
+
+    const scoring = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    expect(scoring.body.data.homeTeam.name).toBe("Edgware U9");
+    expect(scoring.body.data.awayTeam.name).toBe("Hayes");
+    expect(scoring.body.data.venue).toBe("U9 Demo Ground");
+
+    const homeRosterNames = (scoring.body.data.rosters.home as { name: string }[]).map(
+      (p) => p.name,
+    );
+    const awayRosterNames = (scoring.body.data.rosters.away as { name: string }[]).map(
+      (p) => p.name,
+    );
+    expect(homeRosterNames).toEqual([...EDGWARE_U9_ROSTER]);
+    expect(awayRosterNames).toEqual([...HAYES_ROSTER]);
+  });
+
+  it("u9-live: toss → first delivery without auth", async () => {
+    const created = await readJson(
+      await createU9Demo(jsonRequest("POST", "/api/v1/demo/u9-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+
+    const scoring0 = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`),
+        params({ matchId }),
+      ),
+    );
+    expect(scoring0.body.data.scoringLock).toMatchObject({
+      requiresAuth: false,
+      canScore: true,
+    });
+
+    const homeTtId = scoring0.body.data.homeTeam.id as string;
+    const homePlayers = scoring0.body.data.squads.home as { id: string }[];
+    const awayPlayers = scoring0.body.data.squads.away as { id: string }[];
+
+    await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 4,
+        }),
+        params({ matchId }),
+      ),
+    );
+    await readJson(
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeTtId,
+          electedTo: "bat",
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    const inn1 = await readJson(
+      await createInningsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/innings`, {
+          battingTeamId: homeTtId,
+          inningsNumber: 1,
+        }),
+        params({ matchId }),
+      ),
+    );
+    expect(inn1.status).toBe(201);
+
+    const delivery = await readJson(
+      await recordDeliveryRoute(
+        jsonRequest("POST", "/api/v1/deliveries", {
+          inningsId: inn1.body.data.id,
+          overNumber: 1,
+          ballInOver: 1,
+          runsOffBat: 4,
+          strikerId: homePlayers[0]!.id,
+          nonStrikerId: homePlayers[1]!.id,
+          bowlerId: awayPlayers[0]!.id,
+        }),
+        emptyParams(),
+      ),
+    );
+    expect(delivery.status).toBe(201);
+  });
+
+  it("u9-live: signed-in non-coach can score after toss", async () => {
+    const created = await readJson(
+      await createU9Demo(jsonRequest("POST", "/api/v1/demo/u9-match"), emptyParams()),
+    );
+    const matchId = created.body.data.matchId as string;
+
+    const loginRes = await readResponse(
+      await loginRoute(
+        jsonRequest("POST", "/api/v1/auth/login", {
+          email: "parent@example.com",
+          name: "Parent",
+        }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
+    const scoring0 = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${matchId}/scoring`, undefined, cookie),
+        params({ matchId }),
+      ),
+    );
+    expect(scoring0.body.data.scoringLock).toMatchObject({
+      requiresAuth: false,
+      canScore: true,
+    });
+
+    const homeTtId = scoring0.body.data.homeTeam.id as string;
+    const homePlayers = scoring0.body.data.squads.home as { id: string }[];
+    const awayPlayers = scoring0.body.data.squads.away as { id: string }[];
+
+    await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 4,
+        }),
+        params({ matchId }),
+      ),
+    );
+    await readJson(
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeTtId,
+          electedTo: "bat",
+        }),
+        params({ matchId }),
+      ),
+    );
+
+    const inn1 = await readJson(
+      await createInningsRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/matches/${matchId}/innings`,
+          {
+            battingTeamId: homeTtId,
+            inningsNumber: 1,
+          },
+          cookie,
+        ),
+        params({ matchId }),
+      ),
+    );
+    expect(inn1.status).toBe(201);
+
+    const delivery = await readJson(
+      await recordDeliveryRoute(
+        jsonRequest(
+          "POST",
+          "/api/v1/deliveries",
+          {
+            inningsId: inn1.body.data.id,
+            overNumber: 1,
+            ballInOver: 1,
+            runsOffBat: 1,
+            strikerId: homePlayers[0]!.id,
+            nonStrikerId: homePlayers[1]!.id,
+            bowlerId: awayPlayers[0]!.id,
+          },
+          cookie,
+        ),
+        emptyParams(),
+      ),
+    );
+    expect(delivery.status).toBe(201);
+  });
 
   it("parses API error strings (not only error.message)", () => {
     expect(parseApiErrorMessage({ error: "Confirm match squads before the toss" })).toBe(
@@ -180,7 +410,7 @@ describe("squad confirm and scoring e2e", () => {
     expect(scoring0.body.data.squads.away.length).toBe(4);
     expect(scoring0.body.data.squadMin).toBe(2);
     expect(scoring0.body.data.squadMax).toBe(11);
-    expect(scoring0.body.data.squads.home[0]?.name).toBe("Gurfateh");
+    expect(scoring0.body.data.squads.home[0]?.name).toBe("Aanya");
     expect(scoring0.body.data.squads.home[0]?.isCaptain).toBe(true);
 
     const confirmRes = await scorePadConfirmSquads(matchId, scoring0.body.data);

@@ -1,5 +1,14 @@
 /* Scorecard — Cricbuzz-inspired layout + Edgware U9 palette */
 
+.live-sc-updated {
+  max-width: 680px;
+  margin: 0 auto 8px;
+  padding: 0 16px;
+  font-size: 0.8rem;
+  color: #666;
+  text-align: center;
+}
+
 .sc-wrap {
   max-width: 680px;
   margin: 0 auto;

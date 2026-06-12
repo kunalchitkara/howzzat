@@ -10,6 +10,7 @@ import {
   canAcceptDelivery,
   countLegalBalls,
   isInningsComplete,
+  maxLegalBalls,
 } from "@/lib/scoring/ball-position";
 import { buildHostResultLine } from "@/lib/scoring/match-result";
 import { deliveryToEvent } from "./match-utils";
@@ -48,6 +49,7 @@ const matchInclude = {
   },
   squad: { include: { player: true } },
   playerStats: { include: { player: true } },
+  scoringUser: { select: { id: true, name: true, email: true } },
 };
 
 export async function listMatches(tournamentId: string) {
@@ -589,10 +591,7 @@ export async function updateDelivery(
       : deliveryToEvent(d),
   );
 
-  if (
-    countLegalBalls(events) >
-    config.totalOvers * 6
-  ) {
+  if (countLegalBalls(events) > maxLegalBalls(config.totalOvers)) {
     throw new ApiError(
       400,
       `Innings cannot exceed ${config.totalOvers} overs`,

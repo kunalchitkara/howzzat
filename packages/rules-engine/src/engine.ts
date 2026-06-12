@@ -163,3 +163,13 @@ export function finalizeInnings(
 export function netRuns(batRuns: number, wickets: number, profile: RulesProfile): number {
   return batRuns - profile.wicketPenalty * wickets;
 }
+
+/**
+ * MJCA innings length: each full over has six legal balls, but the final over
+ * ends at ball five — the N.0 label is the completion marker, not a seventh
+ * scorable delivery (e.g. 2 overs → 1.5, not 2.0).
+ */
+export function maxLegalBalls(totalOvers: number): number {
+  if (totalOvers <= 0) return 0;
+  return totalOvers === 1 ? 6 : totalOvers * 6 - 1;
+}

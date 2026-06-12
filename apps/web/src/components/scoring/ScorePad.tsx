@@ -8,6 +8,7 @@ import { applyStrikeRotationsAfterDelivery } from "@howzzat/rules-engine";
 import type { DeliveryEvent } from "@howzzat/rules-engine";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
 import { formatBallLabel } from "@/lib/scoring/ball-label";
+import { maxLegalBalls } from "@/lib/scoring/ball-position";
 import { apiFetch } from "@/lib/client/api";
 import { strikeAfterDeliveries } from "@/lib/scoring/strike-state";
 import { deliveryToEvent } from "@/lib/services/match-utils";
@@ -53,6 +54,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
   const [draftOvers, setDraftOvers] = useState(20);
   const [oversTouched, setOversTouched] = useState(false);
   const [editingDeliveryId, setEditingDeliveryId] = useState<string | null>(null);
+  const [claimAttempted, setClaimAttempted] = useState(false);
   const scoringKeysRef = useRef<HTMLElement>(null);
   const extrasAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -87,6 +89,24 @@ export function ScorePad({ matchId }: { matchId: string }) {
       })
       .catch((e) => setError(String(e.message ?? e)));
   }, [refresh, syncDraftFromServer, oversTouched]);
+
+  useEffect(() => {
+    if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
+    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.requiresAuth) return;
+
+    setClaimAttempted(true);
+    api<MatchScoringContext>(`/api/v1/matches/${matchId}/scoring/claim`, {
+      method: "POST",
+    })
+      .then((data) => {
+        setCtx(data);
+        syncDraftFromServer(data);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : String(e));
+        void refresh();
+      });
+  }, [ctx, claimAttempted, matchId, refresh, syncDraftFromServer]);
 
   useEffect(() => {
     if (!ctx || ctx.squadsConfirmed || oversTouched) return;
@@ -414,6 +434,14 @@ export function ScorePad({ matchId }: { matchId: string }) {
 
   async function postDelivery(payload: Record<string, unknown>) {
     if (!activeInnings || !ctx) return;
+    if (!ctx.scoringLock.canScore) {
+      setError(
+        ctx.scoringLock.lockedByOther
+          ? `${ctx.scoringLock.holderName ?? "Another coach"} is already scoring this match`
+          : "Sign in as a club coach to score this match",
+      );
+      return;
+    }
     if (activeInnings.complete) {
       setError(`Innings complete (${ctx.totalOvers} overs)`);
       return;
@@ -421,7 +449,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
     const incomingIsLegal = payload.isLegalBall !== false;
     if (
       incomingIsLegal &&
-      activeInnings.legalBallsBowled >= ctx.totalOvers * 6
+      activeInnings.legalBallsBowled >= maxLegalBalls(ctx.totalOvers)
     ) {
       setError(`Innings complete (${ctx.totalOvers} overs)`);
       return;
@@ -645,13 +673,35 @@ export function ScorePad({ matchId }: { matchId: string }) {
 
       {error && <p className="sp-error">{error}</p>}
 
+      {ctx.scoringLock.requiresAuth && (
+        <div className="sp-scoring-lock">
+          <strong>Sign in to score</strong>
+          Club coaches must sign in before scoring. Parents can watch the{" "}
+          <Link href={`/match/${matchId}`}>live scorecard</Link>.
+          <p style={{ marginTop: 10 }}>
+            <Link href="/login">Sign in →</Link>
+          </p>
+        </div>
+      )}
+
+      {ctx.scoringLock.lockedByOther && (
+        <div className="sp-scoring-lock">
+          <strong>Scoring locked</strong>
+          {ctx.scoringLock.holderName ?? "Another coach"} is scoring this match. You can
+          follow the{" "}
+          <Link href={`/match/${matchId}`}>live scorecard</Link> instead.
+        </div>
+      )}
+
       <nav className="sp-steps" aria-label="Match flow">
-        {[
-          ["1", "Squads", ctx.squadsConfirmed],
-          ["2", "Toss", Boolean(ctx.toss.tossWinnerTeamId)],
-          ["3", "Score", ctx.innings.length > 0],
-          ["4", "Result", ctx.status === "COMPLETED"],
-        ].map(([n, label, done]) => (
+        {(
+          [
+            ["1", "Squads", ctx.squadsConfirmed],
+            ["2", "Toss", Boolean(ctx.toss.tossWinnerTeamId)],
+            ["3", "Score", ctx.innings.length > 0],
+            ["4", "Result", ctx.status === "COMPLETED"],
+          ] as [string, string, boolean][]
+        ).map(([n, label, done]) => (
           <span
             key={n}
             className={`sp-step${done ? " done" : ""}`}
@@ -668,7 +718,9 @@ export function ScorePad({ matchId }: { matchId: string }) {
         </div>
       )}
 
-      {!ctx.squadsConfirmed && ctx.status !== "COMPLETED" && (
+      {!ctx.squadsConfirmed &&
+        ctx.status !== "COMPLETED" &&
+        ctx.scoringLock.canScore && (
         <section className="sp-card sp-roster">
           <h2>1. Match squads</h2>
           {ctx.tournamentAgeGroup && (
@@ -775,7 +827,10 @@ export function ScorePad({ matchId }: { matchId: string }) {
         </section>
       )}
 
-      {ctx.squadsConfirmed && !ctx.toss.tossWinnerTeamId && ctx.status !== "COMPLETED" && (
+      {ctx.squadsConfirmed &&
+        !ctx.toss.tossWinnerTeamId &&
+        ctx.status !== "COMPLETED" &&
+        ctx.scoringLock.canScore && (
         <section className="sp-card sp-toss">
           <div className="sp-section-head">
             <h2>2. Record the toss</h2>
@@ -837,7 +892,8 @@ export function ScorePad({ matchId }: { matchId: string }) {
       {ctx.squadsConfirmed &&
         ctx.toss.tossWinnerTeamId &&
         ctx.canStartInnings &&
-        ctx.status !== "COMPLETED" && (
+        ctx.status !== "COMPLETED" &&
+        ctx.scoringLock.canScore && (
         <section className="sp-card">
           <div className="sp-section-head">
             <h2>3. Start innings</h2>
@@ -926,7 +982,8 @@ export function ScorePad({ matchId }: { matchId: string }) {
         ctx.toss.tossWinnerTeamId &&
         activeInnings &&
         !activeInnings.complete &&
-        !editingDeliveryId && (
+        !editingDeliveryId &&
+        ctx.scoringLock.canScore && (
         <>
           <section className="sp-scoreboard">
             <div>

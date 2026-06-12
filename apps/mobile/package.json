@@ -1,6 +1,7 @@
 {
   "name": "@howzzat/mobile",
   "version": "0.0.1",
+  "description": "Cricket Scoring — live ball-by-ball scoring for matches and tournaments.",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -14,9 +15,13 @@
     "@babel/runtime": "^7.29.7",
     "@howzzat/rules-engine": "workspace:*",
     "@howzzat/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~52.0.47",
+    "expo-auth-session": "~6.0.3",
     "expo-constants": "~17.0.8",
+    "expo-crypto": "~14.0.2",
     "expo-linking": "~7.0.5",
+    "expo-web-browser": "~14.0.2",
     "expo-router": "~4.0.21",
     "expo-status-bar": "~2.0.1",
     "react": "18.3.1",
