@@ -647,6 +647,122 @@ export function CreateMatchForm({
   );
 }
 
+export function EditPlayerForm({
+  teamId,
+  playerId,
+  initialLegalName,
+  initialDisplayName,
+  initialDateOfBirth,
+  initialShirtNumber,
+  onDone,
+}: {
+  teamId: string;
+  playerId: string;
+  initialLegalName: string;
+  initialDisplayName: string | null;
+  initialDateOfBirth: string;
+  initialShirtNumber: number | null;
+  onDone?: () => void;
+}) {
+  const router = useRouter();
+  const [legalName, setLegalName] = useState(initialLegalName);
+  const [displayName, setDisplayName] = useState(initialDisplayName ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(initialDateOfBirth);
+  const [shirtNumber, setShirtNumber] = useState(
+    initialShirtNumber != null ? String(initialShirtNumber) : "",
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/teams/${teamId}/players/${playerId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          legalName,
+          displayName: displayName.trim() || null,
+          dateOfBirth: dateOfBirth
+            ? new Date(dateOfBirth).toISOString()
+            : null,
+          shirtNumber: shirtNumber ? Number(shirtNumber) : null,
+        }),
+      });
+      router.refresh();
+      onDone?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save player");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      style={{
+        ...card,
+        marginTop: 0,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderTop: "1px solid #eee",
+      }}
+      onSubmit={save}
+    >
+      <Field label="Player name">
+        <input
+          required
+          value={legalName}
+          onChange={(e) => setLegalName(e.target.value)}
+          style={input}
+        />
+      </Field>
+      <Field label="Display name (optional)">
+        <input
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          style={input}
+        />
+      </Field>
+      <Field label="Date of birth">
+        <input
+          type="date"
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+          style={input}
+        />
+      </Field>
+      <Field label="Shirt number">
+        <input
+          type="number"
+          min={0}
+          max={99}
+          value={shirtNumber}
+          onChange={(e) => setShirtNumber(e.target.value)}
+          style={input}
+        />
+      </Field>
+      {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+      <div style={{ display: "flex", gap: 12 }}>
+        <button type="submit" disabled={busy} style={btn}>
+          Save player
+        </button>
+        {onDone && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onDone}
+            style={{ ...btn, background: "transparent", color: "var(--md)", border: "1px solid #ccc" }}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 export function EditTeamForm({
   orgId,
   teamId,
@@ -739,6 +855,63 @@ export function EditTeamForm({
   );
 }
 
+function CopyInviteLink({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* fallback: select via prompt is worse UX; link remains clickable */
+    }
+  }
+
+  return (
+    <div
+      style={{
+        marginBottom: 16,
+        padding: 12,
+        background: "#e8f5e9",
+        border: "1px solid #a5d6a7",
+        borderRadius: 8,
+        fontSize: "0.9rem",
+      }}
+    >
+      <p style={{ margin: "0 0 8px", fontWeight: 600, color: "#2e7d32" }}>
+        Invite created — share this link
+      </p>
+      <p style={{ margin: "0 0 8px", color: "#555", fontSize: "0.85rem" }}>
+        No email is sent in local dev unless Resend is configured. Copy the link
+        and open it in a browser (or incognito) as the invited manager.
+      </p>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <code
+          style={{
+            flex: 1,
+            minWidth: 0,
+            wordBreak: "break-all",
+            fontSize: "0.82rem",
+            background: "#fff",
+            padding: "6px 8px",
+            borderRadius: 4,
+          }}
+        >
+          {url}
+        </code>
+        <button
+          type="button"
+          onClick={() => void copy()}
+          style={{ ...btn, padding: "8px 14px", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+        >
+          {copied ? "Copied!" : "Copy link"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function InviteForm({
   tournamentId,
   teams,
@@ -802,14 +975,9 @@ export function InviteForm({
         </Field>
       )}
       {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-      {inviteUrl && (
-        <p style={{ marginBottom: 12, fontSize: "0.9rem", wordBreak: "break-all" }}>
-          Invite link:{" "}
-          <a href={inviteUrl}>{inviteUrl}</a>
-        </p>
-      )}
+      {inviteUrl && <CopyInviteLink url={inviteUrl} />}
       <button type="submit" disabled={busy} style={btn}>
-        Send invite
+        {inviteUrl ? "Create another invite" : "Create invite"}
       </button>
     </form>
   );

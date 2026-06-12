@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ageOnDate,
+  formatPlayerAge,
   isOverAgeGroup,
   parseAgeGroupCap,
 } from "@/lib/scoring/age-eligibility";
@@ -10,6 +11,13 @@ describe("age eligibility", () => {
     expect(parseAgeGroupCap("U9")).toBe(9);
     expect(parseAgeGroupCap("Girls U11")).toBe(11);
     expect(parseAgeGroupCap("Summer")).toBeNull();
+  });
+
+  it("formats compact age labels for roster display", () => {
+    const on = new Date("2026-06-01");
+    expect(formatPlayerAge(new Date("2019-03-15"), on)).toBe("7yrs");
+    expect(formatPlayerAge(new Date("2017-06-01"), on)).toBe("9yrs");
+    expect(formatPlayerAge(null, on)).toBeNull();
   });
 
   it("flags players above the age cap", () => {

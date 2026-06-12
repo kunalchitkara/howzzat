@@ -13,6 +13,7 @@ expo-env.d.ts
 .env
 .env.*
 !.env.example
+!.env.local.example
 
 # DB (local dev SQLite)
 **/*.db
@@ -38,6 +39,7 @@ apps/mobile/dist
 **/*.db
 **/*.db-journal
 apps/web/.test-db.db
+apps/web/.e2e-db.db
 .vercel
 
 # Reference archive (separate git repo)

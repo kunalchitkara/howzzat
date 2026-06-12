@@ -10,10 +10,14 @@ type AuthTab = "google" | "email-code" | "email-password";
 export function LoginForm({
   redirectTo = "/dashboard",
   initialError,
+  initialEmail = "",
+  defaultTab = "email-code",
   setupHints,
 }: {
   redirectTo?: string;
   initialError?: string | null;
+  initialEmail?: string;
+  defaultTab?: AuthTab;
   setupHints?: {
     googleRedirectUri: string;
     emailOtpReady: boolean;
@@ -21,8 +25,8 @@ export function LoginForm({
   };
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<AuthTab>("email-code");
-  const [email, setEmail] = useState("");
+  const [tab, setTab] = useState<AuthTab>(defaultTab);
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");

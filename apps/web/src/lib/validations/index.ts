@@ -81,6 +81,13 @@ export const createPlayerSchema = z.object({
   seasonLabel: z.string().max(50).optional(),
 });
 
+export const updatePlayerSchema = z.object({
+  legalName: z.string().min(1).max(120).optional(),
+  displayName: z.string().max(120).nullable().optional(),
+  dateOfBirth: z.string().datetime().nullable().optional(),
+  shirtNumber: z.number().int().min(0).max(99).nullable().optional(),
+});
+
 export const addTournamentTeamSchema = z.object({
   teamId: z.string().cuid(),
   publicSlug: z.string().min(2).max(64).optional(),

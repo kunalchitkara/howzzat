@@ -16,6 +16,15 @@ export function ageOnDate(dateOfBirth: Date, on: Date): number {
   return age;
 }
 
+/** Compact age label for roster grids, e.g. "7yrs", "9yrs". */
+export function formatPlayerAge(
+  dateOfBirth: Date | null | undefined,
+  on: Date = new Date(),
+): string | null {
+  if (!dateOfBirth) return null;
+  return `${ageOnDate(dateOfBirth, on)}yrs`;
+}
+
 /** True when player is older than the tournament age band (e.g. age 10+ in U9). */
 export function isOverAgeGroup(
   dateOfBirth: Date | null | undefined,

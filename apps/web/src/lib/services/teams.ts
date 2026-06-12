@@ -4,12 +4,14 @@ import { slugify } from "../api/slug";
 import type {
   createTeamSchema,
   createPlayerSchema,
+  updatePlayerSchema,
   updateTeamSchema,
 } from "../validations";
 import type { z } from "zod";
 
 type CreateTeamInput = z.infer<typeof createTeamSchema>;
 type CreatePlayerInput = z.infer<typeof createPlayerSchema>;
+type UpdatePlayerInput = z.infer<typeof updatePlayerSchema>;
 type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 
 const DUPLICATE_NAME_MESSAGE =
@@ -121,6 +123,51 @@ export async function listTeamPlayers(teamId: string) {
     where: { teamId, active: true },
     include: { player: true },
     orderBy: { shirtNumber: "asc" },
+  });
+}
+
+export async function updatePlayerOnTeam(
+  teamId: string,
+  playerId: string,
+  input: UpdatePlayerInput,
+) {
+  const team = await getTeam(teamId);
+  const membership = team.memberships.find((m) => m.playerId === playerId);
+  if (!membership) {
+    throw new ApiError(404, "Player not found on this team", "PLAYER_NOT_FOUND");
+  }
+
+  if (input.legalName !== undefined) {
+    await assertUniquePlayerNameOnTeam(teamId, input.legalName, playerId);
+  }
+
+  const playerData: {
+    legalName?: string;
+    displayName?: string | null;
+    dateOfBirth?: Date | null;
+  } = {};
+  if (input.legalName !== undefined) playerData.legalName = input.legalName;
+  if (input.displayName !== undefined) playerData.displayName = input.displayName;
+  if (input.dateOfBirth !== undefined) {
+    playerData.dateOfBirth = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
+  }
+
+  const membershipData: { shirtNumber?: number | null } = {};
+  if (input.shirtNumber !== undefined) membershipData.shirtNumber = input.shirtNumber;
+
+  if (Object.keys(playerData).length > 0) {
+    await prisma.player.update({ where: { id: playerId }, data: playerData });
+  }
+  if (Object.keys(membershipData).length > 0) {
+    await prisma.teamMembership.update({
+      where: { id: membership.id },
+      data: membershipData,
+    });
+  }
+
+  return prisma.teamMembership.findUniqueOrThrow({
+    where: { id: membership.id },
+    include: { player: true },
   });
 }
 

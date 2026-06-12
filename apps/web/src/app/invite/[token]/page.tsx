@@ -67,7 +67,11 @@ export default async function InvitePage({
                 <p style={{ marginBottom: 12, color: "#666" }}>
                   Sign in with the invited email to accept:
                 </p>
-                <LoginForm redirectTo={`/invite/${token}`} />
+                <LoginForm
+                  redirectTo={`/invite/${token}`}
+                  initialEmail={invite.email}
+                  defaultTab="email-password"
+                />
               </>
             )}
           </>
