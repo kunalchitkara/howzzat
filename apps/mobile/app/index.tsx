@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
-import { apiUrl, createIosDemoMatch } from "../lib/api";
+import { apiUrl, createIosDemoMatch, createU9DemoMatch } from "../lib/api";
 import {
   fetchCurrentUser,
   signOut,
@@ -21,6 +21,7 @@ export default function HomeScreen() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [busyU9, setBusyU9] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshUser = useCallback(async () => {
@@ -43,16 +44,16 @@ export default function HomeScreen() {
     }
   }, [google.busy, google.error, refreshUser]);
 
-  async function startDemo() {
-    setBusy(true);
+  async function startDemo(create: () => Promise<{ matchId: string }>, setLoading: (v: boolean) => void) {
+    setLoading(true);
     setError(null);
     try {
-      const demo = await createIosDemoMatch();
+      const demo = await create();
       router.push(`/match/${demo.matchId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start demo");
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }
 
@@ -69,21 +70,33 @@ export default function HomeScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Live demo</Text>
         <Text style={styles.cardBody}>
-          Run a 2-over pairs match without signing in: squads → toss → ball-by-ball →
-          result → live dashboard.
+          Run a pairs match without signing in: squads → toss → ball-by-ball → result →
+          live dashboard.
         </Text>
         <Text style={styles.api}>API: {apiUrl("")}</Text>
       </View>
 
       <Pressable
         style={[styles.button, busy && styles.buttonDisabled]}
-        onPress={startDemo}
-        disabled={busy}
+        onPress={() => startDemo(createIosDemoMatch, setBusy)}
+        disabled={busy || busyU9}
       >
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <Text style={styles.buttonText}>Start 2-over match</Text>
+        )}
+      </Pressable>
+
+      <Pressable
+        style={[styles.button, busyU9 && styles.buttonDisabled]}
+        onPress={() => startDemo(createU9DemoMatch, setBusyU9)}
+        disabled={busy || busyU9}
+      >
+        {busyU9 ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Start U9 4-over match</Text>
         )}
       </Pressable>
 

@@ -33,6 +33,24 @@ export async function createMatchScorerInvite(
   };
 }
 
+export async function getMatchScorerInvite(token: string) {
+  const invite = await prisma.matchScorerInvite.findUnique({
+    where: { token },
+    include: {
+      match: {
+        include: {
+          homeTeam: { include: { team: true } },
+          awayTeam: { include: { team: true } },
+        },
+      },
+    },
+  });
+  if (!invite) {
+    throw new ApiError(404, "Scorer invite not found", "SCORER_INVITE_NOT_FOUND");
+  }
+  return invite;
+}
+
 export async function acceptMatchScorerInvite(token: string, userId: string) {
   const invite = await prisma.matchScorerInvite.findUnique({
     where: { token },

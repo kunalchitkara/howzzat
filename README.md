@@ -304,7 +304,9 @@ pnpm dev:mobile
 
 Point the app at your local API: `EXPO_PUBLIC_API_URL=http://localhost:3005 pnpm dev:mobile` (or set in `apps/mobile/app.json` → `extra.apiUrl`).
 
-Scan the QR code with Expo Go. **Start demo** runs a full 2-over **Edgware U9 vs Hayes** match without signing in (squads → toss → score → result). Optional Google sign-in for authenticated scoring later.
+Scan the QR code with Expo Go. **Start demo** runs **Edgware U9 vs Hayes** without signing in (interactive squads → toss → score → result). Choose **2-over** or **U9 4-over** on the home screen. Optional Google sign-in for real matches and scorer invites.
+
+Deep link for scorer invites: `howzzat://score/invite/{token}?match={matchId}`.
 
 ### Run all tests
 
@@ -312,6 +314,8 @@ Scan the QR code with Expo Go. **Start demo** runs a full 2-over **Edgware U9 vs
 pnpm test              # all tests (rules-engine + web)
 pnpm test:unit         # rules engine only
 pnpm test:api          # services + API routes
+pnpm test:mobile       # mobile bundle smoke + iOS/Phase 2 API tests
+pnpm test:mobile:e2e   # Maestro UI flows (simulator; optional)
 ```
 
 ---
@@ -374,7 +378,7 @@ Cloudflare D1 remains an option for edge-native deploy later ([`wrangler.toml`](
 |-------|-------------|--------|
 | **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
 | **1** | Auth (Google, SMS), org/tournament CRUD, invites | ✅ |
-| **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🟡 ScorePad + API |
+| **2** | Full scorer UX (pairs, wides, fielders, squad picker) | ✅ Web ScorePad + mobile Phase 2 |
 | **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball UI |
 | **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |
 | **5** | Live scoring (SSE / Realtime), Turso production | 🟡 Vercel + Turso live |

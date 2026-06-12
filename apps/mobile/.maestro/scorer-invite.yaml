@@ -1,0 +1,8 @@
+# Set MAESTRO_MATCH_ID and MAESTRO_INVITE_TOKEN before running.
+# Example: maestro test -e MAESTRO_INVITE_TOKEN=abc -e MAESTRO_MATCH_ID=xyz ...
+appId: host.exp.Exponent
+---
+- openLink: howzzat://score/invite/${MAESTRO_INVITE_TOKEN}?match=${MAESTRO_MATCH_ID}
+- extendedWaitUntil:
+    visible: "Score this match"
+    timeout: 10000

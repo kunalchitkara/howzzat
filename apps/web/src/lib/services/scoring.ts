@@ -17,7 +17,9 @@ import { deliverySymbol } from "@/lib/scoring/delivery-symbol";
 import { buildRecentBalls } from "@/lib/scoring/recent-balls";
 import type { AuthUser } from "@/lib/auth/session";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
-import { buildScoringLockInfo } from "./scoring-lock";
+import { buildScoringLockInfo, SCORING_ROLES } from "./scoring-lock";
+import { userHasOrgRole } from "@/lib/auth/request";
+import { canUserScoreMatch } from "./tournament-access";
 import {
   ageOnDate,
   isOverAgeGroup,
@@ -101,6 +103,11 @@ export async function getMatchScoringContext(
   user: AuthUser | null = null,
 ): Promise<MatchScoringContext> {
   const match = await getMatch(matchId);
+  const orgId = match.tournament.organizationId;
+  const authorizedToScore = user
+    ? userHasOrgRole(user, orgId, [...SCORING_ROLES]) ||
+      (await canUserScoreMatch(match.id, user.id))
+    : false;
   const profile = await getRulesProfileFromVersion(
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
   );
@@ -369,6 +376,6 @@ export async function getMatchScoringContext(
     suggestedResult: resultLine
       ? { line: resultLine, hostWon }
       : null,
-    scoringLock: buildScoringLockInfo(match, user),
+    scoringLock: buildScoringLockInfo(match, user, authorizedToScore),
   };
 }

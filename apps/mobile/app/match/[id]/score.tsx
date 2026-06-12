@@ -21,6 +21,7 @@ import {
   fetchScoringContext,
   type ScoringContext,
 } from "../../../lib/api";
+import { useGoogleSignIn } from "../../../lib/auth";
 import { getSessionToken } from "../../../lib/session";
 
 type WicketKind = "bowled" | "caught" | "run_out" | "lbw" | "stumped";
@@ -49,6 +50,7 @@ export default function MobileScoreScreen() {
   const [fielderId, setFielderId] = useState("");
   const [dismissedId, setDismissedId] = useState("");
   const [claimAttempted, setClaimAttempted] = useState(false);
+  const google = useGoogleSignIn();
 
   const refresh = useCallback(async () => {
     const data = await fetchScoringContext(matchId);
@@ -61,8 +63,18 @@ export default function MobileScoreScreen() {
   }, [refresh]);
 
   useEffect(() => {
+    if (google.busy) return;
+    void refresh().then((data) => {
+      if (data && !data.scoringLock.requiresAuth) {
+        setClaimAttempted(false);
+      }
+    });
+  }, [google.busy, refresh]);
+
+  useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
     if (ctx.scoringLock.lockedByOther || ctx.scoringLock.requiresAuth) return;
+    if (ctx.scoringLock.isHolder && ctx.scoringLock.canScore) return;
     setClaimAttempted(true);
     void getSessionToken().then((token) => {
       if (!token) return;
@@ -779,9 +791,20 @@ export default function MobileScoreScreen() {
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Sign in to score</Text>
           <Text style={styles.lockBody}>
-            Club coaches must sign in on the web scorer. Parents can watch the live
-            scorecard.
+            Club coaches and invited scorers must sign in before scoring this match.
           </Text>
+          <Pressable
+            style={[styles.signInBtn, (!google.ready || google.busy) && styles.btnDisabled]}
+            onPress={() => void google.signIn()}
+            disabled={!google.ready || google.busy}
+          >
+            {google.busy ? (
+              <ActivityIndicator color="#0B4169" />
+            ) : (
+              <Text style={styles.signInBtnText}>Sign in with Google</Text>
+            )}
+          </Pressable>
+          {google.error && <Text style={styles.error}>{google.error}</Text>}
         </View>
       )}
 
@@ -984,5 +1007,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   lockTitle: { fontWeight: "800", color: "#3d2f00", marginBottom: 6 },
-  lockBody: { color: "#5c4a00", lineHeight: 20 },
+  lockBody: { color: "#5c4a00", lineHeight: 20, marginBottom: 10 },
+  signInBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+  },
+  signInBtnText: { color: "#0B4169", fontWeight: "700" },
+  btnDisabled: { opacity: 0.55 },
 });

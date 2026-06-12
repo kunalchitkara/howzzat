@@ -13,7 +13,29 @@ pnpm test:unit
 
 # Services + API integration (SQLite test DB)
 pnpm test:api
+
+# Mobile: bundle smoke + iOS API integration (no simulator)
+pnpm test:mobile
+
+# Mobile UI e2e via Maestro (optional — skips if CLI not installed)
+pnpm test:mobile:e2e
 ```
+
+## Mobile E2E
+
+| Layer | Command | What it covers |
+|-------|---------|----------------|
+| API contract | `pnpm test:ios` | 2-over demo flow, squad/toss/score, Phase 2 squad picker + auth + invites |
+| Bundle smoke | `pnpm --filter @howzzat/mobile test` | `expo export` iOS bundle |
+| Maestro (simulator) | `pnpm test:mobile:e2e` | Home → squads → toss → score taps |
+
+Point the mobile app at your local API for manual or Maestro runs:
+
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:3005 pnpm dev:mobile
+```
+
+See [`apps/mobile/.maestro/README.md`](../apps/mobile/.maestro/README.md) for simulator setup.
 
 ## Coverage
 
@@ -41,6 +63,9 @@ pnpm test:api
 | `tests/services/scoring-context.test.ts` | Live scoring context API |
 | `tests/services/rule-changes.test.ts` | BACKFILL + FUTURE_ONLY preview and apply |
 | `tests/api/v1.test.ts` | Full HTTP flow via Next.js route handlers |
+| `tests/integration/ios-mobile-api.test.ts` | Unauthenticated iOS demo API contract |
+| `tests/integration/ios-demo-flow.test.ts` | Full 2-over both-innings demo |
+| `tests/integration/mobile-phase2.test.ts` | Squad picker, coach auth scoring, scorer invites |
 
 ## Test database
 

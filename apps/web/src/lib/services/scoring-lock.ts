@@ -2,6 +2,7 @@ import type { AuthUser } from "@/lib/auth/session";
 import { userHasOrgRole } from "@/lib/auth/request";
 import { ApiError } from "@/lib/api/http";
 import { prisma } from "@/lib/db";
+import { canUserScoreMatch } from "./tournament-access";
 import { getMatch } from "./matches";
 
 export const SCORING_ROLES = ["OWNER", "MANAGER", "COACH", "SCORER"] as const;
@@ -32,6 +33,7 @@ export interface ScoringLockInfo {
 export function buildScoringLockInfo(
   match: Awaited<ReturnType<typeof getMatch>>,
   user: AuthUser | null,
+  authorizedToScore = false,
 ): ScoringLockInfo {
   const demo = isPublicDemoMatch(match);
   const orgId = match.tournament.organizationId;
@@ -49,7 +51,8 @@ export function buildScoringLockInfo(
     };
   }
 
-  const isCoach = userHasOrgRole(user, orgId, [...SCORING_ROLES]);
+  const isCoach =
+    userHasOrgRole(user, orgId, [...SCORING_ROLES]) || authorizedToScore;
   if (!isCoach && !demo) {
     return {
       requiresAuth: true,
@@ -83,10 +86,11 @@ export async function claimMatchScoring(
   const match = await getMatch(matchId);
   const orgId = match.tournament.organizationId;
 
-  if (
-    !userHasOrgRole(user, orgId, [...SCORING_ROLES]) &&
-    !isPublicDemoMatch(match)
-  ) {
+  const authorized =
+    isPublicDemoMatch(match) ||
+    userHasOrgRole(user, orgId, [...SCORING_ROLES]) ||
+    (await canUserScoreMatch(matchId, user.id));
+  if (!authorized) {
     throw new ApiError(
       403,
       "Only club coaches can score this match",
@@ -131,7 +135,11 @@ export async function assertCanMutateScoring(
   }
 
   const orgId = match.tournament.organizationId;
-  if (!userHasOrgRole(user, orgId, [...SCORING_ROLES]) && !demo) {
+  const authorized =
+    demo ||
+    userHasOrgRole(user, orgId, [...SCORING_ROLES]) ||
+    (await canUserScoreMatch(matchId, user.id));
+  if (!authorized) {
     throw new ApiError(
       403,
       "Only club coaches can score this match",

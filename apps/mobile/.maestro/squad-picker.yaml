@@ -1,0 +1,15 @@
+appId: host.exp.Exponent
+---
+- launchApp
+- tapOn: "Start 2-over match"
+- extendedWaitUntil:
+    visible: "1. Match squads"
+    timeout: 15000
+- tapOn: "+"
+    index: 2
+- tapOn: "−"
+    index: 0
+- tapOn: "Confirm squads & continue"
+- extendedWaitUntil:
+    visible: "2. Record the toss"
+    timeout: 10000

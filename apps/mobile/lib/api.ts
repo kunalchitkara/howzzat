@@ -47,11 +47,27 @@ export type IosDemoMatch = {
   reset: boolean;
 };
 
+export type U9DemoMatch = IosDemoMatch & {
+  startingScore: number;
+  wicketPenalty: number;
+  playersPerSide: number;
+  rosterSize: number;
+};
+
 export async function createIosDemoMatch() {
   return apiFetch<IosDemoMatch>("/api/v1/demo/ios-match", { method: "POST" });
 }
 
-export type ScoringPlayer = { id: string; name: string; teamId: string };
+export async function createU9DemoMatch() {
+  return apiFetch<U9DemoMatch>("/api/v1/demo/u9-match", { method: "POST" });
+}
+
+export type ScoringPlayer = {
+  id: string;
+  name: string;
+  teamId: string;
+  isCaptain?: boolean;
+};
 
 export type TossInfo = {
   tossWinnerTeamId: string | null;
@@ -73,8 +89,12 @@ export type ScoringContext = {
   status: string;
   hostTeamId: string;
   squadsConfirmed: boolean;
+  canReopenSquads: boolean;
   chaseContinuedAfterTarget: boolean;
   playersPerSide: number;
+  squadMin: number;
+  squadMax: number;
+  matchTotalOvers: number | null;
   homeTeam: { id: string; name: string; teamId: string };
   awayTeam: { id: string; name: string; teamId: string };
   totalOvers: number;
@@ -129,9 +149,47 @@ export async function claimScoring(matchId: string) {
   });
 }
 
-export async function confirmSquads(matchId: string) {
+export async function saveSquad(
+  matchId: string,
+  body: { teamId: string; playerIds: string[]; captainId?: string },
+) {
+  return apiFetch(`/api/v1/matches/${matchId}/squad`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function reopenSquads(matchId: string) {
+  return apiFetch(`/api/v1/matches/${matchId}/squad/reopen`, { method: "POST" });
+}
+
+export async function confirmSquads(matchId: string, totalOvers: number) {
   return apiFetch<{ squadsConfirmedAt: string }>(
     `/api/v1/matches/${matchId}/squad/confirm`,
+    {
+      method: "POST",
+      body: JSON.stringify({ totalOvers }),
+    },
+  );
+}
+
+export type ScorerInvitePreview = {
+  token: string;
+  matchId: string;
+  email: string | null;
+  acceptedAt: string | null;
+  expiresAt: string | null;
+  expired: boolean;
+  matchTitle: string;
+};
+
+export async function fetchScorerInvite(token: string) {
+  return apiFetch<ScorerInvitePreview>(`/api/v1/scorer-invites/${token}`);
+}
+
+export async function acceptScorerInvite(token: string) {
+  return apiFetch<{ matchId: string; acceptedAt: string | null }>(
+    `/api/v1/scorer-invites/${token}/accept`,
     { method: "POST" },
   );
 }

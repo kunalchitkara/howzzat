@@ -1,0 +1,24 @@
+# 2-over demo without sign-in. Requires Expo dev build on simulator + API at EXPO_PUBLIC_API_URL.
+appId: host.exp.Exponent
+---
+- launchApp
+- tapOn: "Start 2-over match"
+- extendedWaitUntil:
+    visible: "1. Match squads"
+    timeout: 15000
+- tapOn: "Confirm squads & continue"
+- extendedWaitUntil:
+    visible: "2. Record the toss"
+    timeout: 10000
+- tapOn:
+    text: "Edgware U9"
+    optional: true
+- tapOn: "Bat"
+- tapOn: "Save toss"
+- extendedWaitUntil:
+    visible: "Scorer"
+    timeout: 10000
+- tapOn: "4"
+- extendedWaitUntil:
+    visible: "4"
+    timeout: 5000
