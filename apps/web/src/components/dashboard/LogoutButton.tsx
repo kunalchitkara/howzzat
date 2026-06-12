@@ -1,16 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/client/api";
 import { btn } from "./ui";
 
 export function LogoutButton() {
-  const router = useRouter();
-
   async function logout() {
     await apiFetch("/api/v1/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    // Hard navigation so cleared session cookie and RSC cache stay in sync.
+    window.location.assign("/login");
   }
 
   return (
