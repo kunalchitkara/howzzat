@@ -562,7 +562,8 @@ export function InviteForm({
         e.preventDefault();
         void run(`/api/v1/tournaments/${tournamentId}/invites`, {
           email,
-          role,
+          kind: role === "MANAGER" ? "MANAGER" : "ORG_COACH",
+          role: role === "MANAGER" ? undefined : role,
           teamId: teamId || undefined,
         }).then((invite) => {
           if (invite?.token) {

@@ -25,7 +25,9 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.playerMatchStats.deleteMany();
   await prisma.match.deleteMany();
   await prisma.tournamentTeam.deleteMany();
+  await prisma.matchScorerInvite.deleteMany();
   await prisma.tournamentInvite.deleteMany();
+  await prisma.tournamentManager.deleteMany();
   await prisma.tournamentRulesBinding.deleteMany();
   await prisma.ruleChangeRequest.deleteMany();
   await prisma.tournament.deleteMany();

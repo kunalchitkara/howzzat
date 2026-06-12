@@ -1,0 +1,153 @@
+# Phase 1 — manual e2e script (local dev)
+
+Default dev port: **3005** (`pnpm dev:web` or `cd apps/web && pnpm dev --port 3005`).
+
+Set `BASE=http://localhost:3005` for the commands below.
+
+## Prerequisites
+
+1. Database migrated: `pnpm db:migrate` (from repo root).
+2. `apps/web/.env.local` with at least `DATABASE_URL` (see `apps/web/.env.example`).
+3. For **Google OAuth**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and redirect URI  
+   `http://localhost:3005/api/v1/auth/google/callback` in Google Cloud Console.
+4. For **SMS OTP**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`.  
+   **Dev bypass** (no Twilio): set `DEV_SMS_BYPASS_PHONE` and `DEV_SMS_BYPASS_CODE` in `.env.local`.
+
+## 1. Sign in (demo email — no external services)
+
+```bash
+BASE=http://localhost:3005
+
+curl -s -c /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"manager@local.club","name":"Local Manager"}' | jq .
+
+curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
+```
+
+Browser: [http://localhost:3005/login](http://localhost:3005/login) → expand **Demo email sign-in**.
+
+## 2. Create organization
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/organizations" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Local CC","slug":"local-cc"}' | jq .
+```
+
+Save `ORG_ID` from response. Dashboard: [http://localhost:3005/dashboard/organizations/new](http://localhost:3005/dashboard/organizations/new)
+
+## 3. Create teams
+
+```bash
+ORG_ID=<from step 2>
+
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/organizations/$ORG_ID/teams" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"U9 Lions","ageGroup":"U9"}' | jq .
+
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/organizations/$ORG_ID/teams" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"U9 Tigers"}' | jq .
+```
+
+Save `TEAM_A_ID`, `TEAM_B_ID`. Dashboard: `/dashboard/organizations/$ORG_ID/teams`
+
+## 4. Create tournament
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/organizations/$ORG_ID/tournaments" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Summer 2026","rulesTemplateBuiltinId":"u9-softball-london-v1"}' | jq .
+```
+
+Save `TOURNAMENT_ID`. Dashboard: `/dashboard/organizations/$ORG_ID/tournaments/new`
+
+## 5. Register teams + add player
+
+```bash
+TOURNAMENT_ID=<from step 4>
+
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMENT_ID/teams" \
+  -H 'Content-Type: application/json' \
+  -d "{\"teamId\":\"$TEAM_A_ID\"}" | jq .
+
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMENT_ID/teams" \
+  -H 'Content-Type: application/json' \
+  -d "{\"teamId\":\"$TEAM_B_ID\"}" | jq .
+
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/teams/$TEAM_A_ID/players" \
+  -H 'Content-Type: application/json' \
+  -d '{"legalName":"Jamie","shirtNumber":7}' | jq .
+```
+
+Save `TT_HOME_ID`, `TT_AWAY_ID` from tournament team responses.
+
+## 6. Invite coach
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMENT_ID/invites" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"coach@local.club","kind":"ORG_COACH","role":"COACH"}' | jq .
+```
+
+Save `TOKEN`. Open invite: `http://localhost:3005/invite/$TOKEN`
+
+Dashboard: tournament page → **Coach invites** section.
+
+## 7. Coach accepts invite
+
+```bash
+curl -s -c /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"coach@local.club","name":"Local Coach"}' | jq .
+
+curl -s -b /tmp/howzzat-coach.txt -X POST "$BASE/api/v1/invites/$TOKEN/accept" | jq .
+
+curl -s -b /tmp/howzzat-coach.txt "$BASE/api/v1/organizations" | jq .
+```
+
+Coach should see the org in the list. Dashboard: [http://localhost:3005/dashboard](http://localhost:3005/dashboard)
+
+## 8. Schedule match
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/tournaments/$TOURNAMENT_ID/matches" \
+  -H 'Content-Type: application/json' \
+  -d "{\"homeTeamId\":\"$TT_HOME_ID\",\"awayTeamId\":\"$TT_AWAY_ID\",\"venue\":\"Main Ground\"}" | jq .
+```
+
+Save `MATCH_ID`. Score: `http://localhost:3005/match/$MATCH_ID/score`
+
+## 9. Logout
+
+```bash
+curl -s -b /tmp/howzzat-cookies.txt -X POST "$BASE/api/v1/auth/logout" | jq .
+curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
+```
+
+## Production environment variables
+
+| Variable | Required for | Notes |
+|----------|--------------|-------|
+| `GOOGLE_CLIENT_ID` | Google OAuth (web) | OAuth 2.0 Web client |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth (web) | Server-side only |
+| `GOOGLE_IOS_CLIENT_ID` | Mobile Google sign-in | iOS OAuth client |
+| `GOOGLE_ANDROID_CLIENT_ID` | Mobile Google sign-in | Android OAuth client |
+| `NEXT_PUBLIC_APP_URL` | OAuth redirects | e.g. `https://app.howzzat.uk` |
+| `TWILIO_ACCOUNT_SID` | SMS OTP | Live Account SID |
+| `TWILIO_AUTH_TOKEN` | SMS OTP | Auth token |
+| `TWILIO_VERIFY_SERVICE_SID` | SMS OTP | Verify service SID |
+| `DATABASE_URL` | All | Turso `libsql://…` in production |
+| `DATABASE_AUTH_TOKEN` | All (Turso) | Turso auth token |
+| `COUPON_ADMIN_SECRET` | Wallet coupons (Phase 6) | `X-Admin-Secret` header |
+
+`DEV_SMS_BYPASS_*` — **local dev only**; do not set in production.
+
+## Automated tests
+
+```bash
+pnpm test:api
+```
+
+Phase 1 happy path: `apps/web/tests/api/phase1-e2e.test.ts`

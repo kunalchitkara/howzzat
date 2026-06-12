@@ -350,6 +350,8 @@ Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also
 
 **Wallet coupons:** create codes via admin API (`POST /api/v1/admin/coupons` with `X-Admin-Secret`) or `pnpm exec tsx scripts/generate-coupon.ts --amount 2000`. Tournament managers redeem at `POST /api/v1/tournaments/:id/wallet/redeem-coupon`.
 
+**Phase 1 e2e:** manual curl + dashboard walkthrough in [`docs/phase1-e2e.md`](./docs/phase1-e2e.md). Automated: `apps/web/tests/api/phase1-e2e.test.ts`.
+
 ---
 
 ## Deploying to production
@@ -371,7 +373,7 @@ Cloudflare D1 remains an option for edge-native deploy later ([`wrangler.toml`](
 | Phase | Deliverable | Status |
 |-------|-------------|--------|
 | **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
-| **1** | Auth (Google, SMS), org/tournament CRUD, invites | 🟡 |
+| **1** | Auth (Google, SMS), org/tournament CRUD, invites | ✅ |
 | **2** | Full scorer UX (pairs, wides, fielders, squad picker) | 🟡 ScorePad + API |
 | **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball UI |
 | **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |

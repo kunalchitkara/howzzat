@@ -30,7 +30,7 @@ export async function createInvite(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 14);
 
-  const kind = input.kind ?? "MANAGER";
+  const kind = input.kind ?? "ORG_COACH";
 
   return prisma.tournamentInvite.create({
     data: {
@@ -63,6 +63,14 @@ export async function acceptInvite(token: string, userId: string) {
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found", "USER_NOT_FOUND");
+
+  if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
+    throw new ApiError(
+      403,
+      "Sign in with the invited email address",
+      "INVITE_EMAIL_MISMATCH",
+    );
+  }
 
   if (invite.kind === "MANAGER") {
     await prisma.tournamentManager.upsert({
