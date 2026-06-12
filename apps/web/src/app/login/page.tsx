@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/dashboard/LoginForm";
+import { BtnLink } from "@/components/dashboard/ui";
 import { googleRedirectUri } from "@/lib/auth/google";
 import { getServerUser } from "@/lib/auth/server";
 
@@ -57,8 +57,10 @@ export default async function LoginPage({
           smsReady: Boolean(process.env.TWILIO_VERIFY_SERVICE_SID?.trim()),
         }}
       />
-      <p style={{ textAlign: "center", marginTop: 16, fontSize: "0.9rem" }}>
-        <Link href="/">← Back to home</Link>
+      <p style={{ textAlign: "center", marginTop: 20 }}>
+        <BtnLink href="/" variant="secondary">
+          ← Back to home
+        </BtnLink>
       </p>
     </main>
   );

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -64,7 +65,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Howzzat</Text>
+      <Image
+        source={require("../assets/icon.png")}
+        style={styles.logo}
+        accessibilityLabel="Howzzat"
+      />
       <Text style={styles.subtitle}>Cricket Scoring</Text>
 
       <View style={styles.card}>
@@ -144,11 +149,11 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 48,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#0B4169",
-    marginBottom: 4,
+  logo: {
+    width: 72,
+    height: 72,
+    marginBottom: 8,
+    borderRadius: 16,
   },
   subtitle: {
     fontSize: 15,

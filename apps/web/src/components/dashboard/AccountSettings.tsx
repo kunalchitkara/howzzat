@@ -81,7 +81,7 @@ export function AccountSettings({
     }
   }
 
-  async function setPassword(e: React.FormEvent) {
+  async function savePassword(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
@@ -209,7 +209,7 @@ export function AccountSettings({
             </button>
           </form>
         ) : (
-          <form onSubmit={setPassword}>
+          <form onSubmit={savePassword}>
             <Field label="Choose a password">
               <input
                 required

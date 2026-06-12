@@ -1,6 +1,30 @@
 // React 19 types conflict across workspace packages — layout helpers only.
 // @ts-nocheck
-import type { CSSProperties, PropsWithChildren } from "react";
+import Link from "next/link";
+import type { ComponentProps, CSSProperties, PropsWithChildren } from "react";
+
+type BtnVariant = "primary" | "secondary";
+
+export function BtnLink({
+  href,
+  variant = "primary",
+  className,
+  children,
+  ...rest
+}: ComponentProps<typeof Link> & { variant?: BtnVariant }) {
+  const classes = [
+    "btn",
+    variant === "secondary" ? "btn-secondary" : "btn-primary",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <Link href={href} className={classes} {...rest}>
+      {children}
+    </Link>
+  );
+}
 
 export const card: CSSProperties = {
   background: "#fff",
@@ -10,12 +34,14 @@ export const card: CSSProperties = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
 };
 
+export const btnClass = "btn btn-primary";
+
 export const btn: CSSProperties = {
-  background: "var(--md)",
+  background: "var(--brand-primary)",
   color: "#fff",
   border: "none",
-  borderRadius: 8,
-  padding: "10px 16px",
+  borderRadius: 9999,
+  padding: "10px 20px",
   fontWeight: 700,
   cursor: "pointer",
   fontSize: "0.95rem",

@@ -1,10 +1,10 @@
-import Link from "next/link";
 import Image from "next/image";
 import {
   getBuiltinProfile,
   listBuiltinProfiles,
 } from "@howzzat/rules-engine";
 import { prisma } from "@/lib/db";
+import { BtnLink } from "@/components/dashboard/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,12 @@ export default async function HomePage() {
         <p style={{ marginTop: 12, opacity: 0.9, color: "rgba(255,255,255,0.85)" }}>
           Rules-aware stats, live scorecards, and public dashboards.
         </p>
+        <div className="btn-group" style={{ marginTop: 20 }}>
+          <BtnLink href="/login">Sign in</BtnLink>
+          <BtnLink href="/dashboard" variant="secondary">
+            Club dashboard
+          </BtnLink>
+        </div>
       </header>
 
       <section
@@ -102,23 +108,26 @@ export default async function HomePage() {
         }}
       >
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Try it</h2>
-        <p style={{ marginBottom: 8 }}>
-          <Link href="/login">Club dashboard</Link>
-          {" · "}
-          <Link href="/orgs/edgware-cc/tournaments/u9-2026">Public tournament</Link>
-          {" · "}
-          <Link href="/demo/scorecard">Scorecard demo</Link>
-          {" · "}
-          <Link href="/demo/simulated">Simulated match</Link>
+        <div className="btn-group">
+          <BtnLink href="/login">Club dashboard</BtnLink>
+          <BtnLink href="/orgs/edgware-cc/tournaments/u9-2026" variant="secondary">
+            Public tournament
+          </BtnLink>
+          <BtnLink href="/demo/scorecard" variant="secondary">
+            Scorecard demo
+          </BtnLink>
+          <BtnLink href="/demo/simulated" variant="secondary">
+            Simulated match
+          </BtnLink>
           {demoMatch && (
-            <>
-              {" · "}
-              <Link href={`/match/${demoMatch.id}/score`}>U9 full squad scorer</Link>
-            </>
+            <BtnLink href={`/match/${demoMatch.id}/score`} variant="secondary">
+              U9 full squad scorer
+            </BtnLink>
           )}
-          {" · "}
-          <Link href="/demo/u9-score">U9 4-over demo</Link>
-        </p>
+          <BtnLink href="/demo/u9-score" variant="secondary">
+            U9 4-over demo
+          </BtnLink>
+        </div>
         <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
           Reset U9 demo: <code>POST /api/v1/demo/u9-match</code> — pick 2–11 from 10 per
           side, 4 overs each, 200 start, −5 per wicket.
@@ -134,13 +143,21 @@ export default async function HomePage() {
         }}
       >
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Developers</h2>
-        <p style={{ marginBottom: 8 }}>
-          <Link href="/demo/scorecard">Scorecard demo (Edgware M4)</Link> ·{" "}
-          <Link href="/api/health">API health</Link> ·{" "}
-          <Link href="/api/v1/organizations">Organizations API</Link> ·{" "}
-          <Link href="/api/v1/rules/profiles">Rules profiles</Link>
-        </p>
-        <p style={{ fontSize: "0.85rem", color: "#666" }}>
+        <div className="btn-group">
+          <BtnLink href="/demo/scorecard" variant="secondary">
+            Scorecard demo (Edgware M4)
+          </BtnLink>
+          <BtnLink href="/api/health" variant="secondary">
+            API health
+          </BtnLink>
+          <BtnLink href="/api/v1/organizations" variant="secondary">
+            Organizations API
+          </BtnLink>
+          <BtnLink href="/api/v1/rules/profiles" variant="secondary">
+            Rules profiles
+          </BtnLink>
+        </div>
+        <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
           Full REST docs: <code>docs/api.md</code> in the repo
         </p>
       </section>

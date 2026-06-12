@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BtnLink } from "@/components/dashboard/ui";
 import { getTournamentBySlug } from "@/lib/services/tournaments";
 import { ApiError } from "@/lib/api/http";
 
@@ -115,12 +115,9 @@ export default async function PublicTournamentPage({
                         {m.venue ? ` · ${m.venue}` : ""}
                       </p>
                     </div>
-                    <Link
-                      href={`/match/${m.id}`}
-                      style={{ fontSize: "0.85rem", fontWeight: 600, whiteSpace: "nowrap" }}
-                    >
-                      Scorecard →
-                    </Link>
+                    <BtnLink href={`/match/${m.id}`} className="btn-nav">
+                      Scorecard
+                    </BtnLink>
                   </div>
                 </li>
               ))}
@@ -128,11 +125,14 @@ export default async function PublicTournamentPage({
           )}
         </section>
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: "0.85rem", color: "#666" }}>
-          Powered by <Link href="/">Howzzat</Link>
-          {" · "}
-          <Link href="/login">Club login</Link>
-        </p>
+        <div className="btn-group" style={{ justifyContent: "center", marginTop: 24 }}>
+          <BtnLink href="/" variant="secondary" className="btn-nav">
+            Howzzat home
+          </BtnLink>
+          <BtnLink href="/login" className="btn-nav">
+            Club login
+          </BtnLink>
+        </div>
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch } from "@/lib/client/api";
-import { btn } from "./ui";
+import { btnClass } from "./ui";
 
 export function LogoutButton() {
   async function logout() {
@@ -11,7 +11,7 @@ export function LogoutButton() {
   }
 
   return (
-    <button type="button" onClick={logout} style={{ ...btn, background: "#666" }}>
+    <button type="button" onClick={logout} className={`${btnClass} btn-nav`} style={{ background: "#64748b" }}>
       Sign out
     </button>
   );

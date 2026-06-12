@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { listOrganizationsForUser } from "@/lib/services/organizations";
 import { getServerUser } from "@/lib/auth/server";
 
@@ -14,19 +14,7 @@ export default async function DashboardPage() {
   return (
     <PageShell title="Your clubs" subtitle="Manage tournaments, teams, and fixtures">
       <p style={{ textAlign: "right", marginBottom: 16 }}>
-        <Link
-          href="/dashboard/organizations/new"
-          style={{
-            background: "var(--md)",
-            color: "#fff",
-            padding: "10px 16px",
-            borderRadius: 8,
-            fontWeight: 700,
-            textDecoration: "none",
-          }}
-        >
-          + New club
-        </Link>
+        <BtnLink href="/dashboard/organizations/new">+ New club</BtnLink>
       </p>
       {organizations.length === 0 ? (
         <div style={card}>
@@ -34,7 +22,7 @@ export default async function DashboardPage() {
             You are not part of any club yet. Create one or accept an invite from your
             tournament manager.
           </p>
-          <Link href="/dashboard/organizations/new">Create your first club →</Link>
+          <BtnLink href="/dashboard/organizations/new">Create your first club</BtnLink>
         </div>
       ) : (
         <ul style={{ listStyle: "none" }}>

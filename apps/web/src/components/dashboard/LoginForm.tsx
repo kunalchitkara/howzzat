@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch } from "@/lib/client/api";
-import { btn, card, Field, input } from "./ui";
+import { card, Field, input } from "./ui";
 
 type AuthTab = "google" | "email-code" | "email-password";
 
@@ -139,17 +139,8 @@ export function LoginForm({
     }
   }
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: "10px 8px",
-    border: "1px solid #dadce0",
-    borderRadius: 8,
-    background: active ? "var(--md)" : "#fff",
-    color: active ? "#fff" : "#333",
-    fontWeight: 600,
-    fontSize: "0.85rem",
-    cursor: "pointer",
-  });
+  const tabClass = (active: boolean) =>
+    `btn btn-nav ${active ? "btn-primary" : "btn-secondary"}`;
 
   return (
     <div style={card}>
@@ -191,19 +182,26 @@ export function LoginForm({
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button type="button" style={tabStyle(tab === "google")} onClick={() => setTab("google")}>
+        <button
+          type="button"
+          className={tabClass(tab === "google")}
+          style={{ flex: 1 }}
+          onClick={() => setTab("google")}
+        >
           Google
         </button>
         <button
           type="button"
-          style={tabStyle(tab === "email-code")}
+          className={tabClass(tab === "email-code")}
+          style={{ flex: 1 }}
           onClick={() => setTab("email-code")}
         >
           Email code
         </button>
         <button
           type="button"
-          style={tabStyle(tab === "email-password")}
+          className={tabClass(tab === "email-password")}
+          style={{ flex: 1 }}
           onClick={() => setTab("email-password")}
         >
           Password
@@ -212,18 +210,7 @@ export function LoginForm({
 
       {tab === "google" && (
         <div>
-          <a
-            href={googleHref}
-            style={{
-              ...btn,
-              display: "block",
-              textAlign: "center",
-              textDecoration: "none",
-              background: "#fff",
-              color: "#333",
-              border: "1px solid #dadce0",
-            }}
-          >
+          <a href={googleHref} className="btn btn-secondary" style={{ display: "block", textAlign: "center" }}>
             Continue with Google
           </a>
         </div>
@@ -275,26 +262,19 @@ export function LoginForm({
               </Field>
               <button
                 type="button"
+                className="btn btn-secondary btn-nav"
                 onClick={() => {
                   setEmailOtpStep("email");
                   setCode("");
                 }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--md)",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  marginBottom: 12,
-                  padding: 0,
-                }}
+                style={{ marginBottom: 12 }}
               >
-                ← Use a different email
+                ← Different email
               </button>
             </>
           )}
           {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-          <button type="submit" disabled={busy} style={btn}>
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy
               ? "Please wait…"
               : emailOtpStep === "email"
@@ -348,7 +328,7 @@ export function LoginForm({
             </Field>
           )}
           {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-          <button type="submit" disabled={busy} style={btn}>
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy
               ? "Please wait…"
               : passwordMode === "sign-in"
@@ -357,20 +337,12 @@ export function LoginForm({
           </button>
           <button
             type="button"
+            className="btn btn-secondary"
             onClick={() => {
               setPasswordMode(passwordMode === "sign-in" ? "register" : "sign-in");
               setError(null);
             }}
-            style={{
-              display: "block",
-              width: "100%",
-              marginTop: 12,
-              background: "none",
-              border: "none",
-              color: "var(--md)",
-              cursor: "pointer",
-              fontSize: "0.85rem",
-            }}
+            style={{ width: "100%", marginTop: 12 }}
           >
             {passwordMode === "sign-in"
               ? "Need an account? Create one"
@@ -419,28 +391,21 @@ export function LoginForm({
                 </Field>
                 <button
                   type="button"
+                  className="btn btn-secondary btn-nav"
                   onClick={() => {
                     setSmsStep("phone");
                     setCode("");
                   }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--md)",
-                    cursor: "pointer",
-                    fontSize: "0.85rem",
-                    marginBottom: 12,
-                    padding: 0,
-                  }}
+                  style={{ marginBottom: 12 }}
                 >
-                  ← Use a different number
+                  ← Different number
                 </button>
               </>
             )}
             {error && tab !== "email-code" && tab !== "email-password" && (
               <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>
             )}
-            <button type="submit" disabled={busy} style={btn}>
+            <button type="submit" disabled={busy} className="btn btn-primary">
               {busy ? "Please wait…" : smsStep === "phone" ? "Send code" : "Verify & sign in"}
             </button>
           </form>

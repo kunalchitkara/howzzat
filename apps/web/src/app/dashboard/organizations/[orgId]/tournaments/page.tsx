@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
 import { ApiError } from "@/lib/api/http";
 
@@ -21,19 +21,9 @@ export default async function TournamentsPage({
   return (
     <PageShell title="Tournaments" subtitle={org.name}>
       <p style={{ textAlign: "right", marginBottom: 16 }}>
-        <Link
-          href={`/dashboard/organizations/${orgId}/tournaments/new`}
-          style={{
-            background: "var(--md)",
-            color: "#fff",
-            padding: "10px 16px",
-            borderRadius: 8,
-            fontWeight: 700,
-            textDecoration: "none",
-          }}
-        >
+        <BtnLink href={`/dashboard/organizations/${orgId}/tournaments/new`}>
           + New tournament
-        </Link>
+        </BtnLink>
       </p>
       <p style={{ marginBottom: 16 }}>
         <Link href={`/dashboard/organizations/${orgId}`}>← {org.name}</Link>
@@ -42,10 +32,10 @@ export default async function TournamentsPage({
       <ul style={{ listStyle: "none" }}>
         {org.tournaments.length === 0 ? (
           <li style={{ ...card, color: "#666" }}>
-            No tournaments yet.{" "}
-            <Link href={`/dashboard/organizations/${orgId}/tournaments/new`}>
-              Create one →
-            </Link>
+            <p style={{ marginBottom: 12 }}>No tournaments yet.</p>
+            <BtnLink href={`/dashboard/organizations/${orgId}/tournaments/new`}>
+              Create tournament
+            </BtnLink>
           </li>
         ) : (
           org.tournaments.map((t) => (
@@ -61,10 +51,14 @@ export default async function TournamentsPage({
                 {t.rulesProfileVersion?.template?.name ?? "Rules profile"}
               </p>
               {t.isPublic && (
-                <p style={{ fontSize: "0.85rem", marginTop: 6 }}>
-                  <Link href={`/orgs/${org.slug}/tournaments/${t.slug}`}>
-                    Public page →
-                  </Link>
+                <p style={{ marginTop: 10 }}>
+                  <BtnLink
+                    href={`/orgs/${org.slug}/tournaments/${t.slug}`}
+                    variant="secondary"
+                    className="btn-nav"
+                  >
+                    Public page
+                  </BtnLink>
                 </p>
               )}
             </li>

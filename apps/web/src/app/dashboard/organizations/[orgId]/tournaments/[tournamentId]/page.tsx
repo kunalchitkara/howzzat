@@ -6,7 +6,7 @@ import {
   InviteForm,
 } from "@/components/dashboard/forms";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
-import { PageShell, card } from "@/components/dashboard/ui";
+import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getTournament } from "@/lib/services/tournaments";
 import { getOrganization } from "@/lib/services/organizations";
 import { listInvites } from "@/lib/services/invites";
@@ -56,9 +56,13 @@ export default async function TournamentDashboardPage({
         {tournament.isPublic && (
           <>
             {" · "}
-            <Link href={`/orgs/${org.slug}/tournaments/${tournament.slug}`}>
+            <BtnLink
+              href={`/orgs/${org.slug}/tournaments/${tournament.slug}`}
+              variant="secondary"
+              className="btn-nav"
+            >
               Public page
-            </Link>
+            </BtnLink>
           </>
         )}
       </p>
@@ -87,10 +91,20 @@ export default async function TournamentDashboardPage({
                     {m.marginText ? ` · ${m.marginText}` : ""}
                   </p>
                 </div>
-                <div style={{ textAlign: "right", fontSize: "0.85rem" }}>
-                  <Link href={`/match/${m.id}`}>Scorecard</Link>
-                  {" · "}
-                  <Link href={`/match/${m.id}/score`}>Score</Link>
+                <div
+                  className="btn-group"
+                  style={{ justifyContent: "flex-end", gap: 8 }}
+                >
+                  <BtnLink
+                    href={`/match/${m.id}`}
+                    variant="secondary"
+                    className="btn-nav"
+                  >
+                    Scorecard
+                  </BtnLink>
+                  <BtnLink href={`/match/${m.id}/score`} className="btn-nav">
+                    Score
+                  </BtnLink>
                 </div>
               </div>
             </li>
@@ -133,8 +147,15 @@ export default async function TournamentDashboardPage({
                     : inv.role}
                 {inv.team ? ` (${inv.team.name})` : ""}
                 <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
-                  {inv.acceptedAt ? "Accepted" : "Pending"} ·{" "}
-                  <Link href={`/invite/${inv.token}`}>Invite link</Link>
+                  {inv.acceptedAt ? "Accepted" : "Pending"}
+                  {" · "}
+                  <BtnLink
+                    href={`/invite/${inv.token}`}
+                    variant="secondary"
+                    className="btn-nav"
+                  >
+                    Invite link
+                  </BtnLink>
                 </p>
               </li>
             ))}

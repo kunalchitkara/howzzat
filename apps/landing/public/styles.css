@@ -55,10 +55,11 @@ header nav {
 header a.btn {
   background: #fff;
   color: var(--dk);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 700;
   text-decoration: none;
+  border: 1px solid #cbd5e1;
 }
 
 main {
@@ -98,7 +99,7 @@ main {
   background: var(--brand-primary);
   color: #fff;
   padding: 0.75rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 9999px;
   font-weight: 700;
   text-decoration: none;
 }
