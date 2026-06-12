@@ -1,7 +1,8 @@
 // SQLite for local dev + Cloudflare D1 in production (same SQL dialect)
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -26,15 +27,58 @@ model Organization {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  phone         String?   @unique
+  phoneVerified DateTime?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  memberships OrgMembership[]
-  invitesSent TournamentInvite[]
-  sessions    Session[]
+  accounts              Account[]
+  memberships           OrgMembership[]
+  invitesSent           TournamentInvite[]
+  matchScorerInvitesSent MatchScorerInvite[] @relation("MatchScorerInvitedBy")
+  matchScorerInvitesAccepted MatchScorerInvite[] @relation("MatchScorerAcceptedBy")
+  tournamentManagers    TournamentManager[]
+  walletTopUps          WalletTopUp[]
+  passwordResetTokens   PasswordResetToken[]
+  sessions              Session[]
+  scoringMatches        Match[]               @relation("MatchScorer")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Session {
@@ -117,6 +161,14 @@ model Tournament {
   isPublic              Boolean        @default(true)
   startsOn              DateTime?
   endsOn                DateTime?
+  /// Wallet balance in pence; may go negative after a match is charged.
+  balancePence          Int            @default(0)
+  /// Per-tournament fee override; null uses platform default (20p).
+  feeOverridePence      Int?
+  /// Matches are not charged while now < billingFreeUntil.
+  billingFreeUntil      DateTime?
+  /// Magic link token for public tournament home (no login).
+  publicToken           String?        @unique
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -125,11 +177,33 @@ model Tournament {
   teams               TournamentTeam[]
   matches             Match[]
   invites             TournamentInvite[]
+  managers            TournamentManager[]
+  walletTopUps        WalletTopUp[]
+  usageLedger         UsageLedger[]
   rulesBindings       TournamentRulesBinding[]
   ruleChangeRequests  RuleChangeRequest[]
 
   @@unique([organizationId, slug])
   @@index([slug])
+}
+
+model TournamentManager {
+  id           String                @id @default(cuid())
+  tournamentId String
+  userId       String
+  role         TournamentManagerRole @default(MANAGER)
+  createdAt    DateTime              @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([userId])
+}
+
+enum TournamentManagerRole {
+  OWNER
+  MANAGER
 }
 
 enum TournamentPlan {
@@ -181,23 +255,88 @@ enum RuleChangeStatus {
   CANCELLED
 }
 
+enum TournamentInviteKind {
+  /// Adds TournamentManager on accept (email + same magic link).
+  MANAGER
+  /// Legacy: adds org membership on accept.
+  ORG_COACH
+}
+
 model TournamentInvite {
-  id           String    @id @default(cuid())
+  id           String               @id @default(cuid())
   tournamentId String
   email        String
-  role         OrgRole   @default(COACH)
+  kind         TournamentInviteKind @default(MANAGER)
+  role         OrgRole              @default(COACH)
   teamId       String?
-  token        String    @unique
+  token        String               @unique
   acceptedAt   DateTime?
   invitedById  String?
   expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime             @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   invitedBy  User?      @relation(fields: [invitedById], references: [id])
   team       Team?      @relation(fields: [teamId], references: [id])
 
   @@index([tournamentId, email])
+}
+
+model MatchScorerInvite {
+  id               String    @id @default(cuid())
+  matchId          String
+  token            String    @unique
+  email            String?
+  invitedById      String
+  expiresAt        DateTime?
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+  createdAt        DateTime  @default(now())
+
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  invitedBy  User  @relation("MatchScorerInvitedBy", fields: [invitedById], references: [id])
+  acceptedBy User? @relation("MatchScorerAcceptedBy", fields: [acceptedByUserId], references: [id])
+
+  @@index([matchId])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model WalletTopUp {
+  id              String        @id @default(cuid())
+  tournamentId    String
+  amountPence     Int
+  paidByUserId    String
+  stripePaymentId String?
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  completedAt     DateTime?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  paidBy     User       @relation(fields: [paidByUserId], references: [id])
+
+  @@index([tournamentId])
+}
+
+model UsageLedger {
+  id           String   @id @default(cuid())
+  tournamentId String
+  matchId      String   @unique
+  playerCount  Int
+  ratePence    Int
+  amountPence  Int
+  waived       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  match      Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
 }
 
 // ─── Teams & players ─────────────────────────────────────────────────────────
@@ -291,16 +430,22 @@ model Match {
   tossCallerPlayerId   String?
   squadsConfirmedAt    DateTime?
   chaseContinuedAfterTarget Boolean @default(false)
+  /** Coach who holds the exclusive scoring lock for this match. */
+  scoringUserId     String?
+  scoringClaimedAt  DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   tournament   Tournament          @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  scoringUser  User?               @relation("MatchScorer", fields: [scoringUserId], references: [id], onDelete: SetNull)
   homeTeam     TournamentTeam      @relation("HomeTeam", fields: [homeTeamId], references: [id])
   awayTeam     TournamentTeam      @relation("AwayTeam", fields: [awayTeamId], references: [id])
   rulesVersion RulesProfileVersion? @relation("MatchRulesVersion", fields: [rulesVersionId], references: [id])
-  innings      Innings[]
-  squad        MatchSquadPlayer[]
-  playerStats  PlayerMatchStats[]
+  innings       Innings[]
+  squad         MatchSquadPlayer[]
+  playerStats   PlayerMatchStats[]
+  scorerInvites MatchScorerInvite[]
+  usageCharge   UsageLedger?
 
   @@unique([tournamentId, publicSlug])
   @@index([tournamentId, scheduledAt])

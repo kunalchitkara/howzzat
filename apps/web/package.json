@@ -14,9 +14,15 @@
     "@howzzat/db": "workspace:*",
     "@howzzat/rules-engine": "workspace:*",
     "@howzzat/shared": "workspace:*",
+    "@libsql/client": "^0.15.9",
+    "@prisma/adapter-libsql": "^6.9.0",
+    "@prisma/nextjs-monorepo-workaround-plugin": "^6.9.0",
+    "google-auth-library": "^10.7.0",
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "stripe": "^22.2.0",
+    "twilio": "^6.0.2",
     "zod": "^3.25.42"
   },
   "devDependencies": {

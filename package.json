@@ -10,21 +10,30 @@
     "test": "turbo run test",
     "test:unit": "pnpm --filter @howzzat/rules-engine test",
     "test:api": "pnpm --filter @howzzat/web test",
+    "test:ios": "pnpm --filter @howzzat/web exec vitest run tests/integration/ios-demo-flow.test.ts tests/integration/ios-mobile-api.test.ts",
     "db:generate": "turbo run db:generate --filter=@howzzat/db",
     "db:push": "turbo run db:push --filter=@howzzat/db",
     "db:studio": "turbo run db:studio --filter=@howzzat/db",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy",
+    "landing:deploy": "pnpm exec wrangler pages deploy apps/landing/public --project-name=howzzat-landing",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {
     "prettier": "^3.5.3",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
+    "vercel": "^54.12.2",
     "wrangler": "^4.19.0"
   },
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.1.4",
+      "@types/react-dom": "19.1.5"
+    }
   }
 }
