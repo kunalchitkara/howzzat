@@ -4,11 +4,12 @@
   "description": "Cricket Scoring — web app for tournaments, live scoring, and public scorecards.",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3005",
     "build": "next build",
-    "start": "next start",
+    "dev": "next dev --turbopack --port 3005",
     "lint": "next lint",
+    "start": "next start",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "zod": "^3.25.42"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",

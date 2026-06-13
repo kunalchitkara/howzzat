@@ -10,6 +10,7 @@
     "test": "turbo run test",
     "test:unit": "pnpm --filter @howzzat/rules-engine test",
     "test:api": "pnpm --filter @howzzat/web test",
+    "test:e2e": "pnpm --filter @howzzat/web test:e2e",
     "test:ios": "pnpm --filter @howzzat/web exec vitest run tests/integration/ios-demo-flow.test.ts tests/integration/ios-mobile-api.test.ts tests/integration/mobile-phase2.test.ts",
     "test:mobile": "pnpm --filter @howzzat/mobile test && pnpm test:ios",
     "test:mobile:e2e": "node apps/mobile/scripts/run-maestro-if-available.mjs",

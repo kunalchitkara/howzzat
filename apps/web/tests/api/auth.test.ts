@@ -5,6 +5,7 @@ import { GET as me } from "@/app/api/v1/auth/me/route";
 import { POST as createOrg } from "@/app/api/v1/organizations/route";
 import { POST as acceptInvite } from "@/app/api/v1/invites/[token]/accept/route";
 import { GET as getInvite } from "@/app/api/v1/invites/[token]/route";
+import { DELETE as deleteInviteRoute } from "@/app/api/v1/tournaments/[tournamentId]/invites/[inviteId]/route";
 import { GET as myOrganizations } from "@/app/api/v1/me/organizations/route";
 import { GET as myTournaments } from "@/app/api/v1/me/tournaments/route";
 import { POST as register } from "@/app/api/v1/auth/register/route";
@@ -230,6 +231,74 @@ describe("Auth API", () => {
         (t: { id: string }) => t.id === fixtures.tournamentId,
       ),
     ).toBe(true);
+  });
+
+  it("deletes pending tournament invite", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const invite = await createInvite(fixtures.tournamentId, {
+      email: "cancel@test.club",
+      kind: "MANAGER",
+    });
+
+    const deleteRes = await readJson(
+      await deleteInviteRoute(
+        jsonRequest(
+          "DELETE",
+          `/api/v1/tournaments/${fixtures.tournamentId}/invites/${invite.id}`,
+        ),
+        params({ tournamentId: fixtures.tournamentId, inviteId: invite.id }),
+      ),
+    );
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.deleted).toBe(true);
+
+    const remaining = await prisma.tournamentInvite.findUnique({
+      where: { id: invite.id },
+    });
+    expect(remaining).toBeNull();
+
+    const preview = await readJson(
+      await getInvite(
+        jsonRequest("GET", `/api/v1/invites/${invite.token}`),
+        params({ token: invite.token }),
+      ),
+    );
+    expect(preview.status).toBe(404);
+  });
+
+  it("rejects deleting accepted tournament invite", async () => {
+    const fixtures = await seedTestFixtures(prisma);
+    const invite = await createInvite(fixtures.tournamentId, {
+      email: "accepted@test.club",
+      kind: "MANAGER",
+    });
+
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", { email: "accepted@test.club" }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
+    await readJson(
+      await acceptInvite(
+        jsonRequest("POST", `/api/v1/invites/${invite.token}/accept`, undefined, cookie),
+        params({ token: invite.token }),
+      ),
+    );
+
+    const deleteRes = await readJson(
+      await deleteInviteRoute(
+        jsonRequest(
+          "DELETE",
+          `/api/v1/tournaments/${fixtures.tournamentId}/invites/${invite.id}`,
+        ),
+        params({ tournamentId: fixtures.tournamentId, inviteId: invite.id }),
+      ),
+    );
+    expect(deleteRes.status).toBe(409);
+    expect(deleteRes.body.code).toBe("INVITE_ALREADY_ACCEPTED");
   });
 
   it("register then accept MANAGER invite lists tournament on dashboard APIs", async () => {

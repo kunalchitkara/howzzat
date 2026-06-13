@@ -202,9 +202,36 @@ curl -s -b /tmp/howzzat-cookies.txt "$BASE/api/v1/auth/me" | jq .
 
 ## Automated tests
 
+### API integration (Vitest)
+
 ```bash
 pnpm test:api
 ```
 
 Phase 1 happy path: `apps/web/tests/api/phase1-e2e.test.ts`  
 Wallet coupons (API): `apps/web/tests/integration/wallet-coupon.test.ts`
+
+### Browser e2e (Playwright)
+
+Starts Next.js on port **3099** with an isolated SQLite DB (`apps/web/.e2e-db.db`).
+
+```bash
+pnpm test:e2e
+```
+
+First run installs Chromium:
+
+```bash
+cd apps/web && pnpm exec playwright install chromium
+```
+
+Specs:
+
+- `apps/web/e2e/login.spec.ts` — password register + dashboard smoke
+- `apps/web/e2e/manager-flow.spec.ts` — org → teams → tournament → fixture → invite → wallet coupon
+
+Optional: run against an already-running dev server on another port:
+
+```bash
+E2E_PORT=3005 pnpm test:e2e
+```

@@ -4,6 +4,7 @@ import {
   CreateMatchForm,
   InviteForm,
 } from "@/components/dashboard/forms";
+import { InviteList } from "@/components/dashboard/InviteList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getTournament } from "@/lib/services/tournaments";
@@ -135,32 +136,18 @@ export default async function TournamentDashboardPage({
         <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
           Manager invites
         </h2>
-        {invites.length > 0 && (
-          <ul style={{ listStyle: "none", marginBottom: 16 }}>
-            {invites.map((inv) => (
-              <li key={inv.id} style={card}>
-                <strong>{inv.email}</strong> —{" "}
-                {inv.kind === "MANAGER"
-                  ? "Tournament manager"
-                  : inv.role === "SCORER"
-                    ? "Scorer"
-                    : inv.role}
-                {inv.team ? ` (${inv.team.name})` : ""}
-                <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
-                  {inv.acceptedAt ? "Accepted" : "Pending"}
-                  {" · "}
-                  <BtnLink
-                    href={`/invite/${inv.token}`}
-                    variant="secondary"
-                    className="btn-nav"
-                  >
-                    Invite link
-                  </BtnLink>
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
+        <InviteList
+          tournamentId={tournamentId}
+          invites={invites.map((inv) => ({
+            id: inv.id,
+            email: inv.email,
+            kind: inv.kind,
+            role: inv.role,
+            token: inv.token,
+            acceptedAt: inv.acceptedAt?.toISOString() ?? null,
+            team: inv.team ? { name: inv.team.name } : null,
+          }))}
+        />
         <InviteForm tournamentId={tournamentId} teams={orgTeams} />
       </section>
     </PageShell>

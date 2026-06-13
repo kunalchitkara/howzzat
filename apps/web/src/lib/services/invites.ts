@@ -109,3 +109,24 @@ export async function acceptInvite(token: string, userId: string) {
     data: { acceptedAt: new Date() },
   });
 }
+
+export async function deleteInvite(tournamentId: string, inviteId: string) {
+  await getTournament(tournamentId);
+
+  const invite = await prisma.tournamentInvite.findUnique({
+    where: { id: inviteId },
+  });
+  if (!invite || invite.tournamentId !== tournamentId) {
+    throw new ApiError(404, "Invite not found", "INVITE_NOT_FOUND");
+  }
+  if (invite.acceptedAt) {
+    throw new ApiError(
+      409,
+      "Accepted invites cannot be removed",
+      "INVITE_ALREADY_ACCEPTED",
+    );
+  }
+
+  await prisma.tournamentInvite.delete({ where: { id: inviteId } });
+  return { deleted: true };
+}
