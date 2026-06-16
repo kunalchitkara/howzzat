@@ -575,7 +575,7 @@ export function CreateMatchForm({
   useEffect(() => {
     if (tournamentTeams.length === 0) return;
     setHomeTeamName((prev) => prev || tournamentTeams[0]!.name);
-    setAwayTeamName((prev) => prev || tournamentTeams[1]?.name ?? "");
+    setAwayTeamName((prev) => prev || (tournamentTeams[1]?.name ?? ""));
   }, [tournamentTeams]);
 
   const displayError = localError ?? error;
