@@ -138,6 +138,11 @@ export async function getMatchScoringContext(
     referenceDate,
   );
 
+  const mergeRoster = (roster: ScoringPlayer[], squad: ScoringPlayer[]) => {
+    const seen = new Set(roster.map((p) => p.id));
+    return [...roster, ...squad.filter((p) => !seen.has(p.id))];
+  };
+
   const squads = {
     home: homeSquad,
     away: awaySquad,
@@ -367,7 +372,10 @@ export async function getMatchScoringContext(
     rotateStrikeAfterWicket: profile.dismissals.rotateStrikeAfterWicket ?? false,
     tournamentAgeGroup: match.tournament.ageGroup,
     squads,
-    rosters: { home: homeRoster, away: awayRoster },
+    rosters: {
+      home: mergeRoster(homeRoster, homeSquad),
+      away: mergeRoster(awayRoster, awaySquad),
+    },
     innings: inningsViews,
     activeInningsId: activeInnings?.id ?? null,
     canStartInnings,

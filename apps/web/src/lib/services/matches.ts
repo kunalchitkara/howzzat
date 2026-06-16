@@ -17,7 +17,8 @@ import { deliveryToEvent } from "./match-utils";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { getRulesProfileFromVersion } from "./rules-helpers";
-import { getTournament } from "./tournaments";
+import { chargeMatchAtFinalize } from "./tournament-billing";
+import { getTournament, findOrCreateTournamentTeamByName } from "./tournaments";
 import type {
   createMatchSchema,
   createInningsSchema,
@@ -25,6 +26,7 @@ import type {
   updateDeliverySchema,
   updateMatchSchema,
   setMatchSquadSchema,
+  addMatchPlayerSchema,
 } from "../validations";
 import type { z } from "zod";
 
@@ -34,6 +36,7 @@ type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
 type UpdateDeliveryInput = z.infer<typeof updateDeliverySchema>;
 type UpdateMatchInput = z.infer<typeof updateMatchSchema>;
 type SetSquadInput = z.infer<typeof setMatchSquadSchema>;
+type AddMatchPlayerInput = z.infer<typeof addMatchPlayerSchema>;
 
 const matchInclude = {
   tournament: {
@@ -75,15 +78,33 @@ export async function getMatch(matchId: string) {
 export async function createMatch(tournamentId: string, input: CreateMatchInput) {
   const tournament = await getTournament(tournamentId);
 
-  if (input.homeTeamId === input.awayTeamId) {
+  let homeTeamId = input.homeTeamId;
+  let awayTeamId = input.awayTeamId;
+
+  if (!homeTeamId && input.homeTeamName) {
+    homeTeamId = (
+      await findOrCreateTournamentTeamByName(tournamentId, input.homeTeamName)
+    ).id;
+  }
+  if (!awayTeamId && input.awayTeamName) {
+    awayTeamId = (
+      await findOrCreateTournamentTeamByName(tournamentId, input.awayTeamName)
+    ).id;
+  }
+
+  if (!homeTeamId || !awayTeamId) {
+    throw new ApiError(400, "Home and away teams required", "MISSING_TEAMS");
+  }
+
+  if (homeTeamId === awayTeamId) {
     throw new ApiError(400, "Home and away teams must differ", "SAME_TEAMS");
   }
 
   const home = await prisma.tournamentTeam.findUnique({
-    where: { id: input.homeTeamId },
+    where: { id: homeTeamId },
   });
   const away = await prisma.tournamentTeam.findUnique({
-    where: { id: input.awayTeamId },
+    where: { id: awayTeamId },
   });
   if (!home || !away || home.tournamentId !== tournamentId || away.tournamentId !== tournamentId) {
     throw new ApiError(400, "Invalid tournament teams", "INVALID_TEAMS");
@@ -92,8 +113,8 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
   return prisma.match.create({
     data: {
       tournamentId,
-      homeTeamId: input.homeTeamId,
-      awayTeamId: input.awayTeamId,
+      homeTeamId,
+      awayTeamId,
       matchNumber: input.matchNumber,
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
       venue: input.venue,
@@ -130,7 +151,7 @@ export async function updateMatch(matchId: string, input: UpdateMatchInput) {
   });
 }
 
-/** Record toss and set match LIVE. Returns batting team id for 1st innings. */
+/** Record toss (before lineups). Returns batting team id for 1st innings once squads are confirmed. */
 export async function recordToss(
   matchId: string,
   input: {
@@ -140,8 +161,12 @@ export async function recordToss(
   },
 ) {
   const match = await getMatch(matchId);
-  if (!match.squadsConfirmedAt) {
-    throw new ApiError(400, "Confirm match squads before the toss", "SQUADS_NOT_CONFIRMED");
+  if (match.squadsConfirmedAt) {
+    throw new ApiError(
+      400,
+      "Lineups already confirmed — reopen squads to change the toss",
+      "SQUADS_ALREADY_CONFIRMED",
+    );
   }
   const teams = [match.homeTeamId, match.awayTeamId];
   if (!teams.includes(input.tossWinnerTeamId)) {
@@ -178,6 +203,13 @@ export async function recordToss(
 export async function setMatchSquad(matchId: string, input: SetSquadInput) {
   const match = await getMatch(matchId);
 
+  const players = await prisma.player.findMany({
+    where: { id: { in: input.playerIds } },
+  });
+  if (players.length !== input.playerIds.length) {
+    throw new ApiError(400, "Unknown player in squad", "INVALID_SQUAD");
+  }
+
   const memberships = await prisma.teamMembership.findMany({
     where: {
       teamId: input.teamId,
@@ -185,12 +217,25 @@ export async function setMatchSquad(matchId: string, input: SetSquadInput) {
       active: true,
     },
   });
-  if (memberships.length !== input.playerIds.length) {
-    throw new ApiError(
-      400,
-      "All players must be active squad members of the team",
-      "INVALID_SQUAD",
-    );
+  const memberIds = new Set(memberships.map((m) => m.playerId));
+  const nonMembers = input.playerIds.filter((id) => !memberIds.has(id));
+  if (nonMembers.length > 0) {
+    const adHocInSquad = await prisma.matchSquadPlayer.findMany({
+      where: {
+        matchId,
+        teamId: input.teamId,
+        playerId: { in: nonMembers },
+      },
+    });
+    const adHocIds = new Set(adHocInSquad.map((s) => s.playerId));
+    const invalid = nonMembers.filter((id) => !adHocIds.has(id));
+    if (invalid.length > 0) {
+      throw new ApiError(
+        400,
+        "Players must be on the team roster or added at scoring time",
+        "INVALID_SQUAD",
+      );
+    }
   }
 
   await prisma.matchSquadPlayer.deleteMany({
@@ -209,11 +254,48 @@ export async function setMatchSquad(matchId: string, input: SetSquadInput) {
   return getMatch(matchId);
 }
 
+export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput) {
+  const match = await getMatch(matchId);
+  if (match.squadsConfirmedAt) {
+    throw new ApiError(400, "Lineups already confirmed", "SQUADS_ALREADY_CONFIRMED");
+  }
+  if (!match.tossWinnerId) {
+    throw new ApiError(400, "Record the toss before adding players", "TOSS_REQUIRED");
+  }
+
+  const tournamentTeam =
+    input.side === "home" ? match.homeTeam : match.awayTeam;
+  const orgTeamId = tournamentTeam.team.id;
+  const legalName = input.legalName.trim();
+
+  const player = await prisma.player.create({
+    data: { legalName, displayName: legalName },
+  });
+
+  await prisma.matchSquadPlayer.create({
+    data: {
+      matchId,
+      playerId: player.id,
+      teamId: orgTeamId,
+      role: "player",
+    },
+  });
+
+  return getMatch(matchId);
+}
+
 export async function confirmMatchSquads(
   matchId: string,
   options?: { totalOvers?: number },
 ) {
   const match = await getMatch(matchId);
+  if (!match.tossWinnerId) {
+    throw new ApiError(
+      400,
+      "Record the toss before confirming lineups",
+      "TOSS_REQUIRED",
+    );
+  }
   const profile = await getRulesProfileFromVersion(
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
   );
@@ -280,10 +362,7 @@ export async function reopenMatchSquads(matchId: string) {
     where: { id: matchId },
     data: {
       squadsConfirmedAt: null,
-      tossWinnerId: null,
-      electedTo: null,
-      tossCallerPlayerId: null,
-      status: "SCHEDULED",
+      status: match.tossWinnerId ? "LIVE" : "SCHEDULED",
     },
   });
   return getMatch(matchId);
@@ -706,7 +785,7 @@ export async function finalizeMatchInnings(matchId: string) {
   const { homeScore, awayScore, winningTeamId, marginText } =
     computeStoredMatchResult(match, profile);
 
-  return prisma.match.update({
+  const finalized = await prisma.match.update({
     where: { id: matchId },
     data: {
       status: "COMPLETED",
@@ -718,6 +797,10 @@ export async function finalizeMatchInnings(matchId: string) {
     },
     include: matchInclude,
   });
+
+  await chargeMatchAtFinalize(matchId);
+
+  return finalized;
 }
 
 export async function getMatchScorecard(matchId: string) {

@@ -1,0 +1,459 @@
+/* Tournament hub — Edgware U9 inspired */
+
+.th-header {
+  background: linear-gradient(135deg, var(--dk), var(--md));
+  color: #fff;
+  padding: 2rem 1rem;
+}
+
+.th-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.th-org {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.th-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.th-meta {
+  margin-top: 8px;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.th-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+}
+
+.th-next-match {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid var(--ac);
+}
+
+.th-next-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ac);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.th-next-teams {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--dk);
+  margin: 6px 0;
+}
+
+.th-next-date {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.th-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.th-tab {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--dk);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.th-tab.active {
+  background: var(--ac);
+  color: #fff;
+}
+
+.th-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.th-card-title {
+  color: var(--dk);
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.th-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+}
+
+.th-stat {
+  text-align: center;
+  padding: 10px 8px;
+  background: var(--grey);
+  border-radius: 10px;
+}
+
+.th-stat-val {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--dk);
+}
+
+.th-stat-lbl {
+  display: block;
+  font-size: 0.72rem;
+  color: #666;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.th-table-wrap {
+  overflow-x: auto;
+}
+
+.th-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.th-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--lt);
+  color: #666;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.th-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.th-table th:not(:first-child),
+.th-table td:not(:first-child) {
+  text-align: center;
+}
+
+.th-muted {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.th-team-pills {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.th-team-pill {
+  background: var(--lt);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.th-fixtures {
+  list-style: none;
+}
+
+.th-fixture {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.th-fixture:last-child {
+  border-bottom: none;
+}
+
+.th-fixture-main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.th-fixture-num {
+  flex-shrink: 0;
+  background: var(--dk);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.th-fixture-meta {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.th-live {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.th-leaderboards {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 560px) {
+  .th-leaderboards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.th-lb-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--dk);
+  margin-bottom: 10px;
+}
+
+.th-lb-list {
+  list-style: none;
+}
+
+.th-lb-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.th-lb-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--dk);
+  flex-shrink: 0;
+}
+
+.th-lb-entry:first-child .th-lb-rank {
+  background: var(--gold);
+  color: #fff;
+}
+
+.th-lb-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.th-lb-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.th-lb-team {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.th-lb-value {
+  font-weight: 800;
+  color: var(--ac);
+  font-size: 1rem;
+}
+
+.th-empty {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.th-footer {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* Commentary panel */
+
+.cmt-panel {
+  border-top: 1px solid #eee;
+}
+
+.cmt-innings-tabs {
+  display: flex;
+  background: var(--dk);
+}
+
+.cmt-innings-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cmt-innings-tab.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cmt-list {
+  padding: 0;
+}
+
+.cmt-over {
+  border-bottom: 1px solid #eee;
+}
+
+.cmt-over-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cmt-over-head:hover {
+  background: #f8fafc;
+}
+
+.cmt-over-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmt-over-num {
+  display: block;
+  font-weight: 800;
+  color: var(--dk);
+  font-size: 0.85rem;
+}
+
+.cmt-over-bowler {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ac);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.cmt-over-batters,
+.cmt-over-partnership {
+  display: block;
+  font-size: 0.72rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+.cmt-over-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.cmt-over-sum {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dk);
+}
+
+.cmt-over-score {
+  display: block;
+  font-size: 0.72rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+.cmt-chevron {
+  display: block;
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+.cmt-moments {
+  list-style: none;
+  padding: 0 16px 12px;
+  background: #f8fafc;
+}
+
+.cmt-moment {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.82rem;
+}
+
+.cmt-moment:last-child {
+  border-bottom: none;
+}
+
+.cmt-moment-ball {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: #888;
+  font-weight: 600;
+  min-width: 28px;
+}
+
+.cmt-moment-wicket .cmt-moment-text {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.cmt-moment-boundary .cmt-moment-text {
+  color: var(--ac);
+  font-weight: 600;
+}
+
+.cmt-moment-quiet .cmt-moment-text {
+  color: #999;
+  font-style: italic;
+}

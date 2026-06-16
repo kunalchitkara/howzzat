@@ -68,16 +68,6 @@ describe("iOS mobile API (no auth)", () => {
     const nonStrikerId = scoring0.body.data.squads.home[1]!.id as string;
     const bowlerId = scoring0.body.data.squads.away[0]!.id as string;
 
-    const confirmRes = await readJson(
-      await confirmSquadsRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
-          totalOvers: 2,
-        }),
-        params({ matchId }),
-      ),
-    );
-    expect(confirmRes.status).toBe(200);
-
     const tossRes = await readJson(
       await recordTossRoute(
         jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
@@ -88,6 +78,16 @@ describe("iOS mobile API (no auth)", () => {
       ),
     );
     expect(tossRes.status).toBe(200);
+
+    const confirmRes = await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
+        }),
+        params({ matchId }),
+      ),
+    );
+    expect(confirmRes.status).toBe(200);
 
     const inningsRes = await readJson(
       await createInningsRoute(

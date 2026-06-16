@@ -81,21 +81,8 @@ describe("iOS demo integration flow", () => {
 
     expect(scoring0.body.data.squadsConfirmed).toBe(false);
 
-    const confirmRes = await readJson(
-      await confirmSquadsRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
-          totalOvers: 2,
-        }),
-        params({ matchId }),
-      ),
-    );
-    expect(confirmRes.status).toBe(200);
-
     const homeId = ctx0.homeTeam.id as string;
     const awayId = ctx0.awayTeam.id as string;
-    const strikerId = ctx0.squads.home[0]!.id as string;
-    const nonStrikerId = ctx0.squads.home[1]!.id as string;
-    const bowlerId = ctx0.squads.away[0]!.id as string;
 
     const tossRes = await readJson(
       await recordTossRoute(
@@ -108,6 +95,20 @@ describe("iOS demo integration flow", () => {
     );
     expect(tossRes.status).toBe(200);
     expect(tossRes.body.data.battingFirstId).toBe(homeId);
+
+    const confirmRes = await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
+        }),
+        params({ matchId }),
+      ),
+    );
+    expect(confirmRes.status).toBe(200);
+
+    const strikerId = ctx0.squads.home[0]!.id as string;
+    const nonStrikerId = ctx0.squads.home[1]!.id as string;
+    const bowlerId = ctx0.squads.away[0]!.id as string;
 
     const inningsRes = await readJson(
       await createInningsRoute(
@@ -215,19 +216,19 @@ describe("iOS demo integration flow", () => {
     const bowlerId = scoring0.body.data.squads.away[0]!.id as string;
 
     await readJson(
-      await confirmSquadsRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
-          totalOvers: 2,
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeId,
+          electedTo: "bat",
         }),
         params({ matchId }),
       ),
     );
 
     await readJson(
-      await recordTossRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
-          tossWinnerTeamId: homeId,
-          electedTo: "bat",
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
         }),
         params({ matchId }),
       ),
@@ -309,19 +310,19 @@ describe("iOS demo integration flow", () => {
     const bowlerId = scoring0.body.data.squads.away[0]!.id as string;
 
     await readJson(
-      await confirmSquadsRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
-          totalOvers: 2,
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeId,
+          electedTo: "bat",
         }),
         params({ matchId }),
       ),
     );
 
     await readJson(
-      await recordTossRoute(
-        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
-          tossWinnerTeamId: homeId,
-          electedTo: "bat",
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/squad/confirm`, {
+          totalOvers: 2,
         }),
         params({ matchId }),
       ),

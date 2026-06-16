@@ -266,7 +266,7 @@ describe("Auth API", () => {
     expect(preview.status).toBe(404);
   });
 
-  it("rejects deleting accepted tournament invite", async () => {
+  it("deletes accepted tournament invite and revokes manager access", async () => {
     const fixtures = await seedTestFixtures(prisma);
     const invite = await createInvite(fixtures.tournamentId, {
       email: "accepted@test.club",
@@ -280,6 +280,7 @@ describe("Auth API", () => {
       ),
     );
     const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+    const userId = loginRes.body.data.id as string;
 
     await readJson(
       await acceptInvite(
@@ -287,6 +288,16 @@ describe("Auth API", () => {
         params({ token: invite.token }),
       ),
     );
+
+    const managerBefore = await prisma.tournamentManager.findUnique({
+      where: {
+        tournamentId_userId: {
+          tournamentId: fixtures.tournamentId,
+          userId,
+        },
+      },
+    });
+    expect(managerBefore).not.toBeNull();
 
     const deleteRes = await readJson(
       await deleteInviteRoute(
@@ -297,8 +308,23 @@ describe("Auth API", () => {
         params({ tournamentId: fixtures.tournamentId, inviteId: invite.id }),
       ),
     );
-    expect(deleteRes.status).toBe(409);
-    expect(deleteRes.body.code).toBe("INVITE_ALREADY_ACCEPTED");
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.deleted).toBe(true);
+
+    const remaining = await prisma.tournamentInvite.findUnique({
+      where: { id: invite.id },
+    });
+    expect(remaining).toBeNull();
+
+    const managerAfter = await prisma.tournamentManager.findUnique({
+      where: {
+        tournamentId_userId: {
+          tournamentId: fixtures.tournamentId,
+          userId,
+        },
+      },
+    });
+    expect(managerAfter).toBeNull();
   });
 
   it("register then accept MANAGER invite lists tournament on dashboard APIs", async () => {

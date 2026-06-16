@@ -2,24 +2,32 @@
 
 import { useState } from "react";
 import type { MatchScorecardView } from "@/lib/scorecard/types";
+import { buildMatchCommentary } from "@/lib/scorecard/commentary";
 import { buildMatchSummary } from "@/lib/scorecard/match-summary";
 import { BallByBallPanel } from "./BallByBallPanel";
+import { CommentaryPanel } from "./CommentaryPanel";
 import { InningsPanel } from "./InningsPanel";
 import { MatchInsightsPanel, MatchSummaryPanel } from "./MatchSummaryPanel";
 import "./scorecard.css";
+
+type ViewMode = "scorecard" | "commentary" | "bbb";
 
 export function ScorecardView({
   data,
   defaultView = "scorecard",
 }: {
   data: MatchScorecardView;
-  defaultView?: "scorecard" | "bbb";
+  defaultView?: ViewMode;
 }) {
-  const [viewMode, setViewMode] = useState<"scorecard" | "bbb">(
-    data.ballByBall?.innings.length ? defaultView : "scorecard",
-  );
   const hasBallByBall = Boolean(data.ballByBall?.innings.length);
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    hasBallByBall ? defaultView : "scorecard",
+  );
   const summary = buildMatchSummary(data);
+  const commentary =
+    data.ballByBall && hasBallByBall
+      ? buildMatchCommentary(data.ballByBall)
+      : null;
 
   return (
     <div className="sc-wrap">
@@ -39,7 +47,14 @@ export function ScorecardView({
             className={`sc-view-tab ${viewMode === "scorecard" ? "active" : ""}`}
             onClick={() => setViewMode("scorecard")}
           >
-            Scorecard
+            Summary
+          </button>
+          <button
+            type="button"
+            className={`sc-view-tab ${viewMode === "commentary" ? "active" : ""}`}
+            onClick={() => setViewMode("commentary")}
+          >
+            Commentary
           </button>
           <button
             type="button"
@@ -69,6 +84,10 @@ export function ScorecardView({
           parentInsights={summary.parentInsights}
           coachInsights={summary.coachInsights}
         />
+      )}
+
+      {viewMode === "commentary" && commentary && (
+        <CommentaryPanel commentary={commentary} />
       )}
 
       {viewMode === "bbb" &&

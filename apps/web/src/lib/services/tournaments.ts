@@ -1,11 +1,53 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
-import { randomToken, slugify } from "../api/slug";
+import { randomToken, slugify, uniqueSlug } from "../api/slug";
 import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
 import type { createTournamentSchema } from "../validations";
 import type { z } from "zod";
 
 type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
+
+/** Shadow org teams created for opponent names (no roster required upfront). */
+export const EXTERNAL_TEAM_SLUG_PREFIX = "ext-";
+
+export function isExternalTeam(team: { slug: string }): boolean {
+  return team.slug.startsWith(EXTERNAL_TEAM_SLUG_PREFIX);
+}
+
+/** Create or reuse a name-only opponent team in the org. */
+export async function ensureExternalTeam(orgId: string, name: string) {
+  const trimmed = name.trim();
+  const existing = await prisma.team.findFirst({
+    where: {
+      organizationId: orgId,
+      name: trimmed,
+      slug: { startsWith: EXTERNAL_TEAM_SLUG_PREFIX },
+    },
+  });
+  if (existing) return existing;
+
+  return prisma.team.create({
+    data: {
+      organizationId: orgId,
+      name: trimmed,
+      slug: uniqueSlug(`${EXTERNAL_TEAM_SLUG_PREFIX}${trimmed}`, randomToken()),
+    },
+  });
+}
+
+/** Enroll a team by org roster id or free-text name (creates external team). */
+export async function findOrCreateTournamentTeamByName(
+  tournamentId: string,
+  name: string,
+) {
+  const tournament = await getTournament(tournamentId);
+  const trimmed = name.trim();
+  const existing = tournament.teams.find((tt) => tt.team.name === trimmed);
+  if (existing) return existing;
+
+  const team = await ensureExternalTeam(tournament.organizationId, trimmed);
+  return addTeamToTournament(tournamentId, team.id);
+}
 
 export async function listTournaments(orgId: string) {
   return prisma.tournament.findMany({
@@ -184,4 +226,20 @@ export async function addTeamToTournament(
     },
     include: { team: true },
   });
+}
+
+export async function addNamedTeamToTournament(
+  tournamentId: string,
+  name: string,
+  publicSlug?: string,
+) {
+  const entry = await findOrCreateTournamentTeamByName(tournamentId, name);
+  if (publicSlug && entry.publicSlug !== publicSlug) {
+    return prisma.tournamentTeam.update({
+      where: { id: entry.id },
+      data: { publicSlug },
+      include: { team: true },
+    });
+  }
+  return entry;
 }

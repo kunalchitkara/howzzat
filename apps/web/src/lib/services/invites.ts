@@ -10,7 +10,7 @@ type CreateInviteInput = z.infer<typeof createInviteSchema>;
 export async function listInvites(tournamentId: string) {
   await getTournament(tournamentId);
   return prisma.tournamentInvite.findMany({
-    where: { tournamentId },
+    where: { tournamentId, acceptedAt: null },
     orderBy: { createdAt: "desc" },
     include: { team: true },
   });
@@ -119,12 +119,16 @@ export async function deleteInvite(tournamentId: string, inviteId: string) {
   if (!invite || invite.tournamentId !== tournamentId) {
     throw new ApiError(404, "Invite not found", "INVITE_NOT_FOUND");
   }
-  if (invite.acceptedAt) {
-    throw new ApiError(
-      409,
-      "Accepted invites cannot be removed",
-      "INVITE_ALREADY_ACCEPTED",
-    );
+
+  if (invite.acceptedAt && invite.kind === "MANAGER") {
+    const user = await prisma.user.findUnique({
+      where: { email: invite.email.toLowerCase() },
+    });
+    if (user) {
+      await prisma.tournamentManager.deleteMany({
+        where: { tournamentId, userId: user.id },
+      });
+    }
   }
 
   await prisma.tournamentInvite.delete({ where: { id: inviteId } });

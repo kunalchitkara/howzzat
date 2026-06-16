@@ -151,6 +151,29 @@ describe("teams and tournaments service", () => {
     expect(match.awayTeamId).toBe(ttAway.id);
   });
 
+  it("creates a match from team names without pre-enrolled teams", async () => {
+    const org = await createOrganization({ name: "Quick Fixture Club" });
+    const teamA = await createTeam(org.id, { name: "Edgware U9", ageGroup: "U9" });
+    await createTeam(org.id, { name: "Unused", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Quick Cup",
+      ageGroup: "U9",
+      rulesProfileVersionId: version.id,
+    });
+    await addTeamToTournament(tournament.id, teamA.id);
+
+    const match = await createMatch(tournament.id, {
+      homeTeamName: "Edgware U9",
+      awayTeamName: "Hayes U9",
+      venue: "Demo Ground",
+    });
+
+    expect(match.homeTeam.team.name).toBe("Edgware U9");
+    expect(match.awayTeam.team.name).toBe("Hayes U9");
+    expect(match.awayTeam.team.slug.startsWith("ext-")).toBe(true);
+  });
+
   it("rejects org team ids when scheduling a match", async () => {
     const org = await createOrganization({ name: "Bad Fixture Club" });
     const teamA = await createTeam(org.id, { name: "Home XI", ageGroup: "U9" });

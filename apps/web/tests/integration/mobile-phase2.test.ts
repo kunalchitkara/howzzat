@@ -3,6 +3,7 @@ import { POST as login } from "@/app/api/v1/auth/login/route";
 import { POST as createIosDemo } from "@/app/api/v1/demo/ios-match/route";
 import { POST as setSquadRoute } from "@/app/api/v1/matches/[matchId]/squad/route";
 import { POST as confirmSquadsRoute } from "@/app/api/v1/matches/[matchId]/squad/confirm/route";
+import { POST as recordTossRoute } from "@/app/api/v1/matches/[matchId]/toss/route";
 import { POST as claimScoringRoute } from "@/app/api/v1/matches/[matchId]/scoring/claim/route";
 import { GET as getScoring } from "@/app/api/v1/matches/[matchId]/scoring/route";
 import { GET as getScorerInvite } from "@/app/api/v1/scorer-invites/[token]/route";
@@ -75,6 +76,17 @@ describe("mobile Phase 2 API", () => {
         )
       ).status,
     ).toBe(200);
+
+    const homeTtId = scoring0.body.data.homeTeam.id as string;
+    await readJson(
+      await recordTossRoute(
+        jsonRequest("POST", `/api/v1/matches/${matchId}/toss`, {
+          tossWinnerTeamId: homeTtId,
+          electedTo: "bat",
+        }),
+        params({ matchId }),
+      ),
+    );
 
     const confirmRes = await readJson(
       await confirmSquadsRoute(

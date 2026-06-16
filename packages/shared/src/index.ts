@@ -35,9 +35,7 @@ export type BuiltinRuleProfileId = (typeof BUILTIN_RULE_PROFILE_IDS)[number];
 
 export {
   DEFAULT_FEE_PER_PLAYER_PENCE,
-  MIN_BALANCE_TO_SCORE_PENCE,
   WALLET_TOP_UP_AMOUNTS_PENCE,
   formatPence,
-  hasMinimumScoringBalance,
   matchChargePence,
 } from "./billing";

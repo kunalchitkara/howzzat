@@ -53,6 +53,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
   const [chasePromptOpen, setChasePromptOpen] = useState(false);
   const [draftOvers, setDraftOvers] = useState(20);
   const [oversTouched, setOversTouched] = useState(false);
+  const [quickAddName, setQuickAddName] = useState({ home: "", away: "" });
   const [editingDeliveryId, setEditingDeliveryId] = useState<string | null>(null);
   const [claimAttempted, setClaimAttempted] = useState(false);
   const scoringKeysRef = useRef<HTMLElement>(null);
@@ -297,6 +298,37 @@ export function ScorePad({ matchId }: { matchId: string }) {
       setTossWinnerId("");
       setOversTouched(false);
     });
+  }
+
+  async function quickAddPlayer(side: "home" | "away") {
+    const name = quickAddName[side].trim();
+    if (!name || !ctx) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/v1/matches/${matchId}/players`, {
+        method: "POST",
+        body: JSON.stringify({ side, legalName: name }),
+      });
+      const data = await refresh();
+      syncDraftFromServer(data);
+      const squad = side === "home" ? data.squads.home : data.squads.away;
+      const added = squad.find((p) => p.name === name);
+      if (added) {
+        if (side === "home") {
+          setDraftHomeIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
+          if (!draftHomeCaptainId) setDraftHomeCaptainId(added.id);
+        } else {
+          setDraftAwayIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
+          if (!draftAwayCaptainId) setDraftAwayCaptainId(added.id);
+        }
+      }
+      setQuickAddName((prev) => ({ ...prev, [side]: "" }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function confirmSquads() {
@@ -698,8 +730,8 @@ export function ScorePad({ matchId }: { matchId: string }) {
       <nav className="sp-steps" aria-label="Match flow">
         {(
           [
-            ["1", "Squads", ctx.squadsConfirmed],
-            ["2", "Toss", Boolean(ctx.toss.tossWinnerTeamId)],
+            ["1", "Toss", Boolean(ctx.toss.tossWinnerTeamId)],
+            ["2", "Lineups", ctx.squadsConfirmed],
             ["3", "Score", ctx.innings.length > 0],
             ["4", "Result", ctx.status === "COMPLETED"],
           ] as [string, string, boolean][]
@@ -720,11 +752,64 @@ export function ScorePad({ matchId }: { matchId: string }) {
         </div>
       )}
 
-      {!ctx.squadsConfirmed &&
+      {!ctx.toss.tossWinnerTeamId &&
+        ctx.status !== "COMPLETED" &&
+        ctx.scoringLock.canScore && (
+        <section className="sp-card sp-toss">
+          <h2>1. Record the toss</h2>
+          <p className="sp-muted">Which team won, and what did they choose?</p>
+
+          <p className="sp-toss-label">Toss winner</p>
+          <div className="sp-toss-teams">
+            {[ctx.homeTeam, ctx.awayTeam].map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                className={`sp-toss-team${tossWinnerId === team.id ? " on" : ""}`}
+                disabled={busy}
+                onClick={() => setTossWinnerId(team.id)}
+              >
+                {team.name}
+              </button>
+            ))}
+          </div>
+
+          <p className="sp-toss-label">Winner elected to</p>
+          <div className="sp-toss-choices">
+            {(["bat", "bowl"] as const).map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                className={`sp-toss-choice${electedTo === choice ? " on" : ""}`}
+                disabled={busy}
+                onClick={() => setElectedTo(choice)}
+              >
+                {choice === "bat" ? "Bat" : "Bowl"}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="sp-btn primary sp-toss-save"
+            disabled={busy || !tossWinnerId}
+            onClick={saveToss}
+          >
+            Save toss &amp; pick lineups
+          </button>
+        </section>
+      )}
+
+      {ctx.toss.tossWinnerTeamId &&
+        !ctx.squadsConfirmed &&
         ctx.status !== "COMPLETED" &&
         ctx.scoringLock.canScore && (
         <section className="sp-card sp-roster">
-          <h2>1. Match squads</h2>
+          <h2>2. Match lineups</h2>
+          <p className="sp-muted">
+            Pick players from your roster or type a name to add quickly — opponent
+            names can be added right here.
+          </p>
           {ctx.tournamentAgeGroup && (
             <p className="sp-muted">
               {ctx.tournamentAgeGroup} — players above age band in{" "}
@@ -787,6 +872,33 @@ export function ScorePad({ matchId }: { matchId: string }) {
                       </li>
                     ))}
                   </ul>
+                  <div className="sp-quick-add" style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <input
+                      type="text"
+                      className="sp-overs-input"
+                      style={{ flex: 1 }}
+                      placeholder="Quick add name"
+                      value={quickAddName[side]}
+                      disabled={busy}
+                      onChange={(e) =>
+                        setQuickAddName((prev) => ({ ...prev, [side]: e.target.value }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void quickAddPlayer(side);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="sp-roster-btn add"
+                      disabled={busy || !quickAddName[side].trim()}
+                      onClick={() => void quickAddPlayer(side)}
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -818,7 +930,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
             disabled={busy || !canConfirmSquads}
             onClick={confirmSquads}
           >
-            Confirm squads &amp; continue
+            Confirm lineups &amp; continue
           </button>
           {!canConfirmSquads && (
             <p className="sp-muted" style={{ marginTop: 8 }}>
@@ -826,68 +938,6 @@ export function ScorePad({ matchId }: { matchId: string }) {
               {confirmAwayIds.length} away).
             </p>
           )}
-        </section>
-      )}
-
-      {ctx.squadsConfirmed &&
-        !ctx.toss.tossWinnerTeamId &&
-        ctx.status !== "COMPLETED" &&
-        ctx.scoringLock.canScore && (
-        <section className="sp-card sp-toss">
-          <div className="sp-section-head">
-            <h2>2. Record the toss</h2>
-            {ctx.canReopenSquads && (
-              <button
-                type="button"
-                className="sp-btn sp-btn-link"
-                disabled={busy}
-                onClick={editSquads}
-              >
-                ← Edit squads
-              </button>
-            )}
-          </div>
-          <SquadSetupRecap ctx={ctx} />
-          <p className="sp-muted">Which team won, and what did they choose?</p>
-
-          <p className="sp-toss-label">Toss winner</p>
-          <div className="sp-toss-teams">
-            {[ctx.homeTeam, ctx.awayTeam].map((team) => (
-              <button
-                key={team.id}
-                type="button"
-                className={`sp-toss-team${tossWinnerId === team.id ? " on" : ""}`}
-                disabled={busy}
-                onClick={() => setTossWinnerId(team.id)}
-              >
-                {team.name}
-              </button>
-            ))}
-          </div>
-
-          <p className="sp-toss-label">Winner elected to</p>
-          <div className="sp-toss-choices">
-            {(["bat", "bowl"] as const).map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                className={`sp-toss-choice${electedTo === choice ? " on" : ""}`}
-                disabled={busy}
-                onClick={() => setElectedTo(choice)}
-              >
-                {choice === "bat" ? "Bat" : "Bowl"}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            className="sp-btn primary sp-toss-save"
-            disabled={busy || !tossWinnerId}
-            onClick={saveToss}
-          >
-            Save toss
-          </button>
         </section>
       )}
 
@@ -906,7 +956,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
                 disabled={busy}
                 onClick={editSquads}
               >
-                ← Edit squads
+                ← Edit lineups
               </button>
             )}
           </div>

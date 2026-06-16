@@ -10,7 +10,6 @@ export function TournamentBalanceSummary({
   tournamentId: string;
   balancePence: number;
 }) {
-  const low = balancePence < 250;
   const walletHref = `/dashboard/organizations/${orgId}/tournaments/${tournamentId}/wallet`;
 
   return (
@@ -23,15 +22,13 @@ export function TournamentBalanceSummary({
           style={{
             fontSize: "1.25rem",
             fontWeight: 700,
-            color: low ? "var(--red)" : "var(--dk)",
+            color: "var(--dk)",
           }}
         >
           {formatPence(balancePence)}
         </p>
         <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
-          {low
-            ? "Balance below £2.50 — top up or redeem a coupon before scoring."
-            : "Minimum £2.50 required before scoring."}
+          Charged per player when a match is finalized. Top up before your balance runs out.
         </p>
         <p style={{ marginTop: 12 }}>
           <BtnLink href={walletHref}>Manage wallet</BtnLink>

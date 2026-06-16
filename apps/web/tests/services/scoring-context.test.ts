@@ -29,10 +29,6 @@ describe("scoring context service", () => {
       teamId: fixtures.teamAId,
       playerIds: fixtures.playerIds,
     });
-    await prisma.match.update({
-      where: { id: match.id },
-      data: { squadsConfirmedAt: new Date() },
-    });
 
     const beforeToss = await getMatchScoringContext(match.id);
     expect(beforeToss.activeInningsId).toBeNull();
@@ -42,6 +38,11 @@ describe("scoring context service", () => {
       tossWinnerTeamId: fixtures.tournamentTeamAId,
       tossCallerPlayerId: fixtures.playerIds[0]!,
       electedTo: "bat",
+    });
+
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { squadsConfirmedAt: new Date() },
     });
 
     const ctx = await getMatchScoringContext(match.id);
@@ -82,15 +83,16 @@ describe("scoring context service", () => {
       teamId: fixtures.teamAId,
       playerIds: fixtures.playerIds,
     });
-    await prisma.match.update({
-      where: { id: match.id },
-      data: { squadsConfirmedAt: new Date() },
-    });
 
     await recordToss(match.id, {
       tossWinnerTeamId: fixtures.tournamentTeamAId,
       tossCallerPlayerId: fixtures.playerIds[0]!,
       electedTo: "bat",
+    });
+
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { squadsConfirmedAt: new Date() },
     });
 
     const innings = await createInnings(match.id, {

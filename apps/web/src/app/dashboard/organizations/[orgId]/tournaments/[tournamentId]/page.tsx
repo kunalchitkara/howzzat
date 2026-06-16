@@ -7,7 +7,8 @@ import {
 import { InviteList } from "@/components/dashboard/InviteList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
-import { getTournament } from "@/lib/services/tournaments";
+import { getTournament, isExternalTeam } from "@/lib/services/tournaments";
+import { getTournamentInsights } from "@/lib/services/tournament-insights";
 import { getOrganization } from "@/lib/services/organizations";
 import { listInvites } from "@/lib/services/invites";
 import { ApiError } from "@/lib/api/http";
@@ -34,6 +35,18 @@ export default async function TournamentDashboardPage({
   if (tournament.organizationId !== orgId) notFound();
 
   const invites = await listInvites(tournamentId);
+  const clubTournamentTeamIds = tournament.teams
+    .filter((tt) => !isExternalTeam(tt.team))
+    .filter((tt) => org.teams.some((ot) => ot.id === tt.teamId))
+    .map((tt) => tt.id);
+  let insights;
+  try {
+    insights = await getTournamentInsights(tournamentId, {
+      focusTeamIds: clubTournamentTeamIds.length ? clubTournamentTeamIds : undefined,
+    });
+  } catch {
+    insights = null;
+  }
   const enrolledTeamIds = new Set(tournament.teams.map((tt) => tt.teamId));
   const orgTeams = org.teams.map((t) => ({ id: t.id, name: t.name }));
   const availableOrgTeams = org.teams
@@ -73,6 +86,46 @@ export default async function TournamentDashboardPage({
         tournamentId={tournamentId}
         balancePence={tournament.balancePence}
       />
+
+      {insights && insights.overview.matchesPlayed > 0 && (
+        <section style={{ ...card, marginBottom: 28 }}>
+          <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
+            Season insights
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: 800 }}>{insights.overview.matchesPlayed}</div>
+              <div style={{ fontSize: "0.75rem", color: "#666" }}>Played</div>
+            </div>
+            {insights.leaderboards[0]?.entries[0] && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800 }}>
+                  {insights.leaderboards[0].entries[0].value}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#666" }}>
+                  Top runs ({insights.leaderboards[0].entries[0].name})
+                </div>
+              </div>
+            )}
+          </div>
+          {tournament.isPublic && (
+            <BtnLink
+              href={`/orgs/${org.slug}/tournaments/${tournament.slug}`}
+              variant="secondary"
+              className="btn-nav"
+            >
+              View public tournament hub →
+            </BtnLink>
+          )}
+        </section>
+      )}
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
@@ -144,7 +197,6 @@ export default async function TournamentDashboardPage({
             kind: inv.kind,
             role: inv.role,
             token: inv.token,
-            acceptedAt: inv.acceptedAt?.toISOString() ?? null,
             team: inv.team ? { name: inv.team.name } : null,
           }))}
         />

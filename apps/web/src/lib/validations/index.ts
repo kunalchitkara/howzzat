@@ -88,21 +88,37 @@ export const updatePlayerSchema = z.object({
   shirtNumber: z.number().int().min(0).max(99).nullable().optional(),
 });
 
-export const addTournamentTeamSchema = z.object({
-  teamId: z.string().cuid(),
-  publicSlug: z.string().min(2).max(64).optional(),
-});
+export const addTournamentTeamSchema = z
+  .object({
+    teamId: z.string().cuid().optional(),
+    name: z.string().min(1).max(120).optional(),
+    publicSlug: z.string().min(2).max(64).optional(),
+  })
+  .refine((d) => d.teamId || d.name, {
+    message: "Provide teamId or name",
+  });
 
-export const createMatchSchema = z.object({
-  homeTeamId: z.string().cuid(),
-  awayTeamId: z.string().cuid(),
-  matchNumber: z.number().int().positive().optional(),
-  scheduledAt: z.string().datetime().optional(),
-  venue: z.string().max(200).optional(),
-  playersPerSide: z.number().int().min(6).max(12).optional(),
-  isOfficial: z.boolean().optional(),
-  publicSlug: z.string().min(2).max(64).optional(),
-});
+export const createMatchSchema = z
+  .object({
+    homeTeamId: z.string().cuid().optional(),
+    awayTeamId: z.string().cuid().optional(),
+    homeTeamName: z.string().min(1).max(120).optional(),
+    awayTeamName: z.string().min(1).max(120).optional(),
+    matchNumber: z.number().int().positive().optional(),
+    scheduledAt: z.string().datetime().optional(),
+    venue: z.string().max(200).optional(),
+    playersPerSide: z.number().int().min(6).max(12).optional(),
+    isOfficial: z.boolean().optional(),
+    publicSlug: z.string().min(2).max(64).optional(),
+  })
+  .refine((d) => d.homeTeamId || d.homeTeamName, {
+    message: "Home team required (id or name)",
+    path: ["homeTeamName"],
+  })
+  .refine((d) => d.awayTeamId || d.awayTeamName, {
+    message: "Away team required (id or name)",
+    path: ["awayTeamName"],
+  });
 
 export const electedToSchema = z.enum(["bat", "bowl"]);
 
@@ -189,6 +205,11 @@ export const createInviteSchema = z.object({
 
 export const confirmSquadsSchema = z.object({
   totalOvers: z.number().int().min(1).max(50).optional(),
+});
+
+export const addMatchPlayerSchema = z.object({
+  side: z.enum(["home", "away"]),
+  legalName: z.string().min(1).max(120),
 });
 
 export const setMatchSquadSchema = z

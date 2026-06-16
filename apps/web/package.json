@@ -10,6 +10,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:demo": "playwright test --config playwright.static.config.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

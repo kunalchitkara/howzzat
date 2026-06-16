@@ -11,7 +11,6 @@ type InviteRow = {
   kind: string;
   role: string;
   token: string;
-  acceptedAt: string | null;
   team: { name: string } | null;
 };
 
@@ -76,7 +75,7 @@ export function InviteList({
                     : inv.role}
                 {inv.team ? ` (${inv.team.name})` : ""}
                 <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
-                  {inv.acceptedAt ? "Accepted" : "Pending"}
+                  Pending
                   {" · "}
                   <BtnLink
                     href={`/invite/${inv.token}`}
@@ -87,25 +86,23 @@ export function InviteList({
                   </BtnLink>
                 </p>
               </div>
-              {!inv.acceptedAt && (
-                <button
-                  type="button"
-                  aria-label={`Remove invite for ${inv.email}`}
-                  disabled={busyId === inv.id}
-                  onClick={() => void remove(inv.id)}
-                  className="btn btn-secondary btn-nav"
-                  style={{
-                    borderRadius: 9999,
-                    padding: "0 0.6rem",
-                    fontSize: "1.15rem",
-                    lineHeight: 1.3,
-                    minWidth: 32,
-                    flexShrink: 0,
-                  }}
-                >
-                  ×
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label={`Remove invite for ${inv.email}`}
+                disabled={busyId === inv.id}
+                onClick={() => void remove(inv.id)}
+                className="btn btn-secondary btn-nav"
+                style={{
+                  borderRadius: 9999,
+                  padding: "0 0.6rem",
+                  fontSize: "1.15rem",
+                  lineHeight: 1.3,
+                  minWidth: 32,
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </button>
             </div>
           </li>
         ))}

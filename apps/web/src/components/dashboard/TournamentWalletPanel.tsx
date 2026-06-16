@@ -71,19 +71,18 @@ export function TournamentWalletPanel({
     }
   }
 
-  const low = balance < 250;
-
   return (
     <section style={{ marginBottom: 28 }}>
       <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
         Tournament wallet
       </h2>
       <div style={card}>
-        <p style={{ fontSize: "1.25rem", fontWeight: 700, color: low ? "var(--red)" : "var(--dk)" }}>
+        <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--dk)" }}>
           {formatPence(balance)}
         </p>
         <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4, marginBottom: 12 }}>
-          Minimum £2.50 required before scoring. Charged per player at match end (20p default).
+          Charged per player when a match is finalized (20p default). Overs and lineups are set at
+          toss — billing uses the confirmed squad.
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {WALLET_TOP_UP_AMOUNTS_PENCE.map((amount) => (

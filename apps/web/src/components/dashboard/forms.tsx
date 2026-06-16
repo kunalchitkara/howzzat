@@ -505,41 +505,53 @@ export function AddTournamentTeamForm({
 }) {
   const router = useRouter();
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
+  const [name, setName] = useState("");
   const { run, error, busy } = useSubmit();
-
-  if (teams.length === 0) {
-    return (
-      <p style={{ color: "#666", fontSize: "0.9rem" }}>
-        Create teams in your organization first, then add them to this tournament.
-      </p>
-    );
-  }
 
   return (
     <form
       style={card}
       onSubmit={(e) => {
         e.preventDefault();
-        void run(`/api/v1/tournaments/${tournamentId}/teams`, { teamId }).then((ok) => {
-          if (ok) router.refresh();
+        const body = name.trim()
+          ? { name: name.trim() }
+          : teamId
+            ? { teamId }
+            : null;
+        if (!body) return;
+        void run(`/api/v1/tournaments/${tournamentId}/teams`, body).then((ok) => {
+          if (ok) {
+            setName("");
+            router.refresh();
+          }
         });
       }}
     >
-      <Field label="Team">
-        <select
-          value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
+      <Field label="Team name (opponent or guest)">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Hayes U9"
           style={input}
-        >
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        />
       </Field>
+      {teams.length > 0 && (
+        <Field label="Or pick from your club roster">
+          <select
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+            style={input}
+          >
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-      <button type="submit" disabled={busy} style={btn}>
+      <button type="submit" disabled={busy || (!name.trim() && !teamId)} style={btn}>
         Add to tournament
       </button>
     </form>
@@ -554,45 +566,40 @@ export function CreateMatchForm({
   tournamentTeams: { id: string; name: string }[];
 }) {
   const router = useRouter();
-  const [homeTeamId, setHomeTeamId] = useState("");
-  const [awayTeamId, setAwayTeamId] = useState("");
+  const [homeTeamName, setHomeTeamName] = useState(tournamentTeams[0]?.name ?? "");
+  const [awayTeamName, setAwayTeamName] = useState(tournamentTeams[1]?.name ?? "");
   const [venue, setVenue] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const { run, error, busy } = useSubmit<{ id: string }>();
 
   useEffect(() => {
-    if (tournamentTeams.length < 2) return;
-    setHomeTeamId(tournamentTeams[0]!.id);
-    setAwayTeamId(tournamentTeams[1]!.id);
+    if (tournamentTeams.length === 0) return;
+    setHomeTeamName((prev) => prev || tournamentTeams[0]!.name);
+    setAwayTeamName((prev) => prev || tournamentTeams[1]?.name ?? "");
   }, [tournamentTeams]);
 
-  if (tournamentTeams.length < 2) {
-    return (
-      <p style={{ color: "#666", fontSize: "0.9rem" }}>
-        Add at least two teams to schedule a fixture.
-      </p>
-    );
-  }
-
   const displayError = localError ?? error;
+  const teamSuggestions = tournamentTeams.map((t) => t.name);
 
   return (
     <form
       style={card}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!homeTeamId || !awayTeamId) {
-          setLocalError("Select home and away teams");
+        const home = homeTeamName.trim();
+        const away = awayTeamName.trim();
+        if (!home || !away) {
+          setLocalError("Enter home and away team names");
           return;
         }
-        if (homeTeamId === awayTeamId) {
+        if (home.toLowerCase() === away.toLowerCase()) {
           setLocalError("Home and away teams must be different");
           return;
         }
         setLocalError(null);
         void run(`/api/v1/tournaments/${tournamentId}/matches`, {
-          homeTeamId,
-          awayTeamId,
+          homeTeamName: home,
+          awayTeamName: away,
           venue: venue || undefined,
           playersPerSide: 8,
           isOfficial: true,
@@ -605,31 +612,30 @@ export function CreateMatchForm({
       }}
     >
       <Field label="Home team">
-        <select
-          value={homeTeamId}
-          onChange={(e) => setHomeTeamId(e.target.value)}
+        <input
+          required
+          list="tournament-team-names"
+          value={homeTeamName}
+          onChange={(e) => setHomeTeamName(e.target.value)}
+          placeholder="Your club team"
           style={input}
-        >
-          {tournamentTeams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        />
       </Field>
       <Field label="Away team">
-        <select
-          value={awayTeamId}
-          onChange={(e) => setAwayTeamId(e.target.value)}
+        <input
+          required
+          list="tournament-team-names"
+          value={awayTeamName}
+          onChange={(e) => setAwayTeamName(e.target.value)}
+          placeholder="Opponent (name only is fine)"
           style={input}
-        >
-          {tournamentTeams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        />
       </Field>
+      <datalist id="tournament-team-names">
+        {teamSuggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
       <Field label="Venue">
         <input value={venue} onChange={(e) => setVenue(e.target.value)} style={input} />
       </Field>
@@ -638,7 +644,7 @@ export function CreateMatchForm({
       )}
       <button
         type="submit"
-        disabled={busy || !homeTeamId || !awayTeamId}
+        disabled={busy || !homeTeamName.trim() || !awayTeamName.trim()}
         style={btn}
       >
         Schedule match

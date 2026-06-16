@@ -1,5 +1,7 @@
 # Phase 1 — manual e2e script (local dev)
 
+**Demo presentation:** [https://app.howzzat.uk/demo](https://app.howzzat.uk/demo) — animated slide deck covering all workflows (local: `http://localhost:3005/demo`). Use ← → or swipe to navigate; **Print → Save as PDF** for a handout. Outline: [`demo-workflows.md`](./demo-workflows.md).
+
 Default dev port: **3005** (`pnpm dev:web` or `cd apps/web && pnpm dev --port 3005`).
 
 Set `BASE=http://localhost:3005` for the commands below.

@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Howzzat — End-to-End Demo</title>
+  <style>
+    :root {
+      --navy: #0a1628;
+      --navy-mid: #132238;
+      --navy-light: #1e3a5f;
+      --blue: #3b82f6;
+      --blue-light: #60a5fa;
+      --blue-glow: rgba(59, 130, 246, 0.35);
+      --white: #f8fafc;
+      --muted: #94a3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --slide-w: 1100px;
+      --slide-h: 680px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      overflow: hidden;
+    }
+
+    /* ── Deck chrome ── */
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .progress {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--navy-mid);
+      z-index: 100;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .counter {
+      position: fixed;
+      bottom: 20px;
+      right: 24px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      z-index: 100;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint {
+      position: fixed;
+      bottom: 20px;
+      left: 24px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      z-index: 100;
+      opacity: 0.7;
+    }
+
+    .logo-mark {
+      position: fixed;
+      top: 18px;
+      left: 24px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      color: var(--blue-light);
+      z-index: 100;
+    }
+
+    /* ── Slides ── */
+    .slides {
+      position: relative;
+      width: min(96vw, var(--slide-w));
+      height: min(88vh, var(--slide-h));
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 48px 56px 40px;
+      background: linear-gradient(145deg, var(--navy-mid) 0%, var(--navy) 60%);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 16px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 60px var(--blue-glow);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(40px) scale(0.97);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0) scale(1);
+      z-index: 10;
+    }
+
+    .slide.exit-left {
+      transform: translateX(-40px) scale(0.97);
+      opacity: 0;
+    }
+
+    .slide-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue-light);
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      animation: fadeUp 0.6s ease 0.1s both;
+    }
+
+    .slide h1 {
+      font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 8px;
+      animation: fadeUp 0.6s ease 0.15s both;
+    }
+
+    .slide h2 {
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: var(--muted);
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease 0.2s both;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+      animation: fadeUp 0.6s ease 0.3s both;
+      min-height: 0;
+    }
+
+    .slide-body.single { grid-template-columns: 1fr; }
+    .slide-body.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+    .slide-content { display: flex; flex-direction: column; gap: 14px; }
+
+    ul.bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    ul.bullets li {
+      padding-left: 20px;
+      position: relative;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+    }
+    ul.bullets li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .url-box {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.78rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--blue-light);
+      word-break: break-all;
+    }
+
+    .url-box strong { color: var(--white); font-weight: 600; }
+
+    /* ── Mock UI panels ── */
+    .mock {
+      background: #fff;
+      color: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      font-size: 0.82rem;
+    }
+    .mock-bar {
+      background: var(--navy);
+      color: var(--white);
+      padding: 8px 14px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mock-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .mock-dot.r { background: #ef4444; }
+    .mock-dot.y { background: #f59e0b; }
+    .mock-dot.g { background: #22c55e; }
+    .mock-body { padding: 14px; }
+
+    .mock-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .mock-tab {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    .mock-tab.on {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .mock-btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      margin-top: 8px;
+    }
+    .mock-btn.secondary {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .mock-btn.google {
+      background: #fff;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+
+    .mock-field {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    .mock-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .mock-card strong { display: block; font-size: 0.85rem; }
+    .mock-card span { font-size: 0.72rem; color: #64748b; }
+
+    .mock-score {
+      text-align: center;
+      padding: 16px;
+    }
+    .mock-score .big {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--navy);
+    }
+    .mock-score .sub { font-size: 0.75rem; color: #64748b; }
+
+    .mock-pad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .mock-pad button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #e2e8f0;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--navy);
+    }
+    .mock-pad button.wide { background: #fef3c7; }
+    .mock-pad button.wicket { background: #fee2e2; color: #b91c1c; }
+
+    .mock-lock {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.75rem;
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+
+    .mock-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    .mock-table th {
+      text-align: left;
+      padding: 6px 8px;
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .mock-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .flow-step {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--blue-light);
+    }
+    .flow-arrow { color: var(--muted); font-size: 0.9rem; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .badge.live { background: #fee2e2; color: #b91c1c; }
+    .badge.ok { background: #dcfce7; color: #166534; }
+    .badge.optional { background: #e0e7ff; color: #3730a3; }
+
+    .mock-pad button.nb { background: #dbeafe; color: #1d4ed8; }
+    .mock-pad button.active-key {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+    .mock-subpanel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .mock-subpanel label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .mock-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .mock-chip {
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .mock-chip.on {
+      background: var(--blue);
+      color: #fff;
+    }
+    .mock-lb-list { list-style: none; }
+    .mock-lb-entry {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .mock-lb-rank {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .mock-lb-entry:first-child .mock-lb-rank {
+      background: #f59e0b;
+      color: #fff;
+    }
+    .mock-lb-info { flex: 1; min-width: 0; }
+    .mock-lb-name { display: block; font-weight: 700; font-size: 0.78rem; }
+    .mock-lb-team { display: block; font-size: 0.68rem; color: #64748b; }
+    .mock-lb-value { font-weight: 800; color: var(--blue); font-size: 0.85rem; }
+    .mock-player-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .mock-player-card .name {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--navy);
+    }
+    .mock-player-card .team {
+      font-size: 0.68rem;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .mock-stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .mock-stat {
+      text-align: center;
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 6px 4px;
+    }
+    .mock-stat .val {
+      display: block;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--navy);
+    }
+    .mock-stat .lbl {
+      display: block;
+      font-size: 0.6rem;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .mock-step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .mock-step-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      color: #334155;
+    }
+    .mock-step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Title slide */
+    .title-slide {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 30%, var(--navy-light) 0%, var(--navy) 70%);
+    }
+    .title-slide .hero-icon {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+      animation: pulse 2s ease infinite;
+    }
+    .title-slide h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      background: linear-gradient(135deg, #fff 0%, var(--blue-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .title-slide .subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      margin-top: 12px;
+      animation: fadeUp 0.6s ease 0.35s both;
+    }
+    .title-slide .meta {
+      margin-top: 40px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      animation: fadeUp 0.6s ease 0.5s both;
+    }
+
+    /* Summary grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .summary-card {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .summary-card .num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--blue-light);
+    }
+    .summary-card .lbl {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Click zones */
+    .nav-zone {
+      position: fixed;
+      top: 0;
+      bottom: 60px;
+      width: 30%;
+      z-index: 50;
+      cursor: pointer;
+    }
+    .nav-zone.prev { left: 0; }
+    .nav-zone.next { right: 0; }
+
+    /* ── Print / PDF ── */
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      @page {
+        size: landscape;
+        margin: 0;
+      }
+
+      html, body {
+        overflow: visible;
+        background: var(--navy);
+        color: var(--white);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .deck { display: block; height: auto; background: var(--navy); }
+      .slides { width: 100%; height: auto; position: static; }
+
+      .slide {
+        position: relative;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        page-break-after: always;
+        break-after: page;
+        width: 100%;
+        height: auto;
+        min-height: 190mm;
+        margin: 0;
+        border: 1px solid rgba(59, 130, 246, 0.15);
+        box-shadow: none;
+        background: linear-gradient(145deg, var(--navy-mid) 0%, var(--navy) 60%);
+        color: var(--white);
+        border-radius: 0;
+        padding: 20mm 18mm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      .title-slide {
+        background: radial-gradient(ellipse at 50% 30%, var(--navy-light) 0%, var(--navy) 70%);
+      }
+
+      .slide h2, .slide-tag, .hint, .counter, .logo-mark, .progress, .nav-zone { display: none !important; }
+
+      .slide h1 { color: var(--white); font-size: 1.6rem; }
+
+      .title-slide h1 {
+        background: linear-gradient(135deg, #fff 0%, var(--blue-light) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      ul.bullets li { color: #cbd5e1; }
+      ul.bullets li::before { background: var(--blue); }
+      .url-box {
+        border-color: rgba(59, 130, 246, 0.3);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--blue-light);
+      }
+      .url-box strong { color: var(--white); }
+
+      .mock {
+        box-shadow: none;
+        border: 1px solid #cbd5e1;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .slide { padding: 32px 28px; }
+      .slide-body { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <p style="position:fixed;top:0;left:0;right:0;margin:0;padding:8px 16px;background:#1e3a5f;color:#60a5fa;font-size:0.8rem;text-align:center;z-index:200">
+    Live deck: <a href="https://app.howzzat.uk/demo" style="color:#fff">app.howzzat.uk/demo</a>
+    · local dev: <code style="color:#cbd5e1">http://localhost:3005/demo</code>
+  </p>
+  <div class="deck" id="deck">
+    <div class="logo-mark">HOWZZAT</div>
+    <div class="progress"><div class="progress-bar" id="progress"></div></div>
+    <div class="counter" id="counter">1 / 20</div>
+    <div class="hint">← → navigate · Space next · Click sides</div>
+
+    <div class="nav-zone prev" id="prevZone" aria-label="Previous slide"></div>
+    <div class="nav-zone next" id="nextZone" aria-label="Next slide"></div>
+
+    <div class="slides" id="slides">
+
+      <!-- SPEAKER: Welcome. This deck walks coaches and managers through every major Howzzat workflow. ~20 min with live demo, or 10 min slides-only. PDF export: Print → Save as PDF, landscape, enable "Background graphics" (Chrome/Safari) or "Print backgrounds" (Firefox). -->
+      <section class="slide title-slide active" data-title="Welcome">
+        <div class="hero-icon">🏏</div>
+        <h1>Howzzat</h1>
+        <p class="subtitle">End-to-end demo — from sign-in to live scoring &amp; insights</p>
+        <p class="meta">For coaches, managers &amp; parents</p>
+      </section>
+
+      <!-- SPEAKER: Howzzat is youth cricket scoring built for U9 pairs and club tournaments. Four pillars: setup, wallet, live scoring, spectator experience. -->
+      <section class="slide" data-title="Overview">
+        <span class="slide-tag">Overview</span>
+        <h1>What you'll see today</h1>
+        <h2>Ten workflows that cover a full club season</h2>
+        <div class="slide-body single">
+          <div class="summary-grid">
+            <div class="summary-card"><div class="num">3</div><div class="lbl">Sign-in options</div></div>
+            <div class="summary-card"><div class="num">1</div><div class="lbl">Toss-first scorer</div></div>
+            <div class="summary-card"><div class="num">20p</div><div class="lbl">Per player / match</div></div>
+            <div class="summary-card"><div class="num">3</div><div class="lbl">Spectator tabs</div></div>
+            <div class="summary-card"><div class="num">4</div><div class="lbl">Hub sections</div></div>
+            <div class="summary-card"><div class="num">0</div><div class="lbl">Invites to schedule</div></div>
+          </div>
+          <div class="flow-steps" style="justify-content:center;margin-top:24px">
+            <span class="flow-step">Sign in</span><span class="flow-arrow">→</span>
+            <span class="flow-step">Org &amp; tournament</span><span class="flow-arrow">→</span>
+            <span class="flow-step">Schedule match</span><span class="flow-arrow">→</span>
+            <span class="flow-step">Top up wallet</span><span class="flow-arrow">→</span>
+            <span class="flow-step">Score live</span><span class="flow-arrow">→</span>
+            <span class="flow-step">Share scorecard</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Three ways to sign in. Google is fastest for most parents. Password works offline in dev. Email OTP uses Resend in production. -->
+      <section class="slide" data-title="Auth">
+        <span class="slide-tag">Workflow 1 · Auth</span>
+        <h1>Sign in — three ways</h1>
+        <h2>Open Howzzat and choose how you sign in</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li><strong>Continue with Google</strong> — one tap for most parents and coaches</li>
+              <li><strong>Email one-time code</strong> — we send a code to your inbox, no password needed</li>
+              <li><strong>Email + password</strong> — register once and sign in anytime</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Sign in</div>
+            <div class="mock-body">
+              <div class="mock-tabs">
+                <span class="mock-tab">Google</span>
+                <span class="mock-tab on">Email code</span>
+                <span class="mock-tab">Password</span>
+              </div>
+              <input class="mock-field" value="manager@club.com" readonly />
+              <span class="mock-btn">Send code</span>
+              <span class="mock-btn google" style="margin-left:8px">Continue with Google</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: After sign-in, land on dashboard. Create org with slug, add teams with age groups, create tournament with rules template. -->
+      <section class="slide" data-title="Org setup">
+        <span class="slide-tag">Workflow 2 · Setup</span>
+        <h1>Organisation &amp; tournament</h1>
+        <h2>Create your club, teams, and season</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li><strong>Create organisation</strong> — name + URL slug (e.g. <em>edgware-cc</em>)</li>
+              <li><strong>Add teams</strong> — set age group (U9, U11…)</li>
+              <li><strong>Create tournament</strong> — pick rules template (e.g. U9 softball London)</li>
+              <li><strong>Register teams</strong> — add club sides to the tournament</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Dashboard</div>
+            <div class="mock-body">
+              <div class="mock-card"><strong>Summer League 2026</strong><span>U9 · London pairs rules · 2 teams registered</span></div>
+              <div class="mock-card"><strong>U9 Lions</strong><span>Age group: U9 · 12 players</span></div>
+              <div class="mock-card"><strong>U9 Tigers</strong><span>Age group: U9 · 10 players</span></div>
+              <span class="mock-btn">+ Schedule match</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Key change — schedule with team names only. No invites, no pre-built rosters required. Type "Hayes" as away team and go. -->
+      <section class="slide" data-title="Scheduling">
+        <span class="slide-tag">Workflow 3 · Scheduling</span>
+        <h1>Schedule a match</h1>
+        <h2>Team names only — no invites required</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Enter <strong>home</strong> and <strong>away</strong> team names on the tournament page</li>
+              <li>Unknown opponents are <strong>created automatically</strong> in the tournament</li>
+              <li>Optional venue and scheduled date</li>
+              <li>Tap <strong>Score match</strong> to open the scorer right away</li>
+            </ul>
+            <p style="font-size:0.85rem;color:var(--amber)">💡 Perfect for quick friendlies — add opponent players at lineup time.</p>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Schedule match</div>
+            <div class="mock-body">
+              <label style="font-size:0.72rem;color:#64748b">Home team</label>
+              <input class="mock-field" value="Edgware U9" readonly />
+              <label style="font-size:0.72rem;color:#64748b">Away team</label>
+              <input class="mock-field" value="Hayes" readonly />
+              <label style="font-size:0.72rem;color:#64748b">Venue</label>
+              <input class="mock-field" value="Main Ground" readonly />
+              <span class="mock-btn">Create match</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Tournament wallet pays per match. Top up via Stripe or redeem alpha coupons. Balance shown on tournament dashboard. -->
+      <section class="slide" data-title="Wallet">
+        <span class="slide-tag">Workflow 4 · Wallet</span>
+        <h1>Tournament wallet</h1>
+        <h2>Pre-pay for match scoring — card or coupon</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Each tournament has its own <strong>wallet balance</strong></li>
+              <li><strong>Top up online</strong> — choose £10, £20, or £50</li>
+              <li><strong>Redeem a coupon</strong> — enter your club code on the wallet page</li>
+              <li>Balance always visible on your tournament dashboard</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Tournament wallet</div>
+            <div class="mock-body">
+              <div class="mock-score">
+                <div class="big">£25.00</div>
+                <div class="sub">Current balance</div>
+              </div>
+              <div style="display:flex;gap:6px;justify-content:center;margin:10px 0">
+                <span class="mock-btn secondary">£10</span>
+                <span class="mock-btn secondary">£20</span>
+                <span class="mock-btn">£50</span>
+              </div>
+              <input class="mock-field" value="HOWZZAT-ALPHA-…" readonly />
+              <span class="mock-btn secondary">Redeem coupon</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Charging happens at finalize, not at schedule. 20p per player in confirmed lineup. Both teams count. -->
+      <section class="slide" data-title="Billing">
+        <span class="slide-tag">Workflow 4 · Billing</span>
+        <h1>Post-match charging</h1>
+        <h2>20p per player when you finalize</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Charge triggers on <strong>match finalize</strong>, not at schedule time</li>
+              <li><strong>20p × players</strong> in confirmed lineup (both teams)</li>
+              <li>Lineup locked at toss / squad confirm — that's the player count</li>
+              <li>Example: 4v4 U9 pairs → 8 players → <strong>£1.60</strong> per match</li>
+              <li>Clubs on a free trial are not charged until the trial ends</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Usage ledger</div>
+            <div class="mock-body">
+              <table class="mock-table">
+                <thead><tr><th>Match</th><th>Players</th><th>Rate</th><th>Charge</th></tr></thead>
+                <tbody>
+                  <tr><td>Edgware vs Hayes</td><td>8</td><td>20p</td><td>£1.60</td></tr>
+                  <tr><td>U9 Lions vs Tigers</td><td>10</td><td>20p</td><td>£2.00</td></tr>
+                </tbody>
+              </table>
+              <p style="font-size:0.72rem;color:#64748b;margin-top:10px">Balance after finalize: £25.00 → £23.40</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Live scoring is toss-first. Five clear steps. U9 demo is the fastest way to show this. -->
+      <section class="slide" data-title="Scoring flow">
+        <span class="slide-tag">Workflow 5 · Live scoring</span>
+        <h1>Live scoring flow</h1>
+        <h2>Toss → Lineups → Score → Finalize</h2>
+        <div class="slide-body single">
+          <div class="flow-steps" style="justify-content:center;font-size:0.9rem">
+            <span class="flow-step">① Claim scorer</span><span class="flow-arrow">→</span>
+            <span class="flow-step">② Record toss</span><span class="flow-arrow">→</span>
+            <span class="flow-step">③ Pick lineups</span><span class="flow-arrow">→</span>
+            <span class="flow-step">④ Score balls</span><span class="flow-arrow">→</span>
+            <span class="flow-step">⑤ Finalize</span>
+          </div>
+          <div class="slide-body" style="margin-top:20px;animation:none">
+            <div class="slide-content">
+              <ul class="bullets">
+                <li>Open Howzzat and tap <strong>Score match</strong></li>
+                <li>U9 pairs: 4 overs, 4 players per side, 200 start, −5 per wicket</li>
+                <li>Tap runs, wides, no-balls, and wickets on the scoring pad</li>
+                <li>Chase totals and second innings handled for you</li>
+              </ul>
+            </div>
+            <div class="mock">
+              <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> ScorePad</div>
+              <div class="mock-body">
+                <p style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Edgware U9 vs Hayes · Over 1.3</p>
+                <div class="mock-score" style="padding:8px"><div class="big" style="font-size:1.4rem">203/0</div></div>
+                <div class="mock-pad">
+                  <button>0</button><button>1</button><button>2</button><button>3</button>
+                  <button>4</button><button>6</button><button class="wide">Wd</button><button class="nb">Nb</button>
+                  <button class="wicket" style="grid-column:span 2">Wicket</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Toss is step 1 — must complete before lineups. Winner elects bat or bowl. -->
+      <section class="slide" data-title="Toss">
+        <span class="slide-tag">Workflow 5a · Toss</span>
+        <h1>Step 1 — Record the toss</h1>
+        <h2>Winner + elected to bat or bowl</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Pick the <strong>toss winner</strong> and whether they bat or bowl</li>
+              <li>Tap <strong>Save toss &amp; pick lineups</strong> to continue</li>
+              <li>Lineups unlock only after the toss is recorded</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> 1. Record the toss</div>
+            <div class="mock-body">
+              <p style="font-size:0.72rem;color:#64748b">Toss winner</p>
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <span class="mock-btn">Edgware U9</span>
+                <span class="mock-btn secondary">Hayes</span>
+              </div>
+              <p style="font-size:0.72rem;color:#64748b">Winner elected to</p>
+              <div style="display:flex;gap:8px">
+                <span class="mock-btn">Bat</span>
+                <span class="mock-btn secondary">Bowl</span>
+              </div>
+              <span class="mock-btn" style="display:block;margin-top:14px;width:100%;text-align:center">Save toss &amp; pick lineups</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Pick from roster or quick-add opponent names. No pre-match roster needed for away side. -->
+      <section class="slide" data-title="Lineups">
+        <span class="slide-tag">Workflow 5b · Lineups</span>
+        <h1>Step 2 — Pick lineups</h1>
+        <h2>Roster pick or quick-add opponent players</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Home team: pick from <strong>club roster</strong></li>
+              <li>Away team: pick roster <em>or</em> <strong>type a name</strong> to quick-add</li>
+              <li>U9 demo: choose 2–11 from 10 registered per side</li>
+              <li>Confirm squads → innings can start</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> 2. Lineups</div>
+            <div class="mock-body">
+              <p style="font-size:0.78rem;font-weight:600;margin-bottom:6px">Hayes (away)</p>
+              <div class="mock-card"><strong>☑ Jamie (7)</strong><span>From roster</span></div>
+              <div class="mock-card"><strong>☑ Alex</strong><span>Quick-added</span></div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <input class="mock-field" value="Type name to add…" readonly style="margin:0;flex:1" />
+                <span class="mock-btn" style="margin:0">Add</span>
+              </div>
+              <span class="mock-btn" style="display:block;margin-top:12px;width:100%;text-align:center">Confirm &amp; start innings</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: No-balls happen often in youth cricket. Tap Nb, then say if batters ran extras. -->
+      <section class="slide" data-title="No-ball scoring">
+        <span class="slide-tag">Workflow 5c · No-ball</span>
+        <h1>Score a no-ball with extra runs</h1>
+        <h2>Free hit plus runs off the bat or byes</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Tap <strong>No-ball</strong> on the scoring pad</li>
+              <li>Choose whether batters ran — 0, 1, 2, 4, or byes</li>
+              <li>Howzzat adds the no-ball penalty and any extra runs</li>
+              <li>Strike rotation follows the runs scored</li>
+            </ul>
+            <div class="flow-steps">
+              <span class="flow-step">Tap Nb</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Pick extra runs</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Confirm</span>
+            </div>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> ScorePad · No-ball</div>
+            <div class="mock-body">
+              <p style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Over 2.2 · 208/0</p>
+              <div class="mock-pad" style="margin-bottom:8px">
+                <button>0</button><button>1</button><button>2</button><button>3</button>
+                <button>4</button><button>6</button><button class="wide">Wd</button>
+                <button class="nb active-key">Nb</button>
+              </div>
+              <div class="mock-subpanel">
+                <label>Extra runs on the no-ball</label>
+                <div class="mock-chip-row">
+                  <span class="mock-chip">0</span>
+                  <span class="mock-chip on">1 off bat</span>
+                  <span class="mock-chip">2</span>
+                  <span class="mock-chip">4</span>
+                  <span class="mock-chip">Byes</span>
+                </div>
+                <span class="mock-btn" style="display:block;margin-top:10px;width:100%;text-align:center">Record · Nb + 1 = 2 runs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Every dismissal type is covered — bowled, caught, run out, stumped, hit wicket, and more. -->
+      <section class="slide" data-title="Wicket types">
+        <span class="slide-tag">Workflow 5d · Wickets</span>
+        <h1>Record any wicket type</h1>
+        <h2>Bowled, caught, run out, stumped &amp; more</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Tap <strong>Wicket</strong> — pick how the batter was out</li>
+              <li><strong>Caught / run out / stumped</strong> — choose the fielder</li>
+              <li><strong>Run out</strong> — pick which batter is dismissed</li>
+              <li>U9 pairs: wicket penalty applied automatically (−5)</li>
+            </ul>
+            <ol class="mock-step-list">
+              <li><span class="mock-step-num">1</span> Tap Wicket</li>
+              <li><span class="mock-step-num">2</span> Select dismissal type</li>
+              <li><span class="mock-step-num">3</span> Pick fielder if needed</li>
+              <li><span class="mock-step-num">4</span> Confirm — scorecard updates live</li>
+            </ol>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Wicket · Step 2 of 3</div>
+            <div class="mock-body">
+              <label style="font-size:0.72rem;color:#64748b;font-weight:600">How was the batter out?</label>
+              <div class="mock-chip-row" style="margin:8px 0 12px">
+                <span class="mock-chip">Bowled</span>
+                <span class="mock-chip on">Caught</span>
+                <span class="mock-chip">Run out</span>
+                <span class="mock-chip">Stumped</span>
+                <span class="mock-chip">Hit wicket</span>
+                <span class="mock-chip">LBW</span>
+              </div>
+              <label style="font-size:0.72rem;color:#64748b;font-weight:600">Fielder</label>
+              <div class="mock-card" style="margin-top:6px"><strong>☑ Sam (mid-off)</strong><span>Edgware U9</span></div>
+              <div class="mock-card"><strong>☐ Jamie (cover)</strong><span>Hayes</span></div>
+              <span class="mock-btn" style="display:block;margin-top:10px;width:100%;text-align:center">Confirm wicket · −5 penalty</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Tap to score. Finalize ends match and charges wallet. Share match link with parents. -->
+      <section class="slide" data-title="Score & finalize">
+        <span class="slide-tag">Workflow 5c · Score</span>
+        <h1>Steps 3–5 — Score &amp; finalize</h1>
+        <h2>Tap each ball, then finish the match</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li><strong>Score each ball</strong> — runs, extras, and wickets on the pad</li>
+              <li><strong>End innings</strong> — Howzzat sets up the chase or second innings</li>
+              <li><strong>Finalize</strong> — locks the result, updates standings, charges wallet</li>
+              <li><strong>Share the match link</strong> with parents — updates live as you score</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Match complete</div>
+            <div class="mock-body mock-score">
+              <p style="font-size:0.85rem;font-weight:600;color:var(--navy)">Edgware U9 won by 12 runs</p>
+              <div style="display:flex;justify-content:center;gap:24px;margin:12px 0">
+                <div><div class="big" style="font-size:1.2rem">218</div><div class="sub">Edgware</div></div>
+                <div><div class="big" style="font-size:1.2rem">206</div><div class="sub">Hayes</div></div>
+              </div>
+              <span class="mock-btn">View scorecard</span>
+              <span class="badge ok">Wallet −£1.60</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Only one scorer at a time. Second manager sees lock message. Claim button when free. -->
+      <section class="slide" data-title="Scoring lock">
+        <span class="slide-tag">Workflow 6 · Scoring lock</span>
+        <h1>Exclusive scoring lock</h1>
+        <h2>One manager scores — others read-only</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>First authenticated manager <strong>claims</strong> the match</li>
+              <li>Others see: <em>"Scoring locked — {name} is scoring"</em></li>
+              <li>Prevents duplicate balls from two scorers</li>
+              <li>Works on phone, tablet, or laptop</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> ScorePad</div>
+            <div class="mock-body">
+              <div class="mock-lock">
+                <strong>🔒 Scoring locked</strong><br>
+                Sarah Manager is scoring this match. You can view the scorecard.
+              </div>
+              <div class="mock-score" style="padding:8px;opacity:0.5">
+                <div class="big" style="font-size:1.2rem">205/1</div>
+                <div class="sub">Read-only view</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Parents follow from the boundary or at home — scorecard and commentary update live. -->
+      <section class="slide" data-title="Spectator">
+        <span class="slide-tag">Workflow 7 · Parents &amp; spectators</span>
+        <h1>Parents follow live</h1>
+        <h2>Scorecard and commentary update in real time</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Share one link — <strong>no sign-in</strong> for mums, dads, and grandparents</li>
+              <li><strong>Score updates instantly</strong> as the coach taps each ball</li>
+              <li><strong>Scorecard</strong> — who's batting, the chase, and the result</li>
+              <li><strong>Commentary</strong> — friendly over summaries, not cricket jargon</li>
+              <li>Follow from the stands, in the car, or at home on any phone</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Edgware U9 vs Hayes <span class="badge live">LIVE</span></div>
+            <div class="mock-body">
+              <div class="mock-tabs">
+                <span class="mock-tab on">Scorecard</span>
+                <span class="mock-tab">Commentary</span>
+                <span class="mock-tab">Ball-by-ball</span>
+              </div>
+              <div class="mock-score" style="padding:8px">
+                <div class="big" style="font-size:1.3rem">205/1</div>
+                <div class="sub">Over 2.4 · Chase 218</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Over summaries help parents who can't watch every ball. Plain language, live refresh. -->
+      <section class="slide" data-title="Commentary">
+        <span class="slide-tag">Workflow 7b · Live commentary</span>
+        <h1>Over summaries parents understand</h1>
+        <h2>Follow the match without ball-by-ball overload</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li><strong>Live score</strong> refreshes every time the coach scores a ball</li>
+              <li><strong>Over summaries</strong> — "8 runs, 1 wicket" at a glance</li>
+              <li>See who's batting well and how the chase is going</li>
+              <li>Optional detail view for coaches who want every delivery</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Commentary</div>
+            <div class="mock-body" style="font-size:0.75rem">
+              <div class="mock-card" style="background:#fff">
+                <strong>2nd Over · 8 runs, 1 wicket</strong>
+                <span>Gurfateh 12* · Edgware chasing 218 · now 205/1</span>
+              </div>
+              <div style="padding:6px 8px;border-left:3px solid var(--blue);margin:6px 0">
+                <strong>Over 2</strong> — Sam bowls a tight over; Gurfateh picks up a boundary
+              </div>
+              <div style="padding:6px 8px;border-left:3px solid #e2e8f0;margin:6px 0;color:#64748b">
+                <strong>Over 1</strong> — Edgware off to a steady start, 12 runs
+              </div>
+              <div style="padding:6px 8px;border-left:3px solid var(--red);margin:6px 0">
+                <strong>Wicket</strong> — Caught at mid-off · pair penalty applied
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Public tournament hub — share with parents. Fixtures, leaders, player stats. Club-focused view. -->
+      <section class="slide" data-title="Insights hub">
+        <span class="slide-tag">Workflow 8 · Tournament hub</span>
+        <h1>Tournament insights hub</h1>
+        <h2>Fixtures, leaders &amp; player stats</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Share your club's <strong>tournament page</strong> with parents</li>
+              <li><strong>Overview</strong> — standings, next match, live fixture badge</li>
+              <li><strong>Fixtures</strong> — results and margins for the whole season</li>
+              <li><strong>Leaders</strong> — top run scorers and wicket takers</li>
+              <li><strong>Players</strong> — season stats for every child</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Edgware CC · Summer 2026</div>
+            <div class="mock-body">
+              <div class="mock-tabs">
+                <span class="mock-tab on">Overview</span>
+                <span class="mock-tab">Fixtures</span>
+                <span class="mock-tab">Leaders</span>
+                <span class="mock-tab">Players</span>
+              </div>
+              <div class="mock-card"><strong>📅 Next: Edgware U9 vs Pinner</strong><span>Sat 10:00 · Main Ground</span></div>
+              <table class="mock-table">
+                <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>Pts</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>Edgware U9</td><td>3</td><td>2</td><td>4</td></tr>
+                  <tr><td>2</td><td>Hayes</td><td>3</td><td>1</td><td>2</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Leaderboards update after every match — great for awards night and parent bragging rights. -->
+      <section class="slide" data-title="Leaderboard">
+        <span class="slide-tag">Workflow 8b · Leaderboards</span>
+        <h1>Season leaderboards</h1>
+        <h2>Top run scorers &amp; wicket takers</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Updated automatically after each finalized match</li>
+              <li><strong>Most runs</strong> and <strong>most wickets</strong> boards</li>
+              <li>See team name alongside every player</li>
+              <li>Parents can check progress all season long</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Edgware CC · Leaders</div>
+            <div class="mock-body">
+              <div class="slide-body triple" style="grid-template-columns:1fr 1fr;gap:16px;animation:none;margin:0">
+                <div>
+                  <p style="font-size:0.78rem;font-weight:800;color:var(--navy);margin-bottom:8px">🏏 Most runs</p>
+                  <ol class="mock-lb-list">
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">1</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Gurfateh</span><span class="mock-lb-team">Edgware U9</span></div>
+                      <span class="mock-lb-value">68</span>
+                    </li>
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">2</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Jamie</span><span class="mock-lb-team">Hayes</span></div>
+                      <span class="mock-lb-value">52</span>
+                    </li>
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">3</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Sam</span><span class="mock-lb-team">Edgware U9</span></div>
+                      <span class="mock-lb-value">41</span>
+                    </li>
+                  </ol>
+                </div>
+                <div>
+                  <p style="font-size:0.78rem;font-weight:800;color:var(--navy);margin-bottom:8px">🎯 Most wickets</p>
+                  <ol class="mock-lb-list">
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">1</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Sam</span><span class="mock-lb-team">Edgware U9</span></div>
+                      <span class="mock-lb-value">6</span>
+                    </li>
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">2</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Alex</span><span class="mock-lb-team">Hayes</span></div>
+                      <span class="mock-lb-value">4</span>
+                    </li>
+                    <li class="mock-lb-entry">
+                      <span class="mock-lb-rank">3</span>
+                      <div class="mock-lb-info"><span class="mock-lb-name">Priya</span><span class="mock-lb-team">Edgware U9</span></div>
+                      <span class="mock-lb-value">3</span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Every player gets a season profile — runs, strike rate, net score, wickets. -->
+      <section class="slide" data-title="Player cards">
+        <span class="slide-tag">Workflow 8c · Player stats</span>
+        <h1>Player cards</h1>
+        <h2>Individual season highlights</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Every registered player gets a <strong>season profile</strong></li>
+              <li>Runs, strike rate, net score, and wickets in one view</li>
+              <li>Great for end-of-season awards and parent updates</li>
+              <li>Stats grow match by match — no manual spreadsheets</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Edgware CC · Players</div>
+            <div class="mock-body">
+              <div class="mock-player-card">
+                <div class="name">Gurfateh</div>
+                <div class="team">Edgware U9 · Summer League 2026</div>
+                <div class="mock-stat-row">
+                  <div class="mock-stat"><span class="val">68</span><span class="lbl">Runs</span></div>
+                  <div class="mock-stat"><span class="val">142</span><span class="lbl">Strike</span></div>
+                  <div class="mock-stat"><span class="val">+12</span><span class="lbl">Net</span></div>
+                  <div class="mock-stat"><span class="val">2</span><span class="lbl">Wkts</span></div>
+                </div>
+              </div>
+              <div class="mock-player-card">
+                <div class="name">Sam</div>
+                <div class="team">Edgware U9 · Summer League 2026</div>
+                <div class="mock-stat-row">
+                  <div class="mock-stat"><span class="val">41</span><span class="lbl">Runs</span></div>
+                  <div class="mock-stat"><span class="val">118</span><span class="lbl">Strike</span></div>
+                  <div class="mock-stat"><span class="val">+8</span><span class="lbl">Net</span></div>
+                  <div class="mock-stat"><span class="val">6</span><span class="lbl">Wkts</span></div>
+                </div>
+              </div>
+              <div class="mock-player-card" style="margin-bottom:0;opacity:0.85">
+                <div class="name">Jamie</div>
+                <div class="team">Hayes · Summer League 2026</div>
+                <div class="mock-stat-row">
+                  <div class="mock-stat"><span class="val">52</span><span class="lbl">Runs</span></div>
+                  <div class="mock-stat"><span class="val">130</span><span class="lbl">Strike</span></div>
+                  <div class="mock-stat"><span class="val">+5</span><span class="lbl">Net</span></div>
+                  <div class="mock-stat"><span class="val">1</span><span class="lbl">Wkts</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPEAKER: Invites are optional. For co-managers only. Pending list with delete. -->
+      <section class="slide" data-title="Invites">
+        <span class="slide-tag">Workflow 9 · Invites <span class="badge optional">Optional</span></span>
+        <h1>Manager invites</h1>
+        <h2>Share scoring access — not required to schedule</h2>
+        <div class="slide-body">
+          <div class="slide-content">
+            <ul class="bullets">
+              <li>Invite co-managers or scorers from your tournament dashboard</li>
+              <li><strong>Copy invite link</strong> and send by WhatsApp or email</li>
+              <li>They sign in with Google or email to accept</li>
+              <li><strong>Pending list</strong> — remove invites you no longer need</li>
+              <li>Scheduling and scoring work fine without any invites</li>
+            </ul>
+          </div>
+          <div class="mock">
+            <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span> Manager invites</div>
+            <div class="mock-body">
+              <div class="mock-card">
+                <strong>coach@club.com</strong>
+                <span>Tournament manager · Pending · <u>Copy link</u> · <u style="color:#b91c1c">Remove</u></span>
+              </div>
+              <input class="mock-field" value="email@example.com" readonly />
+              <span class="mock-btn">Send invite</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll("#slides > .slide"));
+      const progress = document.getElementById("progress");
+      const counter = document.getElementById("counter");
+      let current = 0;
+      let exitTimer = null;
+
+      function goTo(index, direction) {
+        if (index < 0 || index >= slides.length || index === current) return;
+        const prev = slides[current];
+        const next = slides[index];
+        prev.classList.remove("active");
+        if (direction > 0) prev.classList.add("exit-left");
+        next.classList.add("active");
+        current = index;
+        updateChrome();
+        clearTimeout(exitTimer);
+        exitTimer = setTimeout(() => prev.classList.remove("exit-left"), 500);
+      }
+
+      function updateChrome() {
+        const pct = ((current + 1) / slides.length) * 100;
+        progress.style.width = pct + "%";
+        counter.textContent = (current + 1) + " / " + slides.length;
+        document.title = (slides[current].dataset.title || "Slide") + " — Howzzat Demo";
+      }
+
+      function next() { goTo(current + 1, 1); }
+      function prev() { goTo(current - 1, -1); }
+
+      document.getElementById("nextZone").addEventListener("click", next);
+      document.getElementById("prevZone").addEventListener("click", prev);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          next();
+        } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+          e.preventDefault();
+          prev();
+        } else if (e.key === "Home") {
+          goTo(0, -1);
+        } else if (e.key === "End") {
+          goTo(slides.length - 1, 1);
+        }
+      });
+
+      // Touch swipe
+      let touchX = 0;
+      document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+      document.addEventListener("touchend", (e) => {
+        const dx = e.changedTouches[0].clientX - touchX;
+        if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
+      }, { passive: true });
+
+      updateChrome();
+    })();
+  </script>
+</body>
+</html>
