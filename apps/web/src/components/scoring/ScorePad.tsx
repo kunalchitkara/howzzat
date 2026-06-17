@@ -9,6 +9,7 @@ import type { DeliveryEvent } from "@howzzat/rules-engine";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
 import { formatBallLabel } from "@/lib/scoring/ball-label";
 import { maxLegalBalls } from "@/lib/scoring/ball-position";
+import { resolveScoringIsLegalBall } from "@/lib/scoring/delivery-legal";
 import { apiFetch } from "@/lib/client/api";
 import { strikeAfterDeliveries } from "@/lib/scoring/strike-state";
 import { deliveryToEvent } from "@/lib/services/match-utils";
@@ -480,9 +481,15 @@ export function ScorePad({ matchId }: { matchId: string }) {
       setError(`Innings complete (${ctx.totalOvers} overs)`);
       return;
     }
-    const incomingIsLegal = payload.isLegalBall !== false;
+    const incomingExtrasType = payload.extrasType as DeliveryEvent["extrasType"];
+    const isLegalBall = resolveScoringIsLegalBall(
+      { overNumber: activeInnings.nextBall.overNumber, extrasType: incomingExtrasType },
+      ctx.extrasScoring,
+      ctx.totalOvers,
+      payload.isLegalBall !== false,
+    );
     if (
-      incomingIsLegal &&
+      isLegalBall &&
       activeInnings.legalBallsBowled >= maxLegalBalls(ctx.totalOvers)
     ) {
       setError(`Innings complete (${ctx.totalOvers} overs)`);
@@ -501,7 +508,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
       bowlerId,
       runsOffBat: Number(payload.runsOffBat ?? 0),
       extrasRuns: Number(payload.extrasRuns ?? 0),
-      isLegalBall: payload.isLegalBall !== false,
+      isLegalBall,
       extrasType: payload.extrasType as DeliveryEvent["extrasType"],
       extrasRunsType: payload.extrasRunsType as DeliveryEvent["extrasRunsType"],
       wicketType: payload.wicketType as DeliveryEvent["wicketType"],
@@ -535,9 +542,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
     setExtrasOpen(null);
 
     const isEndOfOver =
-      ball.ballInOver === 6 &&
-      payload.isLegalBall !== false &&
-      !payload.wicketType;
+      ball.ballInOver === 6 && isLegalBall;
     if (isEndOfOver && bowlingSquad.length >= 2) {
       const idx = bowlingSquad.findIndex((p) => p.id === bowlerId);
       const next = bowlingSquad[(idx + 1) % bowlingSquad.length];

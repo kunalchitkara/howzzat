@@ -118,6 +118,11 @@ export interface MatchScoringContext {
   startingScore: number;
   wicketPenalty: number;
   rotateStrikeAfterWicket: boolean;
+  /** Wide/no-ball rebowl flags — drives whether extras count toward the over. */
+  extrasScoring: {
+    wide: { default: { rebowl: boolean }; lastOver: { rebowl: boolean } };
+    noBall: { default: { rebowl: boolean }; lastOver: { rebowl: boolean } };
+  };
   tournamentAgeGroup: string | null;
   squads: {
     home: ScoringPlayer[];

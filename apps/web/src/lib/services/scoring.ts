@@ -370,6 +370,10 @@ export async function getMatchScoringContext(
     startingScore: profile.startingScore,
     wicketPenalty: profile.wicketPenalty,
     rotateStrikeAfterWicket: profile.dismissals.rotateStrikeAfterWicket ?? false,
+    extrasScoring: {
+      wide: profile.scoring.wide,
+      noBall: profile.scoring.noBall,
+    },
     tournamentAgeGroup: match.tournament.ageGroup,
     squads,
     rosters: {

@@ -3,6 +3,7 @@ import {
   applyDelivery,
   finalizeInnings,
   replayInnings,
+  resolveDeliveryIsLegalBall,
   resolveInningsConfig,
 } from "@howzzat/rules-engine";
 import { resolveInningsConfigForBatting } from "@/lib/scoring/innings-config";
@@ -37,6 +38,36 @@ type UpdateDeliveryInput = z.infer<typeof updateDeliverySchema>;
 type UpdateMatchInput = z.infer<typeof updateMatchSchema>;
 type SetSquadInput = z.infer<typeof setMatchSquadSchema>;
 type AddMatchPlayerInput = z.infer<typeof addMatchPlayerSchema>;
+
+const PLAYER_NAME_EXISTS_MESSAGE =
+  'Name already exists. Try adding a second name initial (e.g. "Sam P").';
+
+function normalizePlayerName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** Reject duplicate legal names on the same match side (case-insensitive, trimmed). */
+async function assertUniquePlayerNameOnMatchSide(
+  matchId: string,
+  teamId: string,
+  legalName: string,
+) {
+  const normalized = normalizePlayerName(legalName);
+  if (!normalized) return;
+
+  const squadPlayers = await prisma.matchSquadPlayer.findMany({
+    where: { matchId, teamId },
+    include: { player: true },
+  });
+  const conflict = squadPlayers.find(
+    (s) => normalizePlayerName(s.player.legalName) === normalized,
+  );
+  if (conflict) {
+    throw new ApiError(400, PLAYER_NAME_EXISTS_MESSAGE, "PLAYER_NAME_EXISTS", {
+      existingName: conflict.player.legalName,
+    });
+  }
+}
 
 const matchInclude = {
   tournament: {
@@ -268,6 +299,8 @@ export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput
   const orgTeamId = tournamentTeam.team.id;
   const legalName = input.legalName.trim();
 
+  await assertUniquePlayerNameOnMatchSide(matchId, orgTeamId, legalName);
+
   const player = await prisma.player.create({
     data: { legalName, displayName: legalName },
   });
@@ -462,11 +495,20 @@ export async function recordDelivery(input: CreateDeliveryInput) {
     innings.battingTeamId,
   );
 
-  const incomingIsLegal = input.isLegalBall ?? true;
+  const resolvedIsLegal = resolveDeliveryIsLegalBall(
+    {
+      overNumber: input.overNumber,
+      extrasType: input.extrasType as DeliveryEvent["extrasType"],
+    },
+    profile,
+    config.totalOvers,
+    input.isLegalBall ?? true,
+  );
+
   const accept = canAcceptDelivery(
     innings.deliveries,
     config.totalOvers,
-    incomingIsLegal,
+    resolvedIsLegal,
     innings.endedAt,
   );
   if (!accept.ok) {
@@ -496,7 +538,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
   const event: DeliveryEvent = {
     overNumber: input.overNumber,
     ballInOver: input.ballInOver,
-    isLegalBall: input.isLegalBall ?? true,
+    isLegalBall: resolvedIsLegal,
     runsOffBat: input.runsOffBat,
     extrasType: input.extrasType,
     extrasRuns: input.extrasRuns,
@@ -519,7 +561,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
       sequence,
       overNumber: input.overNumber,
       ballInOver: input.ballInOver,
-      isLegalBall: input.isLegalBall ?? true,
+      isLegalBall: resolvedIsLegal,
       runsOffBat: input.runsOffBat,
       extrasType: input.extrasType,
       extrasRuns: input.extrasRuns,
@@ -640,6 +682,24 @@ export async function updateDelivery(
         : row.dismissedBatsmanId,
   };
 
+  const profile = await getRulesProfileFromVersion(row.rulesVersionId);
+  const match = await getMatch(row.innings.matchId);
+  const config = resolveInningsConfigForBatting(
+    profile,
+    match,
+    row.innings.battingTeamId,
+  );
+
+  merged.isLegalBall = resolveDeliveryIsLegalBall(
+    {
+      overNumber: row.overNumber,
+      extrasType: merged.extrasType as DeliveryEvent["extrasType"],
+    },
+    profile,
+    config.totalOvers,
+    merged.isLegalBall,
+  );
+
   if (
     merged.wicketType &&
     ["caught", "run_out", "stumped"].includes(merged.wicketType) &&
@@ -652,13 +712,6 @@ export async function updateDelivery(
     );
   }
 
-  const profile = await getRulesProfileFromVersion(row.rulesVersionId);
-  const match = await getMatch(row.innings.matchId);
-  const config = resolveInningsConfigForBatting(
-    profile,
-    match,
-    row.innings.battingTeamId,
-  );
   const inningsConfig = {
     playersPerSide: config.playersPerSide,
     totalOvers: config.totalOvers,

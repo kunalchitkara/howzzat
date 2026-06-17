@@ -115,4 +115,33 @@ describe("ball position", () => {
     expect(formatBallLabel(2, 5)).toBe("1.5");
     expect(formatBallLabel(2, 6)).toBe("2.0");
   });
+
+  it("U9 wides count toward the six balls in an over", () => {
+    const deliveries = [
+      ...legalDeliveries(6),
+      { overNumber: 2, ballInOver: 1, isLegalBall: true },
+      { overNumber: 2, ballInOver: 2, isLegalBall: true },
+      { overNumber: 2, ballInOver: 3, isLegalBall: true },
+      { overNumber: 2, ballInOver: 4, isLegalBall: true },
+      { overNumber: 2, ballInOver: 5, isLegalBall: true },
+      { overNumber: 2, ballInOver: 6, isLegalBall: true },
+    ];
+    expect(nextBallAfterDeliveries(deliveries, 4)).toEqual({
+      overNumber: 3,
+      ballInOver: 1,
+    });
+  });
+
+  it("rebowled extras repeat the ball until a counting delivery", () => {
+    const deliveries = [
+      ...legalDeliveries(3),
+      { overNumber: 1, ballInOver: 4, isLegalBall: false },
+      { overNumber: 1, ballInOver: 4, isLegalBall: false },
+      { overNumber: 1, ballInOver: 4, isLegalBall: true },
+    ];
+    expect(nextBallAfterDeliveries(deliveries, 16)).toEqual({
+      overNumber: 1,
+      ballInOver: 5,
+    });
+  });
 });
