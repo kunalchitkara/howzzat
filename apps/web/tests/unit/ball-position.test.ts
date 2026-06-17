@@ -45,10 +45,17 @@ describe("ball position", () => {
 
   it("locks bowler after first delivery in an over", () => {
     const next = { overNumber: 1, ballInOver: 2 };
+    const row = {
+      overNumber: 1,
+      ballInOver: 1,
+      bowlerId: "b1",
+      isLegalBall: true,
+    };
     expect(currentOverBowler([], next)).toEqual({ locked: false, bowlerId: null });
-    expect(
-      currentOverBowler([{ overNumber: 1, bowlerId: "b1" }], next),
-    ).toEqual({ locked: true, bowlerId: "b1" });
+    expect(currentOverBowler([row], next)).toEqual({
+      locked: true,
+      bowlerId: "b1",
+    });
   });
 
   it("keeps bowler locked on illegal ball in same over", () => {
@@ -56,8 +63,18 @@ describe("ball position", () => {
     expect(
       currentOverBowler(
         [
-          { overNumber: 2, bowlerId: "b1" },
-          { overNumber: 2, bowlerId: "b1" },
+          {
+            overNumber: 2,
+            ballInOver: 3,
+            bowlerId: "b1",
+            isLegalBall: true,
+          },
+          {
+            overNumber: 2,
+            ballInOver: 3,
+            bowlerId: "b1",
+            isLegalBall: false,
+          },
         ],
         next,
       ),
@@ -67,7 +84,17 @@ describe("ball position", () => {
   it("unlocks bowler at start of a new over", () => {
     const next = { overNumber: 2, ballInOver: 1 };
     expect(
-      currentOverBowler([{ overNumber: 1, bowlerId: "b1" }], next),
+      currentOverBowler(
+        [
+          {
+            overNumber: 1,
+            ballInOver: 6,
+            bowlerId: "b1",
+            isLegalBall: true,
+          },
+        ],
+        next,
+      ),
     ).toEqual({ locked: false, bowlerId: null });
   });
 

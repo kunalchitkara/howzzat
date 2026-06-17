@@ -174,8 +174,15 @@ export async function getMatchScoringContext(
       inningsConfig.totalOvers,
     );
     const { locked: bowlerLocked, bowlerId: lockedBowlerId } = currentOverBowler(
-      innings.deliveries,
+      innings.deliveries.map((d) => ({
+        overNumber: d.overNumber,
+        ballInOver: d.ballInOver,
+        bowlerId: d.bowlerId,
+        isLegalBall: d.isLegalBall,
+        extrasType: d.extrasType,
+      })),
       nextBall,
+      { profile, totalOvers: inningsConfig.totalOvers },
     );
     const legalBallsBowled = countLegalBalls(innings.deliveries);
     const inningsComplete = isInningsComplete(

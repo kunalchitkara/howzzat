@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildRecentBalls } from "@/lib/scoring/recent-balls";
 import type { ScoringInningsView } from "@/lib/scoring/types";
 import { applyStrikeRotationsAfterDelivery } from "@howzzat/rules-engine";
-import type { DeliveryEvent } from "@howzzat/rules-engine";
+import type { DeliveryEvent, RulesProfile } from "@howzzat/rules-engine";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
 import { formatBallLabel } from "@/lib/scoring/ball-label";
-import { maxLegalBalls } from "@/lib/scoring/ball-position";
+import { deliveryEndedOver, maxLegalBalls } from "@/lib/scoring/ball-position";
 import { resolveScoringIsLegalBall } from "@/lib/scoring/delivery-legal";
 import { apiFetch } from "@/lib/client/api";
 import { strikeAfterDeliveries } from "@/lib/scoring/strike-state";
@@ -28,6 +28,15 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     if (e instanceof Error) throw e;
     throw new Error("Request failed");
   }
+}
+
+function scoringRulesProfile(ctx: MatchScoringContext): RulesProfile {
+  return {
+    scoring: {
+      wide: ctx.extrasScoring.wide,
+      noBall: ctx.extrasScoring.noBall,
+    },
+  } as RulesProfile;
 }
 
 export function ScorePad({ matchId }: { matchId: string }) {
@@ -55,6 +64,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
   const [draftOvers, setDraftOvers] = useState(20);
   const [oversTouched, setOversTouched] = useState(false);
   const [quickAddName, setQuickAddName] = useState({ home: "", away: "" });
+  const [quickAddBusySide, setQuickAddBusySide] = useState<"home" | "away" | null>(null);
   const [editingDeliveryId, setEditingDeliveryId] = useState<string | null>(null);
   const [claimAttempted, setClaimAttempted] = useState(false);
   const scoringKeysRef = useRef<HTMLElement>(null);
@@ -210,6 +220,13 @@ export function ScorePad({ matchId }: { matchId: string }) {
   useEffect(() => {
     if (!bowlingSquad.length) return;
     if (activeInnings?.bowlerLocked && activeInnings.lockedBowlerId) return;
+    if (
+      bowlingSquad.length > 2 &&
+      activeInnings &&
+      !activeInnings.bowlerLocked
+    ) {
+      return;
+    }
     if (bowlerId && bowlingSquad.some((p) => p.id === bowlerId)) return;
     setBowlerId(bowlingSquad[0]?.id ?? "");
   }, [
@@ -303,8 +320,9 @@ export function ScorePad({ matchId }: { matchId: string }) {
 
   async function quickAddPlayer(side: "home" | "away") {
     const name = quickAddName[side].trim();
-    if (!name || !ctx) return;
+    if (!name || !ctx || busy || quickAddBusySide) return;
     setBusy(true);
+    setQuickAddBusySide(side);
     setError(null);
     try {
       await api(`/api/v1/matches/${matchId}/players`, {
@@ -312,22 +330,26 @@ export function ScorePad({ matchId }: { matchId: string }) {
         body: JSON.stringify({ side, legalName: name }),
       });
       const data = await refresh();
-      syncDraftFromServer(data);
-      const squad = side === "home" ? data.squads.home : data.squads.away;
-      const added = squad.find((p) => p.name === name);
+      const normalized = name.toLowerCase();
+      const pool =
+        side === "home"
+          ? [...data.squads.home, ...data.rosters.home]
+          : [...data.squads.away, ...data.rosters.away];
+      const added = pool.find((p) => p.name.trim().toLowerCase() === normalized);
       if (added) {
         if (side === "home") {
           setDraftHomeIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
-          if (!draftHomeCaptainId) setDraftHomeCaptainId(added.id);
+          setDraftHomeCaptainId((current) => current || added.id);
         } else {
           setDraftAwayIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
-          if (!draftAwayCaptainId) setDraftAwayCaptainId(added.id);
+          setDraftAwayCaptainId((current) => current || added.id);
         }
       }
       setQuickAddName((prev) => ({ ...prev, [side]: "" }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      setQuickAddBusySide(null);
       setBusy(false);
     }
   }
@@ -541,12 +563,22 @@ export function ScorePad({ matchId }: { matchId: string }) {
     setNonStrikerId(nextNonStriker);
     setExtrasOpen(null);
 
-    const isEndOfOver =
-      ball.ballInOver === 6 && isLegalBall;
-    if (isEndOfOver && bowlingSquad.length >= 2) {
+    const isEndOfOver = deliveryEndedOver(
+      {
+        overNumber: ball.overNumber,
+        ballInOver: ball.ballInOver,
+        isLegalBall,
+        extrasType: event.extrasType,
+      },
+      scoringRulesProfile(ctx),
+      ctx.totalOvers,
+    );
+    if (isEndOfOver && bowlingSquad.length === 2) {
       const idx = bowlingSquad.findIndex((p) => p.id === bowlerId);
       const next = bowlingSquad[(idx + 1) % bowlingSquad.length];
       if (next) setBowlerId(next.id);
+    } else if (isEndOfOver && bowlingSquad.length > 2) {
+      setBowlerId("");
     }
 
     if (updated) {
@@ -877,32 +909,39 @@ export function ScorePad({ matchId }: { matchId: string }) {
                       </li>
                     ))}
                   </ul>
-                  <div className="sp-quick-add" style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <input
-                      type="text"
-                      className="sp-overs-input"
-                      style={{ flex: 1 }}
-                      placeholder="Quick add name"
-                      value={quickAddName[side]}
-                      disabled={busy}
-                      onChange={(e) =>
-                        setQuickAddName((prev) => ({ ...prev, [side]: e.target.value }))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void quickAddPlayer(side);
+                  <div className="sp-quick-add">
+                    <label className="sp-quick-add-label" htmlFor={`sp-quick-add-${side}`}>
+                      Add player
+                    </label>
+                    <div className="sp-quick-add-row">
+                      <input
+                        id={`sp-quick-add-${side}`}
+                        type="text"
+                        className="sp-quick-add-input"
+                        placeholder="Player name"
+                        value={quickAddName[side]}
+                        disabled={busy}
+                        autoComplete="off"
+                        onChange={(e) =>
+                          setQuickAddName((prev) => ({ ...prev, [side]: e.target.value }))
                         }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="sp-roster-btn add"
-                      disabled={busy || !quickAddName[side].trim()}
-                      onClick={() => void quickAddPlayer(side)}
-                    >
-                      Add
-                    </button>
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void quickAddPlayer(side);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="sp-quick-add-btn"
+                        disabled={busy || !quickAddName[side].trim()}
+                        aria-label={`Add player to ${teamLabel}`}
+                        onClick={() => void quickAddPlayer(side)}
+                      >
+                        {quickAddBusySide === side ? "Adding…" : "Add player"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1102,47 +1141,54 @@ export function ScorePad({ matchId }: { matchId: string }) {
           )}
 
           <section className="sp-card sp-players">
-            <div className="sp-players-head">
-              <h3>On the field</h3>
+            <h3>On the field</h3>
+            <div className="sp-batsmen">
+              <label className="sp-batsman-field">
+                <span className="sp-batsman-label">
+                  Batsman <span className="sp-on-strike">on strike</span>
+                </span>
+                <select
+                  className={strikerId ? "sp-striker" : undefined}
+                  value={strikerId}
+                  disabled={busy}
+                  onChange={(e) => pickStriker(e.target.value)}
+                >
+                  {battingSquad.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
-                className="sp-btn sp-swap"
-                disabled={busy}
+                className="sp-strike-toggle"
+                disabled={busy || !strikerId || !nonStrikerId}
+                aria-label="Switch who is on strike"
                 onClick={swapEnds}
               >
-                Swap strike
+                ⇄
               </button>
+              <label className="sp-batsman-field">
+                <span className="sp-batsman-label">
+                  Batsman <span className="sp-off-strike">off strike</span>
+                </span>
+                <select
+                  value={nonStrikerId}
+                  disabled={busy}
+                  onChange={(e) => pickNonStriker(e.target.value)}
+                >
+                  {battingSquad.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-            <p className="sp-players-hint">Batsmen can swap ends anytime.</p>
-            <label>
-              Striker <span className="sp-on-strike">on strike</span>
-              <select
-                className="sp-striker"
-                value={strikerId}
-                disabled={busy}
-                onChange={(e) => pickStriker(e.target.value)}
-              >
-                {battingSquad.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Non-striker
-              <select
-                value={nonStrikerId}
-                disabled={busy}
-                onChange={(e) => pickNonStriker(e.target.value)}
-              >
-                {battingSquad.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="sp-players-hint">
+              Tap ⇄ to switch strike, or pick a different player in either slot.
+            </p>
             <label>
               Bowler
               {activeInnings.bowlerLocked ? (

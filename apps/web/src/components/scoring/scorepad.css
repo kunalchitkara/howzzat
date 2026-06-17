@@ -557,10 +557,55 @@ button.sp-ball-bubble.selected {
   gap: 10px;
 }
 
+.sp-batsmen {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.sp-batsman-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sp-batsman-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5a6a7a;
+}
+
+.sp-strike-toggle {
+  align-self: end;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 2px solid var(--md);
+  border-radius: 10px;
+  background: #e8f4fc;
+  color: var(--dk);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sp-strike-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sp-off-strike {
+  color: #7a8a9a;
+  font-weight: 600;
+}
+
 .sp-players-hint {
   font-size: 0.75rem;
   color: #5a6a7a;
-  margin-bottom: 10px;
+  margin: 8px 0 10px;
 }
 
 .sp-bowler-locked,
@@ -592,6 +637,10 @@ button.sp-ball-bubble.selected {
 
 .sp-players-head h3 {
   margin: 0;
+}
+
+.sp-card.sp-players > h3 {
+  margin: 0 0 10px;
 }
 
 .sp-swap {
@@ -813,10 +862,12 @@ button.sp-ball-bubble.selected {
 
 .sp-roster-btn {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   font-weight: 800;
   font-size: 1.1rem;
   line-height: 1;
@@ -849,4 +900,86 @@ button.sp-ball-bubble.selected {
 .sp-roster-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.sp-quick-add {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.sp-quick-add-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sp-quick-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.sp-quick-add-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--dk);
+}
+
+.sp-quick-add-input:focus {
+  outline: 2px solid var(--md);
+  outline-offset: 1px;
+  border-color: var(--md);
+}
+
+.sp-quick-add-input:disabled {
+  opacity: 0.6;
+  background: #f5f8fb;
+}
+
+.sp-quick-add-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--brand-primary, #3b82f6);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sp-quick-add-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.sp-quick-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 380px) {
+  .sp-quick-add-row {
+    flex-direction: column;
+  }
+
+  .sp-quick-add-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
 }
