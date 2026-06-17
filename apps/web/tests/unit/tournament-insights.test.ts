@@ -18,6 +18,7 @@ describe("tournament insights", () => {
   const matches = [
     {
       id: "m1",
+      slug: "u9-edgware-hayes-20260607",
       matchNumber: 1,
       status: "COMPLETED",
       homeTeamId: "t1",
@@ -33,6 +34,7 @@ describe("tournament insights", () => {
     },
     {
       id: "m2",
+      slug: null,
       matchNumber: 2,
       status: "COMPLETED",
       homeTeamId: "t3",
@@ -48,6 +50,7 @@ describe("tournament insights", () => {
     },
     {
       id: "m3",
+      slug: null,
       matchNumber: 3,
       status: "SCHEDULED",
       homeTeamId: "t1",
@@ -78,6 +81,7 @@ describe("tournament insights", () => {
       ...matches,
       {
         id: "m4",
+        slug: null,
         matchNumber: 4,
         status: "LIVE",
         homeTeamId: "t1",

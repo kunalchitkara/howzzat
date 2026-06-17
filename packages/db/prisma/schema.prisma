@@ -474,6 +474,8 @@ model Match {
   marginText      String?
   rulesVersionId  String?
   publicSlug      String?
+  /// Human-readable URL slug, e.g. u9-edgware-hayes-20260604
+  slug            String?     @unique
   tossWinnerId         String?
   electedTo            String?
   tossCallerPlayerId   String?

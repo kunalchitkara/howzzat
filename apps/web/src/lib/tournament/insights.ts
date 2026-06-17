@@ -2,6 +2,7 @@ import type { BatterRow, BowlerRow } from "@/lib/scorecard/types";
 
 export interface TournamentFixture {
   id: string;
+  slug: string | null;
   matchNumber: number | null;
   homeTeam: string;
   awayTeam: string;
@@ -70,6 +71,7 @@ export interface TournamentInsights {
 
 interface MatchResultInput {
   id: string;
+  slug: string | null;
   matchNumber: number | null;
   status: string;
   homeTeamId: string;
@@ -101,6 +103,7 @@ function strikeRate(runs: number, balls: number): number {
 export function buildFixtures(matches: MatchResultInput[]): TournamentFixture[] {
   return matches.map((m) => ({
     id: m.id,
+    slug: m.slug,
     matchNumber: m.matchNumber,
     homeTeam: m.homeTeamName,
     awayTeam: m.awayTeamName,

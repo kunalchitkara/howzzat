@@ -50,6 +50,7 @@ export async function getTournamentInsights(
 
   const matchInputs = tournament.matches.map((m) => ({
     id: m.id,
+    slug: m.slug,
     matchNumber: m.matchNumber,
     status: m.status,
     homeTeamId: m.homeTeamId,

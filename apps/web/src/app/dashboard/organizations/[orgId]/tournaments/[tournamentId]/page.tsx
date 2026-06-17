@@ -7,6 +7,7 @@ import {
 import { InviteList } from "@/components/dashboard/InviteList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
+import { matchPublicRef } from "@/lib/match-slug";
 import { getTournament, isExternalTeam } from "@/lib/services/tournaments";
 import { getTournamentInsights } from "@/lib/services/tournament-insights";
 import { getOrganization } from "@/lib/services/organizations";
@@ -150,13 +151,13 @@ export default async function TournamentDashboardPage({
                   style={{ justifyContent: "flex-end", gap: 8 }}
                 >
                   <BtnLink
-                    href={`/match/${m.id}`}
+                    href={`/match/${matchPublicRef(m)}`}
                     variant="secondary"
                     className="btn-nav"
                   >
                     Scorecard
                   </BtnLink>
-                  <BtnLink href={`/match/${m.id}/score`} className="btn-nav">
+                  <BtnLink href={`/match/${matchPublicRef(m)}/score`} className="btn-nav">
                     Score
                   </BtnLink>
                 </div>

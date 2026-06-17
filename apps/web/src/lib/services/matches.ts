@@ -17,6 +17,11 @@ import { buildHostResultLine } from "@/lib/scoring/match-result";
 import { deliveryToEvent } from "./match-utils";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
+import {
+  allocateUniqueMatchSlug,
+  buildMatchSlug,
+  isCuid,
+} from "../match-slug";
 import { getRulesProfileFromVersion } from "./rules-helpers";
 import { chargeMatchAtFinalize } from "./tournament-billing";
 import { getTournament, findOrCreateTournamentTeamByName } from "./tournaments";
@@ -97,13 +102,39 @@ export async function listMatches(tournamentId: string) {
   });
 }
 
-export async function getMatch(matchId: string) {
-  const match = await prisma.match.findUnique({
-    where: { id: matchId },
+export async function getMatch(matchRef: string) {
+  const match = await prisma.match.findFirst({
+    where: { OR: [{ id: matchRef }, { slug: matchRef }] },
     include: matchInclude,
   });
   if (!match) throw new ApiError(404, "Match not found", "MATCH_NOT_FOUND");
+  if (!match.slug) {
+    const tournament = await prisma.tournament.findUnique({
+      where: { id: match.tournamentId },
+      select: { ageGroup: true },
+    });
+    const slug = await allocateUniqueMatchSlug(
+      prisma,
+      buildMatchSlug({
+        ageGroup: tournament?.ageGroup,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        scheduledAt: match.scheduledAt,
+        createdAt: match.createdAt,
+      }),
+    );
+    await prisma.match.update({ where: { id: match.id }, data: { slug } });
+    return { ...match, slug };
+  }
   return match;
+}
+
+/** True when the URL used the internal id instead of the public slug. */
+export function shouldRedirectToMatchSlug(
+  matchRef: string,
+  match: { id: string; slug: string | null },
+): match is { id: string; slug: string } {
+  return Boolean(match.slug && isCuid(matchRef) && matchRef === match.id);
 }
 
 export async function createMatch(tournamentId: string, input: CreateMatchInput) {
@@ -133,13 +164,27 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
 
   const home = await prisma.tournamentTeam.findUnique({
     where: { id: homeTeamId },
+    include: { team: true },
   });
   const away = await prisma.tournamentTeam.findUnique({
     where: { id: awayTeamId },
+    include: { team: true },
   });
   if (!home || !away || home.tournamentId !== tournamentId || away.tournamentId !== tournamentId) {
     throw new ApiError(400, "Invalid tournament teams", "INVALID_TEAMS");
   }
+
+  const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : undefined;
+  const slug = await allocateUniqueMatchSlug(
+    prisma,
+    buildMatchSlug({
+      ageGroup: tournament.ageGroup,
+      homeTeam: home,
+      awayTeam: away,
+      scheduledAt,
+      createdAt: new Date(),
+    }),
+  );
 
   return prisma.match.create({
     data: {
@@ -147,11 +192,12 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
       homeTeamId,
       awayTeamId,
       matchNumber: input.matchNumber,
-      scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
+      scheduledAt,
       venue: input.venue,
       playersPerSide: input.playersPerSide ?? 8,
       isOfficial: input.isOfficial ?? true,
       publicSlug: input.publicSlug,
+      slug,
       rulesVersionId: tournament.rulesProfileVersionId,
     },
     include: {

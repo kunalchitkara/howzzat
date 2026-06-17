@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BtnLink } from "@/components/dashboard/ui";
+import { matchPublicRef } from "@/lib/match-slug";
 import type { TournamentInsights } from "@/lib/tournament/insights";
 
 type Tab = "overview" | "fixtures" | "leaders" | "players";
@@ -54,7 +55,7 @@ export function TournamentHub({
             {nextFixture.scheduledAt && (
               <p className="th-next-date">{nextFixture.scheduledAt}</p>
             )}
-            <BtnLink href={`/match/${nextFixture.id}`} className="btn-nav">
+            <BtnLink href={`/match/${matchPublicRef(nextFixture)}`} className="btn-nav">
               {nextFixture.isLive ? "Watch live" : "View match"}
             </BtnLink>
           </section>
@@ -185,7 +186,7 @@ export function TournamentHub({
                         </p>
                       </div>
                     </div>
-                    <BtnLink href={`/match/${f.id}`} className="btn-nav">
+                    <BtnLink href={`/match/${matchPublicRef(f)}`} className="btn-nav">
                       Scorecard
                     </BtnLink>
                   </li>

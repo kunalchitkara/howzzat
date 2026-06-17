@@ -2,6 +2,10 @@ import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { EDGWARE_U9_ROSTER, HAYES_ROSTER } from "@/lib/demo/demo-rosters";
 import { buildMatchSquadRows, seedTeamRoster } from "@/lib/demo/seed-roster";
 import { prisma } from "@/lib/db";
+import {
+  allocateUniqueMatchSlug,
+  buildMatchSlug,
+} from "@/lib/match-slug";
 import { resolveRulesVersionForTournament } from "@/lib/services/rules";
 
 export const U9_DEMO_PROFILE_ID = "demo-u9-4-over-v1";
@@ -36,6 +40,7 @@ async function ensureDemoProfile() {
 
 export type U9DemoMatchResult = {
   matchId: string;
+  matchSlug: string;
   homeTeam: string;
   awayTeam: string;
   totalOvers: number;
@@ -119,7 +124,14 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
     ...buildMatchSquadRows(teamB.id, hayesIds, PLAYERS_PER_SIDE),
   ];
 
+  const matchSlugBase = buildMatchSlug({
+    ageGroup: tournament.ageGroup,
+    homeTeam: { publicSlug: "edgware-u9", team: teamA },
+    awayTeam: { publicSlug: "hayes", team: teamB },
+    scheduledAt: new Date(),
+  });
   const profile = getBuiltinProfile(U9_DEMO_PROFILE_ID)!;
+
   const existing = await prisma.match.findFirst({
     where: { tournamentId: tournament.id, publicSlug: "u9-live" },
   });
@@ -130,6 +142,9 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
     });
     await prisma.innings.deleteMany({ where: { matchId: existing.id } });
     await prisma.matchSquadPlayer.deleteMany({ where: { matchId: existing.id } });
+    const slug =
+      existing.slug ??
+      (await allocateUniqueMatchSlug(prisma, matchSlugBase));
     await prisma.match.update({
       where: { id: existing.id },
       data: {
@@ -151,6 +166,7 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
         chaseContinuedAfterTarget: false,
         totalOvers: TOTAL_OVERS,
         publicSlug: "u9-live",
+        slug,
         scoringUserId: null,
         scoringClaimedAt: null,
       },
@@ -160,6 +176,7 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
     });
     return {
       matchId: existing.id,
+      matchSlug: slug,
       homeTeam: teamA.name,
       awayTeam: teamB.name,
       totalOvers: TOTAL_OVERS,
@@ -171,6 +188,7 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
     };
   }
 
+  const slug = await allocateUniqueMatchSlug(prisma, matchSlugBase);
   const match = await prisma.match.create({
     data: {
       tournamentId: tournament.id,
@@ -181,6 +199,7 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
       playersPerSide: PLAYERS_PER_SIDE,
       totalOvers: TOTAL_OVERS,
       publicSlug: "u9-live",
+      slug,
       rulesVersionId: rulesVersion.id,
       status: "SCHEDULED",
       squad: {
@@ -191,6 +210,7 @@ export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
 
   return {
     matchId: match.id,
+    matchSlug: slug,
     homeTeam: teamA.name,
     awayTeam: teamB.name,
     totalOvers: TOTAL_OVERS,

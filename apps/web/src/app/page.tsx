@@ -4,6 +4,7 @@ import {
   listBuiltinProfiles,
 } from "@howzzat/rules-engine";
 import { prisma } from "@/lib/db";
+import { matchPublicRef } from "@/lib/match-slug";
 import { BtnLink } from "@/components/dashboard/ui";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function HomePage() {
   const u9 = getBuiltinProfile("u9-softball-london-v1");
   const demoMatch = await prisma.match.findFirst({
     where: { publicSlug: "demo-score" },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
 
   return (
@@ -120,7 +121,7 @@ export default async function HomePage() {
             Simulated match
           </BtnLink>
           {demoMatch && (
-            <BtnLink href={`/match/${demoMatch.id}/score`} variant="secondary">
+            <BtnLink href={`/match/${matchPublicRef(demoMatch)}/score`} variant="secondary">
               U9 full squad scorer
             </BtnLink>
           )}
