@@ -160,6 +160,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@howzzat/rules-engine':
+        specifier: workspace:*
+        version: link:../rules-engine
       '@prisma/client':
         specifier: ^6.9.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)

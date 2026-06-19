@@ -1,32 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const profilesDir = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../rules-engine/profiles",
-);
-
-type ProfileSeed = {
-  id: string;
-  name: string;
-  description: string;
-};
-
-function loadProfileFiles(): { profile: ProfileSeed; json: string }[] {
-  return readdirSync(profilesDir)
-    .filter((f) => f.endsWith(".json"))
-    .map((file) => {
-      const json = readFileSync(join(profilesDir, file), "utf-8");
-      const profile = JSON.parse(json) as ProfileSeed;
-      return { profile, json };
-    })
-    .sort((a, b) => a.profile.name.localeCompare(b.profile.name));
-}
+import { listBuiltinProfiles } from "@howzzat/rules-engine";
 
 export async function seedRulesProfileTemplates(prisma: PrismaClient) {
-  for (const { profile, json } of loadProfileFiles()) {
+  const profiles = listBuiltinProfiles().sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+
+  for (const profile of profiles) {
+    const json = JSON.stringify(profile);
     const template = await prisma.rulesProfileTemplate.upsert({
       where: { builtinId: profile.id },
       create: {

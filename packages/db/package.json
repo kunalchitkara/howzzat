@@ -18,6 +18,7 @@
     "build": "prisma generate"
   },
   "dependencies": {
+    "@howzzat/rules-engine": "workspace:*",
     "@prisma/client": "^6.9.0"
   },
   "devDependencies": {
