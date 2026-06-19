@@ -221,7 +221,7 @@ describe("API v1 integration", () => {
       ),
     );
     expect(deliveryRes.status).toBe(201);
-    expect(deliveryRes.body.data.totals.totalRuns).toBe(204);
+    expect(deliveryRes.body.data.innings.runs).toBe(204);
 
     const scorecardRes = await readJson(
       await getScorecard(

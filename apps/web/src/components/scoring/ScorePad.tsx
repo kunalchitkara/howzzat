@@ -4,21 +4,29 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildRecentBalls } from "@/lib/scoring/recent-balls";
 import type { ScoringInningsView } from "@/lib/scoring/types";
-import { applyStrikeRotationsAfterDelivery } from "@howzzat/rules-engine";
 import type { DeliveryEvent, RulesProfile } from "@howzzat/rules-engine";
 import type { MatchScoringContext, ScoringPlayer } from "@/lib/scoring/types";
 import { formatBallLabel } from "@/lib/scoring/ball-label";
 import { deliveryEndedOver, maxLegalBalls } from "@/lib/scoring/ball-position";
 import { resolveScoringIsLegalBall } from "@/lib/scoring/delivery-legal";
 import { apiFetch } from "@/lib/client/api";
-import { strikeAfterDeliveries } from "@/lib/scoring/strike-state";
 import {
   canConfirmLineup,
   describeLineupBlockers,
   describeSquadConfirmError,
 } from "@/lib/scoring/squad-validation";
 import { suggestOversForFormula, suggestOversForSquad } from "@/lib/scoring/suggest-overs";
-import { deliveryToEvent } from "@/lib/services/match-utils";
+import {
+  canRecordMoreBalls,
+  hasPendingDeliveries,
+  hydrateFromContext,
+  initialMatchScoringStoreState,
+  recordBallLocally,
+  scoringRulesProfileFromContext,
+  setOnFieldPlayers,
+  type RecordBallPayload,
+} from "@/lib/scoring/match-scoring-store";
+import { useMatchScoringSync } from "@/lib/scoring/use-match-scoring-sync";
 import { BallHistory } from "./BallHistory";
 import { EditBallModal, type DeliveryPatch } from "./EditBallModal";
 import { SquadSetupRecap } from "./SquadSetupRecap";
@@ -37,12 +45,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 function scoringRulesProfile(ctx: MatchScoringContext): RulesProfile {
-  return {
-    scoring: {
-      wide: ctx.extrasScoring.wide,
-      noBall: ctx.extrasScoring.noBall,
-    },
-  } as RulesProfile;
+  return scoringRulesProfileFromContext(ctx);
 }
 
 export function ScorePad({
@@ -55,10 +58,39 @@ export function ScorePad({
   const [ctx, setCtx] = useState<MatchScoringContext | null>(initialCtx ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scoringStore, setScoringStore] = useState(initialMatchScoringStoreState);
 
-  const [strikerId, setStrikerId] = useState("");
-  const [nonStrikerId, setNonStrikerId] = useState("");
-  const [bowlerId, setBowlerId] = useState("");
+  const refreshAfterInningsEvent = useCallback(async () => {
+    const data = await api<MatchScoringContext>(
+      `/api/v1/matches/${matchId}/scoring`,
+    );
+    setCtx(data);
+    setScoringStore((s) => (hasPendingDeliveries(s) ? s : hydrateFromContext(s, data)));
+    return data;
+  }, [matchId]);
+
+  const { scheduleFlush, awaitQueueEmpty } = useMatchScoringSync(
+    scoringStore,
+    setScoringStore,
+    {
+      onInningsComplete: () => {
+        void refreshAfterInningsEvent();
+      },
+      onChaseTargetReached: () => {
+        setChasePromptOpen(true);
+      },
+    },
+  );
+
+  const strikerId = scoringStore.strikerId;
+  const nonStrikerId = scoringStore.nonStrikerId;
+  const bowlerId = scoringStore.bowlerId;
+  const setStrikerId = (id: string) =>
+    setScoringStore((s) => setOnFieldPlayers(s, id, s.nonStrikerId, s.bowlerId));
+  const setNonStrikerId = (id: string) =>
+    setScoringStore((s) => setOnFieldPlayers(s, s.strikerId, id, s.bowlerId));
+  const setBowlerId = (id: string) =>
+    setScoringStore((s) => setOnFieldPlayers(s, s.strikerId, s.nonStrikerId, id));
 
   const [extrasOpen, setExtrasOpen] = useState<ExtrasPanel>(null);
   const [wicketOpen, setWicketOpen] = useState(false);
@@ -124,6 +156,14 @@ export function ScorePad({
   }, [refresh, syncDraftFromServer, initialCtx]);
 
   useEffect(() => {
+    if (!ctx) return;
+    setScoringStore((s) => {
+      if (hasPendingDeliveries(s)) return s;
+      return hydrateFromContext(s, ctx);
+    });
+  }, [ctx]);
+
+  useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
     if (ctx.scoringLock.lockedByOther || ctx.scoringLock.needsSignIn) return;
 
@@ -175,10 +215,16 @@ export function ScorePad({
       .filter((p): p is ScoringPlayer => Boolean(p));
   }
 
-  const activeInnings = useMemo(
-    () => ctx?.innings.find((i) => i.id === ctx.activeInningsId) ?? null,
-    [ctx],
-  );
+  const activeInnings = useMemo(() => {
+    const live = scoringStore.liveInnings;
+    if (live && ctx?.activeInningsId === live.inningsId) {
+      return {
+        ...(ctx.innings.find((i) => i.id === live.inningsId) ?? live),
+        ...live,
+      } as ScoringInningsView;
+    }
+    return ctx?.innings.find((i) => i.id === ctx.activeInningsId) ?? null;
+  }, [ctx, scoringStore.liveInnings]);
 
   const battingSquad = useMemo(() => {
     if (!ctx || !activeInnings) return [];
@@ -456,18 +502,32 @@ export function ScorePad({
   async function stopChaseInnings() {
     if (!activeInnings) return;
     setChasePromptOpen(false);
-    await runAction(async () => {
+    setBusy(true);
+    try {
+      await awaitQueueEmpty();
       await api(`/api/v1/matches/${matchId}/innings/${activeInnings.id}/end`, {
         method: "POST",
       });
-    });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function continueChase() {
     setChasePromptOpen(false);
-    await runAction(async () => {
+    setBusy(true);
+    try {
+      await awaitQueueEmpty();
       await api(`/api/v1/matches/${matchId}/chase/continue`, { method: "POST" });
-    });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   function addToSquad(side: "home" | "away", playerId: string) {
@@ -531,13 +591,13 @@ export function ScorePad({
           inningsNumber: ctx.canStartInnings!.inningsNumber,
         }),
       });
-      setStrikerId("");
-      setNonStrikerId("");
-      setBowlerId("");
+      setScoringStore((s) =>
+        setOnFieldPlayers(s, "", "", ""),
+      );
     });
   }
 
-  async function postDelivery(payload: Record<string, unknown>) {
+  function postDelivery(payload: Record<string, unknown>) {
     if (!activeInnings || !ctx) return;
     if (!ctx.scoringLock.canScore) {
       setError(
@@ -545,10 +605,6 @@ export function ScorePad({
           ? `${ctx.scoringLock.holderName ?? "Another manager"} is already scoring this match`
           : "Sign in as a club manager to score this match",
       );
-      return;
-    }
-    if (activeInnings.complete) {
-      setError(`Innings complete (${ctx.totalOvers} overs)`);
       return;
     }
     const incomingExtrasType = payload.extrasType as DeliveryEvent["extrasType"];
@@ -569,13 +625,15 @@ export function ScorePad({
       setError("Pick striker, non-striker, and bowler before scoring");
       return;
     }
-    const ball = activeInnings.nextBall;
-    const event: DeliveryEvent = {
-      overNumber: ball.overNumber,
-      ballInOver: ball.ballInOver,
-      strikerId,
-      nonStrikerId,
-      bowlerId,
+
+    const canRecord = canRecordMoreBalls(scoringStore);
+    if (!canRecord.ok) {
+      setError(canRecord.reason);
+      return;
+    }
+
+    setError(null);
+    const ballPayload: RecordBallPayload = {
       runsOffBat: Number(payload.runsOffBat ?? 0),
       extrasRuns: Number(payload.extrasRuns ?? 0),
       isLegalBall,
@@ -583,40 +641,22 @@ export function ScorePad({
       extrasRunsType: payload.extrasRunsType as DeliveryEvent["extrasRunsType"],
       wicketType: payload.wicketType as DeliveryEvent["wicketType"],
       dismissedBatsmanId: payload.dismissedBatsmanId as string | undefined,
+      fielderId: payload.fielderId as string | undefined,
     };
 
-    const updated = await runAction(async () => {
-      await api("/api/v1/deliveries", {
-        method: "POST",
-        body: JSON.stringify({
-          inningsId: activeInnings.id,
-          overNumber: ball.overNumber,
-          ballInOver: ball.ballInOver,
-          extrasRuns: 0,
-          strikerId,
-          nonStrikerId,
-          bowlerId,
-          ...payload,
-        }),
-      });
+    setScoringStore((prev) => {
+      const result = recordBallLocally(prev, ballPayload);
+      queueMicrotask(() => scheduleFlush(result.flushNow, result.state));
+      return result.state;
     });
-
-    const [nextStriker, nextNonStriker] = applyStrikeRotationsAfterDelivery(
-      strikerId,
-      nonStrikerId,
-      event,
-      { rotateStrikeAfterWicket: ctx.rotateStrikeAfterWicket },
-    );
-    setStrikerId(nextStriker);
-    setNonStrikerId(nextNonStriker);
     setExtrasOpen(null);
 
     const isEndOfOver = deliveryEndedOver(
       {
-        overNumber: ball.overNumber,
-        ballInOver: ball.ballInOver,
+        overNumber: activeInnings.nextBall.overNumber,
+        ballInOver: activeInnings.nextBall.ballInOver,
         isLegalBall,
-        extrasType: event.extrasType,
+        extrasType: ballPayload.extrasType,
       },
       scoringRulesProfile(ctx),
       ctx.totalOvers,
@@ -628,22 +668,10 @@ export function ScorePad({
     } else if (isEndOfOver && bowlingSquad.length > 2) {
       setBowlerId("");
     }
-
-    if (updated) {
-      const stillActive = updated.innings.find((i) => i.id === updated.activeInningsId);
-      if (
-        stillActive &&
-        updated.chase?.targetReached &&
-        !updated.chaseContinuedAfterTarget &&
-        !stillActive.complete
-      ) {
-        setChasePromptOpen(true);
-      }
-    }
   }
 
   async function recordExtra(payload: Record<string, unknown>) {
-    await postDelivery(payload);
+    postDelivery(payload);
     setExtrasOpen(null);
     requestAnimationFrame(() => {
       scoringKeysRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -666,20 +694,7 @@ export function ScorePad({
   }
 
   function syncOnFieldPlayersFromInnings(data: MatchScoringContext) {
-    const inn = data.innings.find((i) => i.id === data.activeInningsId);
-    if (!inn?.deliveries.length) return;
-    const events = inn.deliveries.map((d) => deliveryToEvent(d));
-    const strike = strikeAfterDeliveries(events, {
-      rotateStrikeAfterWicket: data.rotateStrikeAfterWicket,
-    });
-    if (strike) {
-      setStrikerId(strike.strikerId);
-      setNonStrikerId(strike.nonStrikerId);
-    }
-    if (!inn.bowlerLocked) {
-      const last = inn.deliveries[inn.deliveries.length - 1];
-      if (last) setBowlerId(last.bowlerId);
-    }
+    setScoringStore((s) => hydrateFromContext(s, data));
   }
 
   const editingDelivery = useMemo(
@@ -721,7 +736,7 @@ export function ScorePad({
   }
 
   async function recordRuns(runs: number) {
-    await postDelivery({ runsOffBat: runs, isLegalBall: true });
+    postDelivery({ runsOffBat: runs, isLegalBall: true });
   }
 
   async function recordWicket() {
@@ -749,10 +764,36 @@ export function ScorePad({
   }
 
   async function finalizeMatch() {
-    await runAction(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await awaitQueueEmpty();
       await api(`/api/v1/matches/${matchId}/finalize`, { method: "POST" });
-    });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
+
+  const liveChase = useMemo(() => {
+    if (!ctx?.chase || !activeInnings) return ctx?.chase ?? null;
+    return {
+      ...ctx.chase,
+      runsNeeded: Math.max(0, ctx.chase.targetRuns - activeInnings.totalRuns),
+      targetReached: activeInnings.totalRuns >= ctx.chase.targetRuns,
+    };
+  }, [ctx?.chase, activeInnings?.totalRuns]);
+
+  const syncLabel =
+    scoringStore.syncStatus === "saving"
+      ? "Saving…"
+      : scoringStore.syncStatus === "saved"
+        ? "Saved"
+        : scoringStore.syncStatus === "error"
+          ? "Sync error"
+          : null;
 
   if (!ctx) {
     return (
@@ -806,6 +847,17 @@ export function ScorePad({
           )}
         </div>
         <div className="sp-header-links">
+          {syncLabel && (
+            <button
+              type="button"
+              className={`sp-sync-status sp-sync-${scoringStore.syncStatus}`}
+              onClick={() => {
+                if (scoringStore.syncStatus === "error") scheduleFlush(true);
+              }}
+            >
+              {syncLabel}
+            </button>
+          )}
           <Link href={`/match/${matchId}`}>Scorecard</Link>
         </div>
       </header>
@@ -1178,10 +1230,10 @@ export function ScorePad({
                   : "—"}{" "}
                 · {activeInnings.displayOvers}/{ctx.totalOvers} ov
               </div>
-              {ctx.chase && (
+              {liveChase && (
                 <div className="sp-chase">
-                  Need <strong>{ctx.chase.runsNeeded}</strong> runs to win (target{" "}
-                  {ctx.chase.targetRuns})
+                  Need <strong>{liveChase.runsNeeded}</strong> runs to win (target{" "}
+                  {liveChase.targetRuns})
                 </div>
               )}
             </div>
@@ -1301,7 +1353,6 @@ export function ScorePad({
                   key={r}
                   type="button"
                   className="sp-key run"
-                  disabled={busy}
                   onClick={() => recordRuns(r)}
                 >
                   {r}
@@ -1312,7 +1363,6 @@ export function ScorePad({
               <button
                 type="button"
                 className={`sp-key extra${extrasOpen === "wide" ? " active" : ""}`}
-                disabled={busy}
                 onClick={() => setExtrasOpen((v) => (v === "wide" ? null : "wide"))}
               >
                 Wide
@@ -1320,7 +1370,6 @@ export function ScorePad({
               <button
                 type="button"
                 className={`sp-key extra${extrasOpen === "no_ball" ? " active" : ""}`}
-                disabled={busy}
                 onClick={() => setExtrasOpen((v) => (v === "no_ball" ? null : "no_ball"))}
               >
                 No ball
@@ -1328,7 +1377,6 @@ export function ScorePad({
               <button
                 type="button"
                 className={`sp-key extra${extrasOpen === "bye" ? " active" : ""}`}
-                disabled={busy}
                 onClick={() => setExtrasOpen((v) => (v === "bye" ? null : "bye"))}
               >
                 Bye
@@ -1336,7 +1384,6 @@ export function ScorePad({
               <button
                 type="button"
                 className={`sp-key extra${extrasOpen === "leg_bye" ? " active" : ""}`}
-                disabled={busy}
                 onClick={() => setExtrasOpen((v) => (v === "leg_bye" ? null : "leg_bye"))}
               >
                 Leg bye
@@ -1344,7 +1391,6 @@ export function ScorePad({
               <button
                 type="button"
                 className="sp-key wicket"
-                disabled={busy}
                 onClick={() => {
                   setExtrasOpen(null);
                   setDismissedId(strikerId);
@@ -1365,7 +1411,6 @@ export function ScorePad({
               <button
                 type="button"
                 className="sp-btn"
-                disabled={busy}
                 onClick={() =>
                   recordExtra({ runsOffBat: 0, isLegalBall: false, extrasType: "wide", extrasRuns: 0 })
                 }
@@ -1379,7 +1424,6 @@ export function ScorePad({
                     key={r}
                     type="button"
                     className="sp-key run"
-                    disabled={busy}
                     onClick={() =>
                       recordExtra({
                         runsOffBat: 0,
@@ -1452,7 +1496,6 @@ export function ScorePad({
                 <button
                   type="button"
                   className="sp-btn"
-                  disabled={busy}
                   onClick={() =>
                     recordExtra({ runsOffBat: 0, isLegalBall: false, extrasType: "no_ball", extrasRuns: 0 })
                   }
@@ -1496,7 +1539,6 @@ export function ScorePad({
                     key={r}
                     type="button"
                     className="sp-key run"
-                    disabled={busy}
                     onClick={() =>
                       recordExtra({
                         runsOffBat: 0,
@@ -1563,7 +1605,6 @@ export function ScorePad({
               <button
                 type="button"
                 className="sp-btn primary"
-                disabled={busy}
                 onClick={recordWicket}
               >
                 Confirm wicket

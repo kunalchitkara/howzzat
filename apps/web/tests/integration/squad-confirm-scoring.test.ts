@@ -669,7 +669,7 @@ describe("squad confirm and scoring e2e", () => {
         emptyParams(),
       ),
     );
-    const deliveryId = ball1.body.data.delivery.id as string;
+    const deliveryId = ball1.body.data.deliveryId as string;
 
     const patched = await readJson(
       await updateDeliveryRoute(

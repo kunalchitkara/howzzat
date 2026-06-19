@@ -17,6 +17,57 @@ describe("matches and scoring service", () => {
     fixtures = await seedTestFixtures(prisma);
   });
 
+  it("returns slim delivery response and supports idempotent clientDeliveryId", async () => {
+    const match = await createMatch(fixtures.tournamentId, {
+      homeTeamId: fixtures.tournamentTeamAId,
+      awayTeamId: fixtures.tournamentTeamBId,
+      playersPerSide: 8,
+    });
+
+    const innings = await createInnings(match.id, {
+      battingTeamId: fixtures.tournamentTeamAId,
+      inningsNumber: 1,
+    });
+
+    const [striker, nonStriker, bowler] = fixtures.playerIds;
+    const clientDeliveryId = "550e8400-e29b-41d4-a716-446655440000";
+
+    const r1 = await recordDelivery({
+      inningsId: innings.id,
+      clientDeliveryId,
+      overNumber: 1,
+      ballInOver: 1,
+      runsOffBat: 4,
+      extrasRuns: 0,
+      strikerId: striker!,
+      nonStrikerId: nonStriker!,
+      bowlerId: bowler!,
+    });
+
+    expect(r1.slim.deliveryId).toBeTruthy();
+    expect(r1.slim.innings.runs).toBe(204);
+    expect(r1.slim.nextBall).toEqual({ overNumber: 1, ballInOver: 2 });
+    expect(r1.slim.endOfOver).toBe(false);
+
+    const r2 = await recordDelivery({
+      inningsId: innings.id,
+      clientDeliveryId,
+      overNumber: 1,
+      ballInOver: 1,
+      runsOffBat: 4,
+      extrasRuns: 0,
+      strikerId: striker!,
+      nonStrikerId: nonStriker!,
+      bowlerId: bowler!,
+    });
+
+    expect(r2.delivery.id).toBe(r1.delivery.id);
+    expect(r2.slim.innings.runs).toBe(204);
+
+    const count = await prisma.delivery.count({ where: { inningsId: innings.id } });
+    expect(count).toBe(1);
+  });
+
   it("creates match and records deliveries with correct totals", async () => {
     const match = await createMatch(fixtures.tournamentId, {
       homeTeamId: fixtures.tournamentTeamAId,

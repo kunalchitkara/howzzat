@@ -472,6 +472,37 @@ button.sp-ball-bubble.selected {
   cursor: not-allowed;
 }
 
+.sp-header-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sp-sync-status {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: default;
+}
+
+.sp-sync-status.sp-sync-saving {
+  opacity: 0.85;
+}
+
+.sp-sync-status.sp-sync-saved {
+  opacity: 0.65;
+}
+
+.sp-sync-status.sp-sync-error {
+  cursor: pointer;
+  border-color: #ffb4b4;
+  background: rgba(255, 80, 80, 0.25);
+}
+
 .sp-header-links a {
   color: #fff;
   font-size: 0.8rem;

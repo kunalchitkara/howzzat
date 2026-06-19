@@ -163,6 +163,8 @@ export const updateDeliverySchema = z.object({
 
 export const createDeliverySchema = z.object({
   inningsId: z.string().cuid(),
+  /** Client UUID for idempotent delivery retries (optimistic scoring). */
+  clientDeliveryId: z.string().uuid().optional(),
   overNumber: z.number().int().min(1),
   ballInOver: z.number().int().min(1).max(9),
   isLegalBall: z.boolean().optional(),

@@ -15,6 +15,8 @@ import {
   maxLegalBalls,
 } from "@/lib/scoring/ball-position";
 import { buildHostResultLine } from "@/lib/scoring/match-result";
+import { buildRecordDeliveryResponse } from "@/lib/scoring/build-delivery-response";
+import type { RecordDeliveryResponse } from "@/lib/scoring/delivery-response";
 import { deliveryToEvent } from "./match-utils";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
@@ -555,13 +557,78 @@ export async function createInnings(matchId: string, input: CreateInningsInput) 
   return innings;
 }
 
-export async function recordDelivery(input: CreateDeliveryInput) {
+export async function recordDelivery(input: CreateDeliveryInput): Promise<{
+  delivery: Awaited<ReturnType<typeof prisma.delivery.create>>;
+  totals: ReturnType<typeof finalizeInnings>;
+  slim: RecordDeliveryResponse;
+}> {
+  if (input.clientDeliveryId) {
+    const existing = await prisma.delivery.findUnique({
+      where: { clientDeliveryId: input.clientDeliveryId },
+      include: {
+        innings: {
+          include: {
+            match: {
+              include: {
+                tournament: true,
+                homeTeam: { include: { team: true } },
+                awayTeam: { include: { team: true } },
+                squad: true,
+                innings: {
+                  orderBy: { inningsNumber: "asc" },
+                  include: {
+                    deliveries: { orderBy: { sequence: "asc" } },
+                  },
+                },
+              },
+            },
+            deliveries: { orderBy: { sequence: "asc" } },
+          },
+        },
+      },
+    });
+    if (existing) {
+      const match = existing.innings.match;
+      const profile = await getRulesProfileFromVersion(existing.rulesVersionId);
+      const config = resolveInningsConfigForBatting(
+        profile,
+        match,
+        existing.innings.battingTeamId,
+      );
+      const firstInnings =
+        existing.innings.inningsNumber === 2
+          ? match.innings.find((i) => i.inningsNumber === 1)
+          : null;
+      const slim = buildRecordDeliveryResponse({
+        delivery: existing,
+        allDeliveries: existing.innings.deliveries,
+        profile,
+        inningsConfig: config,
+        innings: existing.innings,
+        firstInningsTotalRuns: firstInnings?.totalRuns ?? null,
+      });
+      const events = existing.innings.deliveries.map(deliveryToEvent);
+      const totals = finalizeInnings(
+        replayInnings(profile, config, events),
+        profile,
+      );
+      return { delivery: existing, totals, slim };
+    }
+  }
+
   const innings = await prisma.innings.findUnique({
     where: { id: input.inningsId },
     include: {
       match: {
         include: {
           tournament: true,
+          homeTeam: { include: { team: true } },
+          awayTeam: { include: { team: true } },
+          squad: true,
+          innings: {
+            orderBy: { inningsNumber: "asc" },
+            select: { inningsNumber: true, totalRuns: true },
+          },
         },
       },
       deliveries: { orderBy: { sequence: "asc" } },
@@ -571,7 +638,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
     throw new ApiError(404, "Innings not found", "INNINGS_NOT_FOUND");
   }
 
-  const matchForConfig = await getMatch(innings.matchId);
+  const matchForConfig = innings.match;
   const profile = await getRulesProfileFromVersion(innings.rulesVersionId);
   const config = resolveInningsConfigForBatting(
     profile,
@@ -642,6 +709,7 @@ export async function recordDelivery(input: CreateDeliveryInput) {
   const delivery = await prisma.delivery.create({
     data: {
       inningsId: input.inningsId,
+      clientDeliveryId: input.clientDeliveryId,
       sequence,
       overNumber: input.overNumber,
       ballInOver: input.ballInOver,
@@ -692,7 +760,21 @@ export async function recordDelivery(input: CreateDeliveryInput) {
     });
   }
 
-  return { delivery, totals };
+  const allDeliveries = [...innings.deliveries, delivery];
+  const firstInningsTotalRuns =
+    innings.inningsNumber === 2
+      ? (innings.match.innings.find((i) => i.inningsNumber === 1)?.totalRuns ?? null)
+      : null;
+  const slim = buildRecordDeliveryResponse({
+    delivery,
+    allDeliveries,
+    profile,
+    inningsConfig: config,
+    innings: { ...innings, deliveries: allDeliveries },
+    firstInningsTotalRuns,
+  });
+
+  return { delivery, totals, slim };
 }
 
 async function persistInningsTotalsFromDeliveries(

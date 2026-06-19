@@ -6,9 +6,73 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
 
 | | |
 |---|---|
-| **Status** | Active development — rules engine, scorecard UI, live scorer, match simulator |
+| **Status** | Active development — coach dashboard, live scorer, public scorecards, wallet billing |
+| **Production** | [app.howzzat.uk](https://app.howzzat.uk) · demo deck at [/demo](https://app.howzzat.uk/demo) |
+| **Local dev** | [http://localhost:3005](http://localhost:3005) (default when port 3000 is busy) |
 | **Reference** | [edgeware-u9](https://github.com/kunalchitkara/edgeware-u9) — Edgware CC U9 Softball 2026 dashboard (production use today) |
-| **Stack** | Next.js · Expo · TypeScript · Prisma · Cloudflare D1 |
+| **Stack** | Next.js · Expo · TypeScript · Prisma · Turso (libSQL) · Vercel |
+
+### Current capabilities (Jun 2026)
+
+**Product — coach flow**
+
+- Sign up (Google, email code, or password) → create **organisation** → create **tournament** → add teams → **schedule match** by team names + date
+- No invites required to get started; scorer invites optional for multi-club fixtures
+- Tournament dashboard: fixtures, wallet, insights hub
+
+**Scoring**
+
+- Toss → confirm lineups → score ball-by-ball on web ScorePad
+- **Quick-add players** (2–15 per side) from roster or ad hoc at match start
+- **Optimistic local scoring** — UI updates instantly; deliveries sync in background with idempotent `clientDeliveryId`
+- Toss, overs, and squad size decided at match start (not baked into demo reset)
+
+**Rules**
+
+- **MJCA U9/U10/U11 templates** in tournament picker (not demo overs)
+- Bundled profiles reload on match load — deploy updates apply without re-seed
+- Overs and players-per-side set when squads are confirmed
+
+**Public**
+
+- Readable match slugs (`u9-edgware-hayes-YYYYMMDD`, tournament team slugs)
+- Live scorecard + **commentary** tab (ball-by-ball replay)
+- [`/demo`](https://app.howzzat.uk/demo) presentation deck for coaches
+- Tournament insights hub (leaderboards, extras discipline)
+
+**Wallet**
+
+- Post-match billing at finalize: **20p per player** on field
+- Stripe top-ups + **coupon codes** (admin API or `scripts/generate-coupon.ts`)
+
+**QA**
+
+- HTML reports in [`docs/reports/`](./docs/reports/) (scoring + coach walkthroughs)
+- E2E docs: [`docs/phase1-e2e.md`](./docs/phase1-e2e.md), [`docs/e2e-coach-walkthrough.md`](./docs/e2e-coach-walkthrough.md)
+- Golden **scorecard reconciliation** test: ball-by-ball → scoreboard arithmetic (`apps/web/tests/integration/scorecard-reconciliation.test.ts`)
+
+**Dev notes**
+
+- Default port **3005** — `cd apps/web && pnpm dev --port 3005`
+- Reset demos (no auth):
+
+  ```bash
+  curl -X POST http://localhost:3005/api/v1/demo/u9-match   # 4-over U9 pairs
+  curl -X POST http://localhost:3005/api/v1/demo/ios-match    # 2-over mobile demo
+  ```
+
+- Schema change **`clientDeliveryId`** on `Delivery` — run locally: `pnpm db:push`. Production Turso:
+
+  ```bash
+  turso db shell howzzat-production "ALTER TABLE Delivery ADD COLUMN clientDeliveryId TEXT;"
+  turso db shell howzzat-production "CREATE UNIQUE INDEX Delivery_clientDeliveryId_key ON Delivery(clientDeliveryId);"
+  ```
+
+**Architecture — optimistic scoring**
+
+- **`match-scoring-store`** — in-memory state; `recordBallLocally()` applies rules-engine replay for instant totals
+- **`use-match-scoring-sync`** — debounced outbox queue; POST `/api/v1/deliveries` with `clientDeliveryId` for idempotent retries
+- Server stores delivery + returns slim ack; client reconciles on flush (wickets and end-of-over flush immediately)
 
 ---
 
@@ -384,10 +448,10 @@ Cloudflare D1 remains an option for edge-native deploy later ([`wrangler.toml`](
 | **0** | Monorepo, rules engine, U9 profile, Prisma schema, Expo/Next skeleton | ✅ |
 | **1** | Auth (Google, SMS), org/tournament CRUD, invites | ✅ |
 | **2** | Full scorer UX (pairs, wides, fielders, squad picker) | ✅ Web ScorePad + mobile Phase 2 |
-| **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball UI |
-| **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🔲 |
-| **5** | Live scoring (SSE / Realtime), Turso production | 🟡 Vercel + Turso live |
-| **6** | Monetisation (wallet coupons, Stripe top-ups) | 🟡 |
+| **3** | Public dashboards (parity with edgeware-u9) | 🟡 Scorecard + ball-by-ball + commentary |
+| **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🟡 Reconciliation test ✅ |
+| **5** | Live scoring (SSE / Realtime), Turso production | 🟡 Vercel + Turso live; optimistic sync ✅ |
+| **6** | Monetisation (wallet coupons, Stripe top-ups) | 🟡 Post-match billing + coupons |
 
 ---
 

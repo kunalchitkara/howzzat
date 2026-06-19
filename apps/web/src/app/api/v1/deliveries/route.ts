@@ -20,5 +20,5 @@ export const POST = withApi(async (request) => {
   }
   await assertCanMutateScoring(innings.matchId, user);
   const result = await recordDelivery(input);
-  return json({ data: result }, 201);
+  return json({ data: result.slim }, 201);
 });

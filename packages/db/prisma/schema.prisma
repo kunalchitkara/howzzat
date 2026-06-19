@@ -546,6 +546,8 @@ model Innings {
 
 model Delivery {
   id                 String   @id @default(cuid())
+  /** Client-generated UUID for idempotent retries (optimistic scoring). */
+  clientDeliveryId   String?  @unique
   inningsId          String
   sequence           Int
   overNumber         Int
