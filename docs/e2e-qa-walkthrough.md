@@ -236,10 +236,10 @@ where `matchId` was the **URL slug** (`u9-ecc-test-hayes-20260619`), not the cui
 | B4 | Medium | Org dashboard | `/dashboard/organizations/ecc` → 404 | Navigate by org slug instead of id | Support slug in route or redirect | **Fixed** |
 | B5 | Medium | Tournament page | Duplicate **Test Hayes U9** in teams list | Add opponent via quick-add twice / UI + API race | Dedupe tournament teams by name; idempotent add | **Fixed** |
 | B6 | Low | Tournament schedule form | Home & Away both default to same opponent team | Open schedule form after adding Hayes | Reset away dropdown when home changes | **Fixed** |
-| B7 | Low | Tournament page | Next.js dev **“N Issues”** overlay | Run dev server, visit tournament page | Investigate console/hydration warnings | Open (dev-only) |
+| B7 | Low | Tournament page | Next.js dev **“N Issues”** overlay | Run dev server, visit tournament page | Investigate console/hydration warnings | **Wontfix** (dev-only) |
 | B8 | Low | Lineups | Confirm disabled — only 3 roster players, rules need 6+ | Open lineups for U9 ECC with small roster | Clearer “need N more players” CTA; U9 min 4 in MJCA profile | **Fixed** |
 | B9 | Low | Public URLs | `/t/{slug}` 404 | Visit `/t/test-ecc-u9` | Redirect or document `/orgs/{org}/tournaments/{slug}` | **Fixed** |
-| B10 | Low | Dashboard club link | Click on list item `<li>` intercepted | Click ECC card body on dashboard | Make entire card clickable or fix z-index | Open |
+| B10 | Low | Dashboard club link | Click on list item `<li>` intercepted | Click ECC card body on dashboard | Make entire card clickable or fix z-index | **Fixed** |
 | B11 | Info | Screenshot tooling | Full-page screenshots intermittently timeout | `browser_take_screenshot` with `fullPage: true` | Retry without fullPage (workaround used) | N/A |
 
 ---

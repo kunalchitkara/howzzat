@@ -71,8 +71,9 @@ test.describe("manager happy path", () => {
     await expect(page.getByText("U9 Lions vs U9 Tigers")).toBeVisible();
     await expect(page.getByText("Main Ground")).toBeVisible();
 
+    await page.getByText("Optional — invite co-managers or scorers").click();
     await page.getByLabel("Manager email").fill(managerEmail);
-    await page.getByRole("button", { name: "Send invite" }).click();
+    await page.getByRole("button", { name: "Create invite" }).click();
     const inviteLink = page.getByRole("link", { name: /\/invite\// });
     await expect(inviteLink).toBeVisible();
     const inviteHref = await inviteLink.getAttribute("href");

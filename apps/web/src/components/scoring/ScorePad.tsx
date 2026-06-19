@@ -44,8 +44,14 @@ function scoringRulesProfile(ctx: MatchScoringContext): RulesProfile {
   } as RulesProfile;
 }
 
-export function ScorePad({ matchId }: { matchId: string }) {
-  const [ctx, setCtx] = useState<MatchScoringContext | null>(null);
+export function ScorePad({
+  matchId,
+  initialCtx,
+}: {
+  matchId: string;
+  initialCtx?: MatchScoringContext;
+}) {
+  const [ctx, setCtx] = useState<MatchScoringContext | null>(initialCtx ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,21 +99,28 @@ export function ScorePad({ matchId }: { matchId: string }) {
   // Initial load only — do not depend on oversTouched; flipping it re-fetched and
   // syncDraftFromServer wiped unsaved squad picks on the first overs edit.
   useEffect(() => {
+    function applyBootstrap(data: MatchScoringContext) {
+      syncDraftFromServer(data);
+      if (data.matchTotalOvers != null) {
+        setDraftOvers(data.matchTotalOvers);
+      } else {
+        setDraftOvers(data.totalOvers);
+      }
+      if (data.toss.tossWinnerTeamId) {
+        setTossWinnerId(data.toss.tossWinnerTeamId);
+        setElectedTo((data.toss.electedTo as "bat" | "bowl") ?? "bat");
+      }
+    }
+
+    if (initialCtx) {
+      applyBootstrap(initialCtx);
+      return;
+    }
+
     refresh()
-      .then((data) => {
-        syncDraftFromServer(data);
-        if (data.matchTotalOvers != null) {
-          setDraftOvers(data.matchTotalOvers);
-        } else {
-          setDraftOvers(data.totalOvers);
-        }
-        if (data.toss.tossWinnerTeamId) {
-          setTossWinnerId(data.toss.tossWinnerTeamId);
-          setElectedTo((data.toss.electedTo as "bat" | "bowl") ?? "bat");
-        }
-      })
+      .then(applyBootstrap)
       .catch((e) => setError(String(e.message ?? e)));
-  }, [refresh, syncDraftFromServer]);
+  }, [refresh, syncDraftFromServer, initialCtx]);
 
   useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
@@ -727,7 +740,11 @@ export function ScorePad({ matchId }: { matchId: string }) {
   if (!ctx) {
     return (
       <div className="sp-wrap">
-        <p className="sp-muted">Loading scorer…</p>
+        <div className="sp-header sp-skeleton-header" aria-hidden />
+        <div className="sp-skeleton-body">
+          <p className="sp-muted">Loading scorer…</p>
+          <p className="sp-skeleton-hint">Fetching squads, toss, and match state</p>
+        </div>
         {error && <p className="sp-error">{error}</p>}
       </div>
     );

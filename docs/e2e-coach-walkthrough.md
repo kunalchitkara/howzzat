@@ -190,11 +190,11 @@ No org teams, roster, or manager invites were needed.
 | C1 | **High** | `/login` | Default **Email code** tab; Send code fails when Resend/bypass unset | Open login → Send code | Default to Password when OTP unavailable; document bypass in `.env.local` | **Fixed** (default tab) |
 | C2 | **Medium** | `/login` dev hint | Google redirect URI shows `localhost:3000` while dev uses **3005** | Open login → read yellow dev box | Set `NEXT_PUBLIC_APP_URL=http://localhost:3005` in `.env.local` | **Fixed** (code default 3005) |
 | C3 | Medium | `/` | Homepage hero always shows **Sign in** even with active session | Sign in → visit `/` | SSR session check on homepage hero | **Fixed** |
-| C4 | Low | Create org | After create, lands on dashboard root not org hub | Create club → observe redirect | Redirect to `/dashboard/organizations/{id}` | Open |
-| C5 | Low | Tournament dashboard | **Manager invites** section prominent; coaches may think invites are required | Open new tournament page | Collapse invites behind “Advanced” or add “optional” label | Open (deferred) |
-| C6 | Low | Homepage | **Demo** rules profiles listed in public marketing | Visit `/` | Separate “Try demos” from coach-facing copy | Open (deferred) |
-| C7 | Low | Scorer `/score` | **Loading scorer…** persists several seconds on first paint | Click Score immediately after schedule | Skeleton with step hint; prefetch match context | Open (deferred) |
-| C8 | Info | Dev tooling | Next.js **“1 Issue”** badge on several pages | Any dashboard page in dev | Inspect hydration/console warnings | Open (dev-only) |
+| C4 | Low | Create org | After create, lands on dashboard root not org hub | Create club → observe redirect | Redirect to `/dashboard/organizations/{id}` | **Fixed** |
+| C5 | Low | Tournament dashboard | **Manager invites** section prominent; coaches may think invites are required | Open new tournament page | Collapse invites behind “Advanced” or add “optional” label | **Fixed** |
+| C6 | Low | Homepage | **Demo** rules profiles listed in public marketing | Visit `/` | Separate “Try demos” from coach-facing copy | **Fixed** |
+| C7 | Low | Scorer `/score` | **Loading scorer…** persists several seconds on first paint | Click Score immediately after schedule | Skeleton with step hint; prefetch match context | **Fixed** |
+| C8 | Info | Dev tooling | Next.js **“1 Issue”** badge on several pages | Any dashboard page in dev | Inspect hydration/console warnings | **Wontfix** (dev-only) |
 
 ---
 

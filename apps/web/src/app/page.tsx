@@ -1,10 +1,4 @@
 import Image from "next/image";
-import {
-  getBuiltinProfile,
-  listBuiltinProfiles,
-} from "@howzzat/rules-engine";
-import { prisma } from "@/lib/db";
-import { matchPublicRef } from "@/lib/match-slug";
 import { getServerUser } from "@/lib/auth/server";
 import { BtnLink } from "@/components/dashboard/ui";
 
@@ -12,12 +6,6 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const user = await getServerUser();
-  const profiles = listBuiltinProfiles();
-  const u9 = getBuiltinProfile("u9-softball-london-v1");
-  const demoMatch = await prisma.match.findFirst({
-    where: { publicSlug: "demo-score" },
-    select: { id: true, slug: true },
-  });
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -40,7 +28,8 @@ export default async function HomePage() {
           style={{ height: "auto", maxWidth: "100%" }}
         />
         <p style={{ marginTop: 12, opacity: 0.9, color: "rgba(255,255,255,0.85)" }}>
-          Rules-aware stats, live scorecards, and public dashboards.
+          Rules-aware stats, live scorecards, and public dashboards for clubs and
+          tournaments.
         </p>
         <div className="btn-group" style={{ marginTop: 20 }}>
           {user ? (
@@ -53,8 +42,8 @@ export default async function HomePage() {
           ) : (
             <>
               <BtnLink href="/login">Sign in</BtnLink>
-              <BtnLink href="/dashboard" variant="secondary">
-                Club dashboard
+              <BtnLink href="/login" variant="secondary">
+                Create a club
               </BtnLink>
             </>
           )}
@@ -73,14 +62,16 @@ export default async function HomePage() {
         <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Who it&apos;s for</h2>
         <ul style={{ listStyle: "none", fontSize: "0.95rem", color: "#444" }}>
           <li style={{ padding: "6px 0" }}>
-            <strong>Managers</strong> — tournaments, squads, and fixtures
+            <strong>Managers</strong> — set up tournaments, squads, and fixtures in one
+            place
           </li>
           <li style={{ padding: "6px 0" }}>
-            <strong>Scorers</strong> — live ball-by-ball on web or mobile
+            <strong>Scorers</strong> — ball-by-ball scoring on web or mobile, with rules
+            built in
           </li>
           <li style={{ padding: "6px 0" }}>
-            <strong>Spectators</strong> — live and post-match scorecards via public link (no
-            account)
+            <strong>Spectators</strong> — follow live and post-match scorecards via a
+            public link (no account needed)
           </li>
         </ul>
       </section>
@@ -94,87 +85,41 @@ export default async function HomePage() {
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
-        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Built-in rules profiles</h2>
-        <ul style={{ listStyle: "none" }}>
-          {profiles.map((p) => (
-            <li key={p.id} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
-              <strong>{p.name}</strong>
-              <br />
-              <span style={{ fontSize: "0.9rem", color: "#666" }}>{p.description}</span>
-            </li>
-          ))}
+        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>What you get</h2>
+        <ul style={{ listStyle: "none", fontSize: "0.95rem", color: "#444" }}>
+          <li style={{ padding: "6px 0" }}>
+            Tournament and team management with age-group rules profiles
+          </li>
+          <li style={{ padding: "6px 0" }}>
+            Live scoring with squad confirmation, toss, and chase support
+          </li>
+          <li style={{ padding: "6px 0" }}>
+            Public scorecards and tournament pages for parents and supporters
+          </li>
         </ul>
-        {u9 && (
-          <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
-            Starting score: {u9.startingScore} · Wicket penalty: −{u9.wicketPenalty} ·{" "}
-            {u9.playersPerSide.min}–{u9.playersPerSide.max} players
+      </section>
+
+      {!user && (
+        <section
+          style={{
+            background: "#fff",
+            borderRadius: 12,
+            padding: "1.5rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Get started</h2>
+          <p style={{ fontSize: "0.95rem", color: "#444", marginBottom: 16 }}>
+            Sign in to create your club, schedule fixtures, and share live scorecards.
           </p>
-        )}
-      </section>
-
-      <section
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          padding: "1.5rem",
-          marginBottom: "1rem",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Try it</h2>
-        <div className="btn-group">
-          <BtnLink href="/login">Club dashboard</BtnLink>
-          <BtnLink href="/orgs/edgware-cc/tournaments/u9-2026" variant="secondary">
-            Public tournament
-          </BtnLink>
-          <BtnLink href="/demo/scorecard" variant="secondary">
-            Scorecard demo
-          </BtnLink>
-          <BtnLink href="/demo/simulated" variant="secondary">
-            Simulated match
-          </BtnLink>
-          {demoMatch && (
-            <BtnLink href={`/match/${matchPublicRef(demoMatch)}/score`} variant="secondary">
-              U9 full squad scorer
+          <div className="btn-group">
+            <BtnLink href="/login">Sign in or sign up</BtnLink>
+            <BtnLink href="/orgs/edgware-cc/tournaments/u9-2026" variant="secondary">
+              See a public tournament
             </BtnLink>
-          )}
-          <BtnLink href="/demo/u9-score" variant="secondary">
-            U9 4-over demo
-          </BtnLink>
-        </div>
-        <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
-          Reset U9 demo: <code>POST /api/v1/demo/u9-match</code> — pick 2–11 from 10 per
-          side, 4 overs each, 200 start, −5 per wicket.
-        </p>
-      </section>
-
-      <section
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          padding: "1.5rem",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ color: "var(--dk)", marginBottom: 12 }}>Developers</h2>
-        <div className="btn-group">
-          <BtnLink href="/demo/scorecard" variant="secondary">
-            Scorecard demo (Edgware M4)
-          </BtnLink>
-          <BtnLink href="/api/health" variant="secondary">
-            API health
-          </BtnLink>
-          <BtnLink href="/api/v1/organizations" variant="secondary">
-            Organizations API
-          </BtnLink>
-          <BtnLink href="/api/v1/rules/profiles" variant="secondary">
-            Rules profiles
-          </BtnLink>
-        </div>
-        <p style={{ marginTop: 12, fontSize: "0.85rem", color: "#666" }}>
-          Full REST docs: <code>docs/api.md</code> in the repo
-        </p>
-      </section>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

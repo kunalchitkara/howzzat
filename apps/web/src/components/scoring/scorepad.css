@@ -6,6 +6,21 @@
   padding-bottom: 32px;
 }
 
+.sp-skeleton-header {
+  min-height: 72px;
+  opacity: 0.55;
+}
+
+.sp-skeleton-body {
+  padding: 20px 16px;
+}
+
+.sp-skeleton-hint {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 8px;
+}
+
 .sp-header {
   display: flex;
   justify-content: space-between;

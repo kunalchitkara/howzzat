@@ -62,6 +62,7 @@ function useSubmit<T>(onDone?: () => void) {
 }
 
 export function CreateOrgForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const { run, error, busy } = useSubmit<{ id: string }>();
 
@@ -70,7 +71,12 @@ export function CreateOrgForm() {
       style={card}
       onSubmit={(e) => {
         e.preventDefault();
-        void run("/api/v1/organizations", { name }, "/dashboard");
+        void run("/api/v1/organizations", { name }).then((org) => {
+          if (org?.id) {
+            router.push(`/dashboard/organizations/${org.id}`);
+            router.refresh();
+          }
+        });
       }}
     >
       <Field label="Club name">

@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
+
+const cardLink: CSSProperties = {
+  ...card,
+  display: "block",
+  textDecoration: "none",
+  color: "inherit",
+};
 import { listOrganizationsForUser } from "@/lib/services/organizations";
 import { listTournamentsForUser } from "@/lib/services/tournaments";
 import { getServerUser } from "@/lib/auth/server";
@@ -30,10 +38,10 @@ export default async function DashboardPage() {
           </h2>
           <ul style={{ listStyle: "none" }}>
             {managedTournaments.map((t) => (
-              <li key={t.id} style={card}>
+              <li key={t.id}>
                 <Link
                   href={`/dashboard/organizations/${t.organizationId}/tournaments/${t.id}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
+                  style={cardLink}
                 >
                   <strong style={{ fontSize: "1.05rem", color: "var(--dk)" }}>
                     {t.name}
@@ -75,11 +83,8 @@ export default async function DashboardPage() {
                   : `${managedCount} tournaments you manage`;
 
               return (
-                <li key={org.id} style={card}>
-                  <Link
-                    href={`/dashboard/organizations/${org.id}`}
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
+                <li key={org.id}>
+                  <Link href={`/dashboard/organizations/${org.id}`} style={cardLink}>
                     <strong style={{ fontSize: "1.1rem", color: "var(--dk)" }}>
                       {org.name}
                     </strong>

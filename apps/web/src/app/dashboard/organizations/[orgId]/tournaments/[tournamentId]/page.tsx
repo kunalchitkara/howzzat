@@ -192,21 +192,35 @@ export default async function TournamentDashboardPage({
       </section>
 
       <section>
-        <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
-          Manager invites
-        </h2>
-        <InviteList
-          tournamentId={tournamentId}
-          invites={invites.map((inv) => ({
-            id: inv.id,
-            email: inv.email,
-            kind: inv.kind,
-            role: inv.role,
-            token: inv.token,
-            team: inv.team ? { name: inv.team.name } : null,
-          }))}
-        />
-        <InviteForm tournamentId={tournamentId} teams={orgTeams} />
+        <details>
+          <summary
+            style={{
+              color: "var(--dk)",
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              listStyle: "none",
+            }}
+          >
+            Optional — invite co-managers or scorers
+          </summary>
+          <p style={{ color: "#666", fontSize: "0.9rem", margin: "12px 0 16px" }}>
+            Invites are not required to run a tournament. Share a link only if you want
+            someone else to help manage fixtures or score matches.
+          </p>
+          <InviteList
+            tournamentId={tournamentId}
+            invites={invites.map((inv) => ({
+              id: inv.id,
+              email: inv.email,
+              kind: inv.kind,
+              role: inv.role,
+              token: inv.token,
+              team: inv.team ? { name: inv.team.name } : null,
+            }))}
+          />
+          <InviteForm tournamentId={tournamentId} teams={orgTeams} />
+        </details>
       </section>
     </PageShell>
   );

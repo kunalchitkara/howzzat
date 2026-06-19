@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { ScorePad } from "@/components/scoring/ScorePad";
+import { getServerUser } from "@/lib/auth/server";
 import { matchPublicRef } from "@/lib/match-slug";
 import { getMatch, shouldRedirectToMatchSlug } from "@/lib/services/matches";
+import { getMatchScoringContext } from "@/lib/services/scoring";
 
 export const metadata = {
   title: "Score match — Howzzat",
@@ -17,10 +19,12 @@ export default async function MatchScorePage({
   if (shouldRedirectToMatchSlug(matchId, match)) {
     redirect(`/match/${match.slug}/score`);
   }
+  const user = await getServerUser();
+  const initialCtx = await getMatchScoringContext(match.id, user);
   const matchUrlRef = matchPublicRef(match);
   return (
     <main>
-      <ScorePad matchId={matchUrlRef} />
+      <ScorePad matchId={matchUrlRef} initialCtx={initialCtx} />
     </main>
   );
 }
