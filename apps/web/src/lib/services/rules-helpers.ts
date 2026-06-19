@@ -1,4 +1,5 @@
 import type { RulesProfile } from "@howzzat/rules-engine";
+import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 
@@ -9,11 +10,20 @@ export async function getRulesProfileFromVersion(
 ): Promise<RulesProfile> {
   const version = await prisma.rulesProfileVersion.findUnique({
     where: { id: versionId },
+    include: { template: true },
   });
   if (!version) {
     throw new ApiError(404, "Rules profile version not found", "RULES_NOT_FOUND");
   }
-  return JSON.parse(version.configJson) as RulesProfile;
+  const stored = JSON.parse(version.configJson) as RulesProfile;
+  const builtinId = version.template.builtinId;
+  if (builtinId) {
+    const builtin = getBuiltinProfile(builtinId);
+    if (builtin) {
+      return { ...builtin, version: stored.version ?? builtin.version };
+    }
+  }
+  return stored;
 }
 
 /**
