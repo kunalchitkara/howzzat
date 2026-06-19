@@ -6,6 +6,10 @@ async function slideTitle(page: import("@playwright/test").Page) {
   return page.locator(".slide.active").getAttribute("data-title");
 }
 
+async function activeHeading(page: import("@playwright/test").Page) {
+  return page.locator(".slide.active h1").first().textContent();
+}
+
 async function slideCount(page: import("@playwright/test").Page) {
   return page.locator(".slide").count();
 }
@@ -25,15 +29,33 @@ test.describe("demo presentation slides", () => {
   test("right arrow and next zone advance slides", async ({ page }) => {
     const total = await slideCount(page);
 
+    await expect(await activeHeading(page)).toBe("Howzzat");
+
     await page.keyboard.press("ArrowRight");
     await waitForSlideTransition(page);
     await expect(page.locator("#counter")).toHaveText(`2 / ${total}`);
     await expect(await slideTitle(page)).toBe("Overview");
+    await expect(await activeHeading(page)).toBe("What you'll see today");
 
     await page.locator("#nextZone").click({ position: { x: 10, y: 200 } });
     await waitForSlideTransition(page);
     await expect(page.locator("#counter")).toHaveText(`3 / ${total}`);
     await expect(await slideTitle(page)).toBe("Auth");
+    await expect(await activeHeading(page)).toBe("Sign in — three ways");
+  });
+
+  test("slide content changes across the deck", async ({ page }) => {
+    const total = await slideCount(page);
+    await expect(await activeHeading(page)).toBe("Howzzat");
+
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("ArrowRight");
+      await waitForSlideTransition(page);
+    }
+
+    await expect(page.locator("#counter")).toHaveText(`5 / ${total}`);
+    await expect(await slideTitle(page)).toBe("Scheduling");
+    await expect(await activeHeading(page)).toBe("Schedule a match");
   });
 
   test("left arrow and prev zone go to prior slide", async ({ page }) => {

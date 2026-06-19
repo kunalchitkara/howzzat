@@ -17,7 +17,7 @@ export function DemoPresentation() {
 
   const getSlides = useCallback(() => {
     if (!slidesRef.current) return [];
-    return Array.from(slidesRef.current.querySelectorAll<HTMLElement>(".slide"));
+    return Array.from(slidesRef.current.querySelectorAll<HTMLElement>(":scope > .slide"));
   }, []);
 
   const updateChrome = useCallback(
@@ -55,10 +55,16 @@ export function DemoPresentation() {
   const next = useCallback(() => goTo(currentRef.current + 1, 1), [goTo]);
   const prev = useCallback(() => goTo(currentRef.current - 1, -1), [goTo]);
 
+  // Inject slide markup once. dangerouslySetInnerHTML on render would reset the DOM
+  // whenever React re-renders after goTo() mutates slide classes.
   useEffect(() => {
+    const container = slidesRef.current;
+    if (!container || container.querySelector(":scope > .slide")) return;
+
+    container.innerHTML = SLIDES_HTML;
     const slides = getSlides();
     setTotal(slides.length);
-    updateChrome(0, slides.length);
+    updateChrome(currentRef.current, slides.length);
   }, [getSlides, updateChrome]);
 
   useEffect(() => {
@@ -159,12 +165,7 @@ export function DemoPresentation() {
           }}
         />
 
-        <div
-          className="slides"
-          id="slides"
-          ref={slidesRef}
-          dangerouslySetInnerHTML={{ __html: SLIDES_HTML }}
-        />
+        <div className="slides" id="slides" ref={slidesRef} />
       </div>
     </div>
   );
