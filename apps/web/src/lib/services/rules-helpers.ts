@@ -5,6 +5,14 @@ import { ApiError } from "../api/http";
 
 const DEMO_TOURNAMENT_SLUGS = new Set(["ios-demo", "u9-demo"]);
 
+/** Coach tournament still resolving to a demo-sized squad cap (e.g. max 2). */
+export function coachTournamentStuckOnDemoCap(
+  tournamentSlug: string,
+  squadMax: number,
+): boolean {
+  return squadMax <= 2 && !DEMO_TOURNAMENT_SLUGS.has(tournamentSlug);
+}
+
 export async function getRulesProfileFromVersion(
   versionId: string,
 ): Promise<RulesProfile> {

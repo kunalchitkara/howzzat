@@ -1061,8 +1061,12 @@ export function ScorePad({
                       />
                       <button
                         type="button"
-                        className="sp-quick-add-btn"
-                        disabled={busy || selectedIds.length >= squadMax || !quickAddName[side].trim()}
+                        className="btn btn-primary sp-quick-add-btn"
+                        disabled={
+                          busy ||
+                          quickAddBusySide === side ||
+                          selectedIds.length >= squadMax
+                        }
                         aria-label={`Add player to ${teamLabel}`}
                         onClick={() => void quickAddPlayer(side)}
                       >

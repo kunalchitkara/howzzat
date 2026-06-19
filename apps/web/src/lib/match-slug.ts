@@ -43,14 +43,18 @@ export function buildMatchSlug(params: {
 export async function allocateUniqueMatchSlug(
   prisma: Pick<PrismaClient, "match">,
   base: string,
+  excludeMatchId?: string,
 ): Promise<string> {
   let candidate = base;
   let suffix = 2;
-  while (await prisma.match.findUnique({ where: { slug: candidate } })) {
+  while (true) {
+    const existing = await prisma.match.findUnique({ where: { slug: candidate } });
+    if (!existing || (excludeMatchId && existing.id === excludeMatchId)) {
+      return candidate;
+    }
     candidate = `${base}-${suffix}`;
     suffix += 1;
   }
-  return candidate;
 }
 
 /** Prefer slug in public URLs; fall back to id for legacy rows. */

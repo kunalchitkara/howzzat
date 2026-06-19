@@ -22,7 +22,7 @@ import {
   getTournament,
   getTournamentBySlug,
 } from "@/lib/services/tournaments";
-import { createMatch } from "@/lib/services/matches";
+import { cancelOrDeleteMatch, createMatch, updateMatch } from "@/lib/services/matches";
 import { cloneRulesProfile } from "@/lib/services/rules";
 
 function availableOrgTeams(
@@ -182,6 +182,95 @@ describe("teams and tournaments service", () => {
 
     expect(match.scheduledAt?.toISOString()).toBe(scheduledAt);
     expect(match.slug).toMatch(/20260712/);
+  });
+
+  it("updates scheduledAt and slug for scheduled matches", async () => {
+    const org = await createOrganization({ name: "Reschedule Club" });
+    const teamA = await createTeam(org.id, { name: "Home XI", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Away XI", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Reschedule Cup",
+      ageGroup: "U9",
+      rulesProfileVersionId: version.id,
+    });
+    const ttHome = await addTeamToTournament(tournament.id, teamA.id);
+    const ttAway = await addTeamToTournament(tournament.id, teamB.id);
+
+    const match = await createMatch(tournament.id, {
+      homeTeamId: ttHome.id,
+      awayTeamId: ttAway.id,
+      scheduledAt: "2026-07-12T10:00:00.000Z",
+    });
+
+    const updated = await updateMatch(match.id, {
+      scheduledAt: "2026-08-01T10:00:00.000Z",
+    });
+    expect(updated.scheduledAt?.toISOString()).toBe("2026-08-01T10:00:00.000Z");
+    expect(updated.slug).toMatch(/20260801$/);
+  });
+
+  it("rejects rescheduling live matches", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+      scheduledAt: "2026-06-04T10:00:00.000Z",
+    });
+    await prisma.match.update({ where: { id: match.id }, data: { status: "LIVE" } });
+
+    await expect(
+      updateMatch(match.id, { scheduledAt: "2026-06-19T10:00:00.000Z" }),
+    ).rejects.toMatchObject({ code: "MATCH_NOT_SCHEDULED" });
+  });
+
+  it("deletes scheduled fixtures without scoring data", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+    });
+
+    const result = await cancelOrDeleteMatch(match.id);
+    expect(result.deleted).toBe(true);
+    expect(await prisma.match.findUnique({ where: { id: match.id } })).toBeNull();
+  });
+
+  it("soft-cancels live fixtures that have deliveries", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+    });
+    const innings = await prisma.innings.create({
+      data: {
+        matchId: match.id,
+        battingTeamId: fx.tournamentTeamAId,
+        inningsNumber: 1,
+        rulesVersionId: fx.rulesVersionId,
+      },
+    });
+    await prisma.delivery.create({
+      data: {
+        inningsId: innings.id,
+        sequence: 1,
+        overNumber: 1,
+        ballInOver: 1,
+        isLegalBall: true,
+        runsOffBat: 1,
+        extrasRuns: 0,
+        strikerId: fx.playerIds[0]!,
+        nonStrikerId: fx.playerIds[1]!,
+        bowlerId: fx.playerIds[2]!,
+        rulesVersionId: fx.rulesVersionId,
+      },
+    });
+    await prisma.match.update({ where: { id: match.id }, data: { status: "LIVE" } });
+
+    const result = await cancelOrDeleteMatch(match.id);
+    expect(result.cancelled).toBe(true);
+    const row = await prisma.match.findUnique({ where: { id: match.id } });
+    expect(row?.status).toBe("ABANDONED");
   });
 
   it("creates a match from team names without pre-enrolled teams", async () => {

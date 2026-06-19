@@ -5,14 +5,15 @@ import {
   InviteForm,
 } from "@/components/dashboard/forms";
 import { InviteList } from "@/components/dashboard/InviteList";
+import { FixtureList } from "@/components/dashboard/FixtureList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
-import { matchPublicRef } from "@/lib/match-slug";
 import { getTournament, dedupeTournamentTeamsByName, isExternalTeam } from "@/lib/services/tournaments";
 import { getTournamentInsights } from "@/lib/services/tournament-insights";
 import { getOrganization } from "@/lib/services/organizations";
 import { listInvites } from "@/lib/services/invites";
 import { ApiError } from "@/lib/api/http";
+import { prisma } from "@howzzat/db";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,30 @@ export default async function TournamentDashboardPage({
       name: tt.team.name,
     })),
   );
+
+  const matchesWithDeliveries = new Set(
+    (
+      await prisma.innings.findMany({
+        where: {
+          matchId: { in: tournament.matches.map((m) => m.id) },
+          deliveries: { some: {} },
+        },
+        select: { matchId: true },
+        distinct: ["matchId"],
+      })
+    ).map((row) => row.matchId),
+  );
+  const fixtureRows = tournament.matches.map((m) => ({
+    id: m.id,
+    slug: m.slug,
+    status: m.status,
+    scheduledAt: m.scheduledAt?.toISOString() ?? null,
+    venue: m.venue,
+    marginText: m.marginText,
+    homeTeamName: m.homeTeam.team.name,
+    awayTeamName: m.awayTeam.team.name,
+    hasDeliveries: matchesWithDeliveries.has(m.id),
+  }));
 
   return (
     <PageShell
@@ -134,42 +159,7 @@ export default async function TournamentDashboardPage({
         <h2 style={{ color: "var(--dk)", marginBottom: 12, fontSize: "1.1rem" }}>
           Fixtures ({tournament.matches.length})
         </h2>
-        <ul style={{ listStyle: "none", marginBottom: 16 }}>
-          {tournament.matches.map((m) => (
-            <li key={m.id} style={card}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <strong>
-                    {m.homeTeam.team.name} vs {m.awayTeam.team.name}
-                  </strong>
-                  <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
-                    {m.status}
-                    {m.scheduledAt
-                      ? ` · ${m.scheduledAt.toISOString().slice(0, 10)}`
-                      : ""}
-                    {m.venue ? ` · ${m.venue}` : ""}
-                    {m.marginText ? ` · ${m.marginText}` : ""}
-                  </p>
-                </div>
-                <div
-                  className="btn-group"
-                  style={{ justifyContent: "flex-end", gap: 8 }}
-                >
-                  <BtnLink
-                    href={`/match/${matchPublicRef(m)}`}
-                    variant="secondary"
-                    className="btn-nav"
-                  >
-                    Scorecard
-                  </BtnLink>
-                  <BtnLink href={`/match/${matchPublicRef(m)}/score`} className="btn-nav">
-                    Score
-                  </BtnLink>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <FixtureList fixtures={fixtureRows} />
         <CreateMatchForm
           key={tournamentTeams.map((t) => t.id).join(",")}
           tournamentId={tournamentId}

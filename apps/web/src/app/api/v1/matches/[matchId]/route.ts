@@ -1,7 +1,7 @@
 import { json, parseJson } from "@/lib/api/http";
 import { withApi } from "@/lib/api/handler";
 import { updateMatchSchema } from "@/lib/validations";
-import { getMatch, updateMatch } from "@/lib/services/matches";
+import { cancelOrDeleteMatch, getMatch, updateMatch } from "@/lib/services/matches";
 
 export const runtime = "nodejs";
 
@@ -16,4 +16,10 @@ export const PATCH = withApi(async (request, { params }) => {
   const input = await parseJson(request, updateMatchSchema);
   const match = await updateMatch(matchId, input);
   return json({ data: match });
+});
+
+export const DELETE = withApi(async (_request, { params }) => {
+  const { matchId } = await params;
+  const result = await cancelOrDeleteMatch(matchId);
+  return json({ data: result });
 });

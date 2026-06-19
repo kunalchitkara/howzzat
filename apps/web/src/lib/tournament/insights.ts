@@ -1,4 +1,5 @@
 import type { BatterRow, BowlerRow } from "@/lib/scorecard/types";
+import { formatFixtureDate } from "@/lib/format-date";
 
 export interface TournamentFixture {
   id: string;
@@ -114,7 +115,7 @@ export function buildFixtures(matches: MatchResultInput[]): TournamentFixture[] 
     awayScore: m.awayScore,
     marginText: m.marginText,
     venue: m.venue,
-    scheduledAt: m.scheduledAt?.toISOString().slice(0, 10) ?? null,
+    scheduledAt: formatFixtureDate(m.scheduledAt),
     isLive: m.status === "LIVE",
   }));
 }

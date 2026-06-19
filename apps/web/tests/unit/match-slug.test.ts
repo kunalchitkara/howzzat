@@ -9,7 +9,7 @@ import {
   teamMatchSlug,
 } from "@/lib/match-slug";
 import { createMatch } from "@/lib/services/matches";
-import { GET as getMatchRoute } from "@/app/api/v1/matches/[matchId]/route";
+import { GET as getMatchRoute, PATCH as patchMatchRoute, DELETE as deleteMatchRoute } from "@/app/api/v1/matches/[matchId]/route";
 import { jsonRequest, params, readJson } from "../helpers/request";
 
 describe("match slug helpers", () => {
@@ -125,5 +125,92 @@ describe("match slug API", () => {
 
     expect(first.slug).toMatch(/^u9-team-a-team-b-20260604$/);
     expect(second.slug).toBe(`${first.slug}-2`);
+  });
+
+  it("PATCH scheduledAt updates date and slug for scheduled matches", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+      scheduledAt: "2026-06-04T10:00:00.000Z",
+    });
+
+    const res = await readJson(
+      await patchMatchRoute(
+        jsonRequest("PATCH", `/api/v1/matches/${match.id}`, {
+          scheduledAt: "2026-06-19T10:00:00.000Z",
+        }),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.data.scheduledAt).toBe("2026-06-19T10:00:00.000Z");
+    expect(res.body.data.slug).toMatch(/20260619$/);
+  });
+
+  it("PATCH scheduledAt rejects live matches", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+      scheduledAt: "2026-06-04T10:00:00.000Z",
+    });
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { status: "LIVE" },
+    });
+
+    const res = await readJson(
+      await patchMatchRoute(
+        jsonRequest("PATCH", `/api/v1/matches/${match.id}`, {
+          scheduledAt: "2026-06-19T10:00:00.000Z",
+        }),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("MATCH_NOT_SCHEDULED");
+  });
+
+  it("DELETE removes scheduled fixture without scoring data", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+      scheduledAt: "2026-06-04T10:00:00.000Z",
+    });
+
+    const res = await readJson(
+      await deleteMatchRoute(
+        jsonRequest("DELETE", `/api/v1/matches/${match.id}`),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.data.deleted).toBe(true);
+
+    const gone = await prisma.match.findUnique({ where: { id: match.id } });
+    expect(gone).toBeNull();
+  });
+
+  it("DELETE rejects completed matches", async () => {
+    const fx = await seedTestFixtures(prisma);
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamAId,
+      awayTeamId: fx.tournamentTeamBId,
+    });
+    await prisma.match.update({
+      where: { id: match.id },
+      data: { status: "COMPLETED" },
+    });
+
+    const res = await readJson(
+      await deleteMatchRoute(
+        jsonRequest("DELETE", `/api/v1/matches/${match.id}`),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("MATCH_COMPLETED");
   });
 });

@@ -999,11 +999,11 @@ button.sp-ball-bubble.selected {
   flex: 1 1 8rem;
   min-width: 0;
   max-width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9999px;
-  font-size: 0.95rem;
+  height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
   font-family: inherit;
   background: #fff;
   color: var(--dk);
@@ -1020,28 +1020,14 @@ button.sp-ball-bubble.selected {
   background: #f5f8fb;
 }
 
+/* Layout only — colours from globals `.btn.btn-primary`. */
 .sp-quick-add-btn {
   flex: 0 1 auto;
+  height: 44px;
   min-height: 44px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 9999px;
-  background: var(--brand-primary, #3b82f6);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.8rem;
-  font-family: inherit;
-  cursor: pointer;
+  padding: 0 16px;
+  font-size: 0.95rem;
   white-space: nowrap;
-}
-
-.sp-quick-add-btn:hover:not(:disabled) {
-  filter: brightness(1.06);
-}
-
-.sp-quick-add-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 @media (max-width: 380px) {
@@ -1051,7 +1037,5 @@ button.sp-ball-bubble.selected {
 
   .sp-quick-add-btn {
     width: 100%;
-    padding: 12px 16px;
-    font-size: 0.9rem;
   }
 }

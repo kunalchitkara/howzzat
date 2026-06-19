@@ -25,7 +25,7 @@ import {
   buildMatchSlug,
   isCuid,
 } from "../match-slug";
-import { getRulesProfileFromVersion, resolveRulesVersionIdForCoachTournament } from "./rules-helpers";
+import { getRulesProfileFromVersion, resolveRulesVersionIdForCoachTournament, coachTournamentStuckOnDemoCap } from "./rules-helpers";
 import { chargeMatchAtFinalize } from "./tournament-billing";
 import {
   findOrCreateTournamentTeamByName,
@@ -206,13 +206,54 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
   });
 }
 
+async function matchHasDeliveries(matchId: string): Promise<boolean> {
+  const count = await prisma.delivery.count({
+    where: { innings: { matchId } },
+  });
+  return count > 0;
+}
+
+async function slugForRescheduledMatch(
+  match: Awaited<ReturnType<typeof getMatch>>,
+  scheduledAt: Date,
+): Promise<string> {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: match.tournamentId },
+    select: { ageGroup: true },
+  });
+  const base = buildMatchSlug({
+    ageGroup: tournament?.ageGroup,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    scheduledAt,
+    createdAt: match.createdAt,
+  });
+  return allocateUniqueMatchSlug(prisma, base, match.id);
+}
+
 export async function updateMatch(matchId: string, input: UpdateMatchInput) {
   const match = await getMatch(matchId);
+
+  if (input.scheduledAt !== undefined && match.status !== "SCHEDULED") {
+    throw new ApiError(
+      400,
+      "Only scheduled fixtures can be rescheduled",
+      "MATCH_NOT_SCHEDULED",
+    );
+  }
+
+  const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : undefined;
+  const slug =
+    scheduledAt !== undefined
+      ? await slugForRescheduledMatch(match, scheduledAt)
+      : undefined;
+
   return prisma.match.update({
     where: { id: match.id },
     data: {
       status: input.status,
-      scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
+      scheduledAt,
+      slug,
       venue: input.venue,
       resultSummary: input.resultSummary,
       homeScore: input.homeScore,
@@ -225,6 +266,38 @@ export async function updateMatch(matchId: string, input: UpdateMatchInput) {
     },
     include: matchInclude,
   });
+}
+
+export async function cancelOrDeleteMatch(matchId: string) {
+  const match = await getMatch(matchId);
+
+  if (match.status === "COMPLETED") {
+    throw new ApiError(
+      400,
+      "Completed matches cannot be cancelled",
+      "MATCH_COMPLETED",
+    );
+  }
+  if (match.status === "ABANDONED" || match.status === "WALKOVER") {
+    throw new ApiError(
+      400,
+      "This match is already closed",
+      "MATCH_NOT_CANCELLABLE",
+    );
+  }
+
+  const hasDeliveries = await matchHasDeliveries(match.id);
+
+  if (!hasDeliveries) {
+    await prisma.match.delete({ where: { id: match.id } });
+    return { deleted: true, cancelled: false };
+  }
+
+  await prisma.match.update({
+    where: { id: match.id },
+    data: { status: "ABANDONED" },
+  });
+  return { deleted: false, cancelled: true };
 }
 
 /** Record toss (before lineups). Returns batting team id for 1st innings once squads are confirmed. */
@@ -356,11 +429,11 @@ export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput
   const squadMax = profile.playersPerSide.max;
   const sideCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
   if (sideCount >= squadMax) {
-    throw new ApiError(
-      400,
-      `${tournamentTeam.team.name} already has ${squadMax} players — remove someone before adding another`,
-      "SQUAD_TOO_LARGE",
-    );
+    const teamName = tournamentTeam.team.name;
+    const message = coachTournamentStuckOnDemoCap(match.tournament.slug, squadMax)
+      ? `${teamName} already has ${squadMax} players under the current demo rules cap. MJCA U9 allows up to 15 per side — refresh this page to reload tournament rules, or check the rules profile in the dashboard.`
+      : `${teamName} already has ${squadMax} players — remove someone before adding another`;
+    throw new ApiError(400, message, "SQUAD_TOO_LARGE");
   }
 
   await assertUniquePlayerNameOnMatchSide(matchId, orgTeamId, legalName);
