@@ -828,6 +828,11 @@ button.sp-ball-bubble.selected {
   margin-bottom: 8px;
 }
 
+/* Grid items default to min-width: auto, which lets flex children overflow the card. */
+.sp-roster-cols > * {
+  min-width: 0;
+}
+
 .sp-roster-sub {
   font-size: 0.72rem;
   font-weight: 700;
@@ -851,6 +856,11 @@ button.sp-ball-bubble.selected {
   gap: 8px;
   padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.sp-roster-list li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .sp-over-age {
@@ -921,6 +931,8 @@ button.sp-ball-bubble.selected {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sp-quick-add-label {
@@ -935,13 +947,27 @@ button.sp-ball-bubble.selected {
 
 .sp-quick-add-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: stretch;
+  max-width: 100%;
+}
+
+/* Two-column lineup grid columns are ~150–230px wide — stack quick-add there. */
+.sp-roster-cols .sp-quick-add-row {
+  flex-direction: column;
+}
+
+.sp-roster-cols .sp-quick-add-input,
+.sp-roster-cols .sp-quick-add-btn {
+  width: 100%;
+  max-width: 100%;
 }
 
 .sp-quick-add-input {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   padding: 10px 14px;
   border: 1px solid #cbd5e1;
@@ -964,7 +990,7 @@ button.sp-ball-bubble.selected {
 }
 
 .sp-quick-add-btn {
-  flex-shrink: 0;
+  flex: 0 1 auto;
   min-height: 44px;
   padding: 0 14px;
   border: none;

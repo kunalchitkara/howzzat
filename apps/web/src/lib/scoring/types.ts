@@ -112,6 +112,8 @@ export interface MatchScoringContext {
   squadMin: number;
   /** Maximum players allowed per side (from rules profile). */
   squadMax: number;
+  /** Rules formula for innings length (e.g. `2 * playersPerSide`). */
+  oversPerInningsFormula: string;
   totalOvers: number;
   /** Overs saved on the match (set at squad confirm). */
   matchTotalOvers: number | null;

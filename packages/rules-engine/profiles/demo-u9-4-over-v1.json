@@ -4,7 +4,7 @@
   "description": "U9 pairs scoring: 200 starting score, −5 per wicket, 4 overs per side. Pick any squad size from your roster (e.g. 4, 8, or 10 players).",
   "version": 1,
   "format": "standard_innings",
-  "playersPerSide": { "min": 4, "max": 11, "default": 4 },
+  "playersPerSide": { "min": 2, "max": 15, "default": 4 },
   "oversPerInnings": { "formula": "fixed:4" },
   "pairOvers": 4,
   "startingScore": 200,

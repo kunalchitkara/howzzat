@@ -457,8 +457,8 @@ describe("squad confirm and scoring e2e", () => {
     expect(scoring0.body.data.rosters.away.length).toBe(10);
     expect(scoring0.body.data.squads.home.length).toBe(4);
     expect(scoring0.body.data.squads.away.length).toBe(4);
-    expect(scoring0.body.data.squadMin).toBe(4);
-    expect(scoring0.body.data.squadMax).toBe(11);
+    expect(scoring0.body.data.squadMin).toBe(2);
+    expect(scoring0.body.data.squadMax).toBe(15);
     expect(scoring0.body.data.squads.home[0]?.name).toBe("Aanya");
     expect(scoring0.body.data.squads.home[0]?.isCaptain).toBe(true);
 

@@ -65,11 +65,12 @@ describe("MJCA builtin templates", () => {
     expect(cfg.pairCount).toBeGreaterThan(0);
   });
 
-  it("mjca-u9 outdoor allows 4-player minimum squads", () => {
+  it("mjca-u9 outdoor allows 2-player minimum squads", () => {
     const u9 = getBuiltinProfile("mjca-u9-outdoor-v1")!;
-    expect(u9.playersPerSide.min).toBe(4);
-    expect(resolveInningsConfig(u9, 4).totalOvers).toBe(8);
-    expect(resolveInningsConfig(u9, 4).pairCount).toBe(2);
+    expect(u9.playersPerSide.min).toBe(2);
+    expect(u9.playersPerSide.max).toBe(15);
+    expect(resolveInningsConfig(u9, 2).totalOvers).toBe(4);
+    expect(resolveInningsConfig(u9, 10).totalOvers).toBe(20);
   });
 
   it("mjca-u9 uses pairs formula", () => {

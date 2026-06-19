@@ -12,4 +12,9 @@ describe("suggestOversForSquad", () => {
     const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
     expect(suggestOversForSquad(profile, 10, 16)).toBe(16);
   });
+
+  it("suggests 2 overs per player on iOS demo profile", () => {
+    const profile = getBuiltinProfile("demo-2-over-pairs-v1")!;
+    expect(suggestOversForSquad(profile, 2)).toBe(2);
+  });
 });

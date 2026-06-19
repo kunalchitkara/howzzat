@@ -23,7 +23,7 @@ import {
   buildMatchSlug,
   isCuid,
 } from "../match-slug";
-import { getRulesProfileFromVersion } from "./rules-helpers";
+import { getRulesProfileFromVersion, resolveRulesVersionIdForCoachTournament } from "./rules-helpers";
 import { chargeMatchAtFinalize } from "./tournament-billing";
 import {
   findOrCreateTournamentTeamByName,
@@ -345,9 +345,12 @@ export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput
   const orgTeamId = tournamentTeam.team.id;
   const legalName = input.legalName.trim();
 
-  const profile = await getRulesProfileFromVersion(
-    match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
-  );
+  const rulesVersionId = await resolveRulesVersionIdForCoachTournament({
+    tournamentId: match.tournament.id,
+    tournamentSlug: match.tournament.slug,
+    rulesVersionId: match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
+  });
+  const profile = await getRulesProfileFromVersion(rulesVersionId);
   const squadMax = profile.playersPerSide.max;
   const sideCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
   if (sideCount >= squadMax) {
@@ -389,9 +392,12 @@ export async function confirmMatchSquads(
       "TOSS_REQUIRED",
     );
   }
-  const profile = await getRulesProfileFromVersion(
-    match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
-  );
+  const rulesVersionId = await resolveRulesVersionIdForCoachTournament({
+    tournamentId: match.tournament.id,
+    tournamentSlug: match.tournament.slug,
+    rulesVersionId: match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
+  });
+  const profile = await getRulesProfileFromVersion(rulesVersionId);
   const squadMin = profile.playersPerSide.min;
   const squadMax = profile.playersPerSide.max;
   const homeCount = match.squad.filter(

@@ -27,7 +27,10 @@ import {
 } from "@/lib/scoring/age-eligibility";
 import { deliveryToEvent } from "./match-utils";
 import { getMatch } from "./matches";
-import { getRulesProfileFromVersion } from "./rules-helpers";
+import {
+  getRulesProfileFromVersion,
+  resolveRulesVersionIdForCoachTournament,
+} from "./rules-helpers";
 import { prisma } from "../db";
 
 type MembershipWithPlayer = {
@@ -108,9 +111,12 @@ export async function getMatchScoringContext(
     ? userHasOrgRole(user, orgId, [...SCORING_ROLES]) ||
       (await canUserScoreMatch(match.id, user.id))
     : false;
-  const profile = await getRulesProfileFromVersion(
-    match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
-  );
+  const rulesVersionId = await resolveRulesVersionIdForCoachTournament({
+    tournamentId: match.tournament.id,
+    tournamentSlug: match.tournament.slug,
+    rulesVersionId: match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
+  });
+  const profile = await getRulesProfileFromVersion(rulesVersionId);
   const config = resolveInningsConfigForBatting(
     profile,
     match,
@@ -371,6 +377,7 @@ export async function getMatchScoringContext(
     playersPerSide: activeConfig.playersPerSide,
     squadMin: profile.playersPerSide.min,
     squadMax: profile.playersPerSide.max,
+    oversPerInningsFormula: profile.oversPerInnings.formula,
     totalOvers: activeConfig.totalOvers,
     matchTotalOvers: match.totalOvers,
     pairOvers: profile.pairOvers,

@@ -14,7 +14,8 @@ import { jsonRequest, params, readJson } from "../helpers/request";
 
 async function seedMjcaU9Tournament() {
   const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
-  expect(profile.playersPerSide.min).toBe(4);
+  expect(profile.playersPerSide.min).toBe(2);
+  expect(profile.playersPerSide.max).toBe(15);
 
   const template = await prisma.rulesProfileTemplate.create({
     data: {
@@ -88,12 +89,12 @@ async function seedMjcaU9Tournament() {
   };
 }
 
-describe("U9 MJCA lineup minimum (4 players)", () => {
+describe("U9 MJCA lineup limits (2–15 players)", () => {
   beforeEach(async () => {
     await resetDatabase(prisma);
   });
 
-  it("exposes squadMin 4 from MJCA U9 rules profile in scoring context", async () => {
+  it("exposes squadMin 2 and squadMax 15 from MJCA U9 rules profile in scoring context", async () => {
     const fx = await seedMjcaU9Tournament();
     const match = await createMatch(fx.tournamentId, {
       homeTeamId: fx.tournamentTeamHomeId,
@@ -112,10 +113,91 @@ describe("U9 MJCA lineup minimum (4 players)", () => {
     );
 
     expect(scoring.status).toBe(200);
-    expect(scoring.body.data.squadMin).toBe(4);
-    expect(scoring.body.data.squadMax).toBe(10);
+    expect(scoring.body.data.squadMin).toBe(2);
+    expect(scoring.body.data.squadMax).toBe(15);
+    expect(scoring.body.data.oversPerInningsFormula).toBe("2 * playersPerSide");
     expect(scoring.body.data.rosters.home).toHaveLength(3);
     expect(scoring.body.data.rosters.away).toHaveLength(0);
+  });
+
+  it("allows quick-add up to 15 players per side", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    for (let i = 1; i <= 15; i++) {
+      await addMatchPlayer(match.id, { side: "home", legalName: `Home ${i}` });
+    }
+    await expect(
+      addMatchPlayer(match.id, { side: "home", legalName: "Home 16" }),
+    ).rejects.toMatchObject({ code: "SQUAD_TOO_LARGE" });
+
+    const homeSquad = await prisma.matchSquadPlayer.findMany({
+      where: { matchId: match.id, teamId: fx.homeTeamId },
+    });
+    expect(homeSquad).toHaveLength(15);
+  });
+
+  it("confirms lineups with 2 players per side", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    await addMatchPlayer(match.id, { side: "home", legalName: "A" });
+    await addMatchPlayer(match.id, { side: "home", legalName: "B" });
+    await addMatchPlayer(match.id, { side: "away", legalName: "C" });
+    await addMatchPlayer(match.id, { side: "away", legalName: "D" });
+
+    const confirm = await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${match.id}/squad/confirm`, {}),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.data.totalOvers).toBe(4);
+    const updated = await prisma.match.findUniqueOrThrow({ where: { id: match.id } });
+    expect(updated.playersPerSide).toBe(2);
+  });
+
+  it("confirms lineups with 10 players per side and 20 overs", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    for (let i = 1; i <= 10; i++) {
+      await addMatchPlayer(match.id, { side: "home", legalName: `H${i}` });
+      await addMatchPlayer(match.id, { side: "away", legalName: `A${i}` });
+    }
+
+    const confirm = await readJson(
+      await confirmSquadsRoute(
+        jsonRequest("POST", `/api/v1/matches/${match.id}/squad/confirm`, {}),
+        params({ matchId: match.id }),
+      ),
+    );
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.data.totalOvers).toBe(20);
+    const updated = await prisma.match.findUniqueOrThrow({ where: { id: match.id } });
+    expect(updated.playersPerSide).toBe(10);
   });
 
   it("confirms lineups with 3 roster + 1 quick-add home and 4 quick-add away", async () => {
@@ -170,10 +252,7 @@ describe("U9 MJCA lineup minimum (4 players)", () => {
       tossWinnerTeamId: fx.tournamentTeamHomeId,
       electedTo: "bat",
     });
-    await setMatchSquad(match.id, {
-      teamId: fx.homeTeamId,
-      playerIds: fx.homePlayerIds,
-    });
+    await addMatchPlayer(match.id, { side: "home", legalName: "Only one" });
 
     const confirm = await readJson(
       await confirmSquadsRoute(
@@ -183,7 +262,6 @@ describe("U9 MJCA lineup minimum (4 players)", () => {
     );
     expect(confirm.status).toBe(400);
     expect(confirm.body.code).toBe("SQUAD_INCOMPLETE");
-    expect(confirm.body.error).toContain("U9 ECC needs 1 more player");
-    expect(confirm.body.error).toContain("Test Hayes U9 needs 4 more players");
+    expect(confirm.body.error).toContain("Test Hayes U9 needs 2 more players");
   });
 });

@@ -17,6 +17,7 @@ import {
   describeLineupBlockers,
   describeSquadConfirmError,
 } from "@/lib/scoring/squad-validation";
+import { suggestOversForFormula, suggestOversForSquad } from "@/lib/scoring/suggest-overs";
 import { deliveryToEvent } from "@/lib/services/match-utils";
 import { BallHistory } from "./BallHistory";
 import { EditBallModal, type DeliveryPatch } from "./EditBallModal";
@@ -142,8 +143,24 @@ export function ScorePad({
 
   useEffect(() => {
     if (!ctx || ctx.squadsConfirmed || oversTouched) return;
-    setDraftOvers(ctx.totalOvers);
-  }, [ctx, ctx?.squadsConfirmed, ctx?.totalOvers, oversTouched]);
+    const lineupCount = Math.max(draftHomeIds.length, draftAwayIds.length);
+    const squadSize =
+      lineupCount > 0
+        ? lineupCount
+        : Math.max(ctx.squads.home.length, ctx.squads.away.length) ||
+          ctx.playersPerSide;
+    setDraftOvers(suggestOversForFormula(ctx.oversPerInningsFormula, squadSize));
+  }, [
+    ctx,
+    ctx?.squadsConfirmed,
+    ctx?.oversPerInningsFormula,
+    ctx?.playersPerSide,
+    ctx?.squads.home.length,
+    ctx?.squads.away.length,
+    draftHomeIds.length,
+    draftAwayIds.length,
+    oversTouched,
+  ]);
 
   function playersForSide(side: "home" | "away"): ScoringPlayer[] {
     if (!ctx) return [];
@@ -754,6 +771,11 @@ export function ScorePad({
   const { homeIds: confirmHomeIds, awayIds: confirmAwayIds } = squadIdsForConfirm();
   const squadMin = ctx.squadMin ?? 2;
   const squadMax = ctx.squadMax ?? 15;
+  const lineupPlayerCount = Math.max(confirmHomeIds.length, confirmAwayIds.length);
+  const suggestedLineupOvers = suggestOversForFormula(
+    ctx.oversPerInningsFormula,
+    lineupPlayerCount > 0 ? lineupPlayerCount : ctx.playersPerSide,
+  );
   const canConfirmSquads = canConfirmLineup(
     confirmHomeIds.length,
     confirmAwayIds.length,
@@ -1018,7 +1040,9 @@ export function ScorePad({
               />
             </label>
             <p className="sp-muted">
-              Common: 10 players → 20 overs. Adjust for each match.
+              {lineupPlayerCount > 0
+                ? `${lineupPlayerCount} players → ${suggestedLineupOvers} overs suggested. Adjust if needed.`
+                : "Pick players above — overs scale with squad size (e.g. 10 → 20)."}
             </p>
           </div>
           <button
