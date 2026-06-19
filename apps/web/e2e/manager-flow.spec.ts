@@ -22,9 +22,7 @@ test.describe("manager happy path", () => {
     await page.getByRole("link", { name: "+ New club" }).click();
     await page.getByLabel("Club name").fill(clubName);
     await page.getByRole("button", { name: "Create organization" }).click();
-    await expect(page.getByRole("heading", { name: "Your clubs" })).toBeVisible();
-    await page.getByRole("link", { name: clubName }).click();
-
+    await expect(page.getByRole("heading", { name: clubName })).toBeVisible();
     await page.getByRole("link", { name: "Teams" }).click();
     await page.getByLabel("Team name").fill("U9 Lions");
     await page.getByRole("button", { name: "Add team" }).click();

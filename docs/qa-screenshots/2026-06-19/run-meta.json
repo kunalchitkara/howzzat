@@ -1,0 +1,12 @@
+{
+  "email": "scoring-e2e-1781899588823@local.club",
+  "screenshots": [
+    "01-homepage.png",
+    "01-homepage.png",
+    "02-dashboard-logged-in.png",
+    "error-state.png"
+  ],
+  "notes": [],
+  "ok": false,
+  "error": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n  - waiting for getByRole('link', { name: /Scoring FC 2026-06-19/ }) to be visible\n"
+}

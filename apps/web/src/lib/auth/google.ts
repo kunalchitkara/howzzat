@@ -8,7 +8,7 @@ const GOOGLE_PROVIDER = "google";
 function appOrigin(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000"
+    "http://localhost:3005"
   );
 }
 

@@ -165,7 +165,9 @@ export function LoginForm({
           <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
             <li>
               <strong>Google:</strong> add this redirect URI in Google Cloud →
-              Credentials → Web client:
+              Credentials → Web client (must match{" "}
+              <code>NEXT_PUBLIC_APP_URL</code> in <code>apps/web/.env.local</code>
+              , default <code>http://localhost:3005</code>):
               <code style={{ display: "block", marginTop: 4, wordBreak: "break-all" }}>
                 {setupHints.googleRedirectUri}
               </code>

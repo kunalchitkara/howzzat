@@ -33,14 +33,14 @@ export default async function OrganizationPage({
       </p>
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
-        <Link href={`/dashboard/organizations/${orgId}/teams`} style={{ textDecoration: "none" }}>
+        <Link href={`/dashboard/organizations/${org.id}/teams`} style={{ textDecoration: "none" }}>
           <div style={card}>
             <strong style={{ color: "var(--dk)" }}>Teams</strong>
             <p style={{ color: "#666", marginTop: 4 }}>{org.teams.length} squads</p>
           </div>
         </Link>
         <Link
-          href={`/dashboard/organizations/${orgId}/tournaments`}
+          href={`/dashboard/organizations/${org.id}/tournaments`}
           style={{ textDecoration: "none" }}
         >
           <div style={card}>

@@ -84,6 +84,11 @@ export interface InningsScorecardView {
   fielding: FieldingRow[];
 }
 
+export interface MatchTossInfo {
+  winnerName: string;
+  electedTo: "bat" | "bowl";
+}
+
 export interface MatchScorecardView {
   matchTitle: string;
   venue?: string;
@@ -94,6 +99,7 @@ export interface MatchScorecardView {
     subtext?: string;
     variant: "win" | "loss" | "draw" | "neutral";
   };
+  toss?: MatchTossInfo;
   innings: InningsScorecardView[];
   ballByBall?: MatchBallByBall;
   rulesNote?: string;

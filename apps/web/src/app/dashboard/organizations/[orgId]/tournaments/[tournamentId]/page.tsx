@@ -8,7 +8,7 @@ import { InviteList } from "@/components/dashboard/InviteList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { matchPublicRef } from "@/lib/match-slug";
-import { getTournament, isExternalTeam } from "@/lib/services/tournaments";
+import { getTournament, dedupeTournamentTeamsByName, isExternalTeam } from "@/lib/services/tournaments";
 import { getTournamentInsights } from "@/lib/services/tournament-insights";
 import { getOrganization } from "@/lib/services/organizations";
 import { listInvites } from "@/lib/services/invites";
@@ -53,10 +53,12 @@ export default async function TournamentDashboardPage({
   const availableOrgTeams = org.teams
     .filter((t) => !enrolledTeamIds.has(t.id))
     .map((t) => ({ id: t.id, name: t.name }));
-  const tournamentTeams = tournament.teams.map((tt) => ({
-    id: tt.id,
-    name: tt.team.name,
-  }));
+  const tournamentTeams = dedupeTournamentTeamsByName(
+    tournament.teams.map((tt) => ({
+      id: tt.id,
+      name: tt.team.name,
+    })),
+  );
 
   return (
     <PageShell

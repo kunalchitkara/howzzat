@@ -695,6 +695,35 @@
   border-bottom-color: var(--md);
 }
 
+.sc-toss-panel {
+  margin: 0;
+  padding: 14px 16px 18px;
+  background: #f0f2f7;
+  border-top: 2px solid var(--lt);
+  text-align: center;
+}
+
+.sc-toss-title {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #888;
+}
+
+.sc-toss-line {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #555;
+  line-height: 1.45;
+}
+
+.sc-toss-line strong {
+  color: var(--dk);
+  font-weight: 800;
+}
+
 @media (min-width: 768px) {
   .sc-wrap {
     margin-top: 16px;

@@ -16,10 +16,10 @@
 Walked a **brand-new coach** from homepage → password sign-up → create club → create U9 tournament → schedule a fixture using **team names only** (no invites, no org squads). The happy path completes in ~6 seconds of UI time; match slug URLs are readable and the scorer opens at the toss step for the club owner.
 
 **Blockers to scheduled match:** none on the password path.  
-**Top friction:** default **Email code** tab fails without Resend or `DEV_EMAIL_BYPASS_*`; Google OAuth dev hint shows port **3000** while dev runs on **3005**.  
+**Top friction:** Google OAuth dev hint still env-dependent (`NEXT_PUBLIC_APP_URL`); post-create org redirect still lands on dashboard (C4).  
 **Rules template picker:** MJCA templates only in tournament form (no demo profiles); default **MJCA U9 Outdoor (suggested)**.  
-**Screenshots captured:** 16  
-**Bugs logged:** 8 (0 critical for password path; 1 quick fix applied for login default tab)
+**Screenshots captured:** 15 (fresh 2026-06-19 re-run)  
+**Bugs logged:** 8 (1 high fixed; 1 medium fixed; 2 low deferred; 4 low/info deferred)
 
 ---
 
@@ -188,13 +188,13 @@ No org teams, roster, or manager invites were needed.
 | ID | Severity | Screen | Description | Repro | Suggested fix | Status |
 |----|----------|--------|-------------|-------|---------------|--------|
 | C1 | **High** | `/login` | Default **Email code** tab; Send code fails when Resend/bypass unset | Open login → Send code | Default to Password when OTP unavailable; document bypass in `.env.local` | **Fixed** (default tab) |
-| C2 | **Medium** | `/login` dev hint | Google redirect URI shows `localhost:3000` while dev uses **3005** | Open login → read yellow dev box | Set `NEXT_PUBLIC_APP_URL=http://localhost:3005` in `.env.local` | Open (env) |
-| C3 | Medium | `/` | Homepage hero always shows **Sign in** even with active session | Sign in → visit `/` | SSR session check on homepage hero | Open |
+| C2 | **Medium** | `/login` dev hint | Google redirect URI shows `localhost:3000` while dev uses **3005** | Open login → read yellow dev box | Set `NEXT_PUBLIC_APP_URL=http://localhost:3005` in `.env.local` | **Fixed** (code default 3005) |
+| C3 | Medium | `/` | Homepage hero always shows **Sign in** even with active session | Sign in → visit `/` | SSR session check on homepage hero | **Fixed** |
 | C4 | Low | Create org | After create, lands on dashboard root not org hub | Create club → observe redirect | Redirect to `/dashboard/organizations/{id}` | Open |
-| C5 | Low | Tournament dashboard | **Manager invites** section prominent; coaches may think invites are required | Open new tournament page | Collapse invites behind “Advanced” or add “optional” label | Open |
-| C6 | Low | Homepage | **Demo** rules profiles listed in public marketing | Visit `/` | Separate “Try demos” from coach-facing copy | Open |
-| C7 | Low | Scorer `/score` | **Loading scorer…** persists several seconds on first paint | Click Score immediately after schedule | Skeleton with step hint; prefetch match context | Open |
-| C8 | Info | Dev tooling | Next.js **“1 Issue”** badge on several pages | Any dashboard page in dev | Inspect hydration/console warnings | Open |
+| C5 | Low | Tournament dashboard | **Manager invites** section prominent; coaches may think invites are required | Open new tournament page | Collapse invites behind “Advanced” or add “optional” label | Open (deferred) |
+| C6 | Low | Homepage | **Demo** rules profiles listed in public marketing | Visit `/` | Separate “Try demos” from coach-facing copy | Open (deferred) |
+| C7 | Low | Scorer `/score` | **Loading scorer…** persists several seconds on first paint | Click Score immediately after schedule | Skeleton with step hint; prefetch match context | Open (deferred) |
+| C8 | Info | Dev tooling | Next.js **“1 Issue”** badge on several pages | Any dashboard page in dev | Inspect hydration/console warnings | Open (dev-only) |
 
 ---
 

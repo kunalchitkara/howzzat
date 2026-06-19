@@ -1,6 +1,7 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { slugify } from "../api/slug";
+import { resolveOrganizationId } from "./organizations";
 import type {
   createTeamSchema,
   createPlayerSchema,
@@ -46,7 +47,8 @@ export async function assertUniquePlayerNameOnTeam(
   }
 }
 
-export async function listTeams(orgId: string) {
+export async function listTeams(orgRef: string) {
+  const orgId = await resolveOrganizationId(orgRef);
   return prisma.team.findMany({
     where: { organizationId: orgId },
     orderBy: { name: "asc" },
@@ -72,7 +74,8 @@ export async function getTeam(teamId: string) {
   return team;
 }
 
-export async function createTeam(orgId: string, input: CreateTeamInput) {
+export async function createTeam(orgRef: string, input: CreateTeamInput) {
+  const orgId = await resolveOrganizationId(orgRef);
   const slug = input.slug ?? slugify(input.name);
   const existing = await prisma.team.findUnique({
     where: { organizationId_slug: { organizationId: orgId, slug } },

@@ -17,8 +17,9 @@ Walked the manager → tournament → score flow for **Test ECC U9 vs Test Hayes
 
 **Auth bug fixed:** yes (see [Auth bug analysis](#auth-bug-analysis-sign-in-banner)).  
 **Slug mutation bug fixed:** yes (claim + toss + other match writes).  
-**Screenshots captured:** 9  
-**Bugs logged:** 11 (2 critical, fixed in this session)
+**Medium bugs fixed this session:** homepage session (B3), org slug routes (B4), duplicate teams (B5), schedule defaults (B6), public `/t/{token}` (B9), lineup hints + U9 min 4 (B8).  
+**Screenshots captured:** 8 (fresh 2026-06-19 re-run)  
+**Bugs logged:** 11 (2 critical fixed; 6 medium/low fixed; 3 low/info deferred)
 
 ---
 
@@ -231,13 +232,13 @@ where `matchId` was the **URL slug** (`u9-ecc-test-hayes-20260619`), not the cui
 |----|----------|--------|-------------|-------------------|---------------|--------|
 | B1 | **Critical** | Match score `/score` | “Sign in to score” shown for logged-in club owner | Sign in as ECC owner → open non-demo match score URL | Use `needsSignIn` for banner; keep `requiresAuth` for API semantics | **Fixed** |
 | B2 | **Critical** | Match score `/score` | Claim/toss/mutations 500 when URL uses slug | Open `/match/u9-ecc-…/score` → page loads → claim or save toss | Use `match.id` from `getMatch()` for all Prisma writes | **Fixed** |
-| B3 | Medium | Homepage `/` | Shows “Sign in” while session active | Log in → visit `/` | Server-render auth state in homepage hero (read session cookie) | Open |
-| B4 | Medium | Org dashboard | `/dashboard/organizations/ecc` → 404 | Navigate by org slug instead of id | Support slug in route or redirect | Open |
-| B5 | Medium | Tournament page | Duplicate **Test Hayes U9** in teams list | Add opponent via quick-add twice / UI + API race | Dedupe tournament teams by name; idempotent add | Open |
-| B6 | Low | Tournament schedule form | Home & Away both default to same opponent team | Open schedule form after adding Hayes | Reset away dropdown when home changes | Open |
-| B7 | Low | Tournament page | Next.js dev **“N Issues”** overlay | Run dev server, visit tournament page | Investigate console/hydration warnings | Open |
-| B8 | Low | Lineups | Confirm disabled — only 3 roster players, rules need 6+ | Open lineups for U9 ECC with small roster | Clearer “need N more players” CTA; link to roster management | Open |
-| B9 | Low | Public URLs | `/t/{slug}` 404 | Visit `/t/test-ecc-u9` | Redirect or document `/orgs/{org}/tournaments/{slug}` | Open |
+| B3 | Medium | Homepage `/` | Shows “Sign in” while session active | Log in → visit `/` | Server-render auth state in homepage hero (read session cookie) | **Fixed** |
+| B4 | Medium | Org dashboard | `/dashboard/organizations/ecc` → 404 | Navigate by org slug instead of id | Support slug in route or redirect | **Fixed** |
+| B5 | Medium | Tournament page | Duplicate **Test Hayes U9** in teams list | Add opponent via quick-add twice / UI + API race | Dedupe tournament teams by name; idempotent add | **Fixed** |
+| B6 | Low | Tournament schedule form | Home & Away both default to same opponent team | Open schedule form after adding Hayes | Reset away dropdown when home changes | **Fixed** |
+| B7 | Low | Tournament page | Next.js dev **“N Issues”** overlay | Run dev server, visit tournament page | Investigate console/hydration warnings | Open (dev-only) |
+| B8 | Low | Lineups | Confirm disabled — only 3 roster players, rules need 6+ | Open lineups for U9 ECC with small roster | Clearer “need N more players” CTA; U9 min 4 in MJCA profile | **Fixed** |
+| B9 | Low | Public URLs | `/t/{slug}` 404 | Visit `/t/test-ecc-u9` | Redirect or document `/orgs/{org}/tournaments/{slug}` | **Fixed** |
 | B10 | Low | Dashboard club link | Click on list item `<li>` intercepted | Click ECC card body on dashboard | Make entire card clickable or fix z-index | Open |
 | B11 | Info | Screenshot tooling | Full-page screenshots intermittently timeout | `browser_take_screenshot` with `fullPage: true` | Retry without fullPage (workaround used) | N/A |
 

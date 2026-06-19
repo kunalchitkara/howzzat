@@ -79,12 +79,23 @@ export async function buildMatchScorecardFromRaw(
     };
   }
 
+  let toss: MatchScorecardView["toss"];
+  if (match.tossWinnerId && match.electedTo) {
+    const winnerName =
+      match.tossWinnerId === match.homeTeamId ? homeName : awayName;
+    toss = {
+      winnerName,
+      electedTo: match.electedTo as "bat" | "bowl",
+    };
+  }
+
   return {
     matchTitle: `${homeName} vs ${awayName}`,
     venue: match.venue ?? undefined,
     date: match.scheduledAt?.toISOString().slice(0, 10),
     status: match.status,
     resultBanner,
+    toss,
     innings: inningsViews,
     ballByBall:
       match.innings.length > 0

@@ -96,6 +96,10 @@ export function simulatedMatchToScorecard(
       subtext: `${config.totalOvers} overs · Simulated · seed ${sim.seed}`,
       variant,
     },
+    toss: {
+      winnerName: sim.homeTeam,
+      electedTo: "bat",
+    },
     innings: sim.innings.map((_, i) =>
       inningsToView(sim, i, config.totalOvers),
     ),

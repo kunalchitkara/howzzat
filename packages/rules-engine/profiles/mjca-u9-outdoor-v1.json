@@ -4,7 +4,7 @@
   "description": "Middlesex U9 outdoor pairs: softball, 200 start, −5 per wicket. Wides/no-balls 2 runs; rebowl in final over only.",
   "version": 1,
   "format": "pairs_single_innings",
-  "playersPerSide": { "min": 6, "max": 10, "default": 8 },
+  "playersPerSide": { "min": 4, "max": 10, "default": 8 },
   "oversPerInnings": { "formula": "2 * playersPerSide" },
   "pairOvers": 4,
   "startingScore": 200,
@@ -43,7 +43,7 @@
     "ballType": "softball",
     "pitchYards": 15,
     "boundaryYards": 30,
-    "playersNote": "8 per side default; 6–10 by agreement. U10 boys may not play down; U10 girls may.",
+    "playersNote": "8 per side default; 4–10 by agreement (pairs). U10 boys may not play down; U10 girls may.",
     "tunable": ["playersPerSide", "pairOvers", "startingScore", "wicketPenalty", "wide", "noBall", "totalOvers"],
     "pendingEngine": ["bowler_quota", "ball_type_agreement", "eligibility"]
   }

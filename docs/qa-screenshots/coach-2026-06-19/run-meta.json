@@ -1,8 +1,8 @@
 {
-  "email": "coach-e2e-20260619@local.club",
+  "email": "coach-e2e-1781899515399@local.club",
   "screenshots": [
     "01-homepage-unauthenticated.png",
-    "02-login-email-code-default.png",
+    "02-login-password-default.png",
     "03-signup-password-form.png",
     "04-dashboard-post-signup.png",
     "05-create-organization-form.png",
@@ -15,8 +15,7 @@
     "12-schedule-match-filled.png",
     "13-fixtures-with-match.png",
     "14-match-score-pad-pre-start.png",
-    "15-wallet-page.png",
-    "16-score-page-loaded.png"
+    "15-score-page-loaded.png"
   ],
   "notes": [
     {
@@ -56,10 +55,10 @@
       "defaultRulesTemplateValue": "U9"
     },
     {
-      "scheduleMatchMs": 27
+      "scheduleMatchMs": 568
     },
     {
-      "matchScoreHref": "/match/u9-ext-coach-lions-u9-6e754604-ext-rival-tigers-u9-1375a5b9-20260628/score"
+      "matchScoreHref": "/match/u9-ext-coach-lions-u9-485090dd-ext-rival-tigers-u9-a30d5f42-20260628/score"
     },
     {
       "slugUrlReadable": true

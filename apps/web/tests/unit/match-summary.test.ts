@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildMatchSummary } from "@/lib/scorecard/match-summary";
+import {
+  buildCommentaryMatchSummary,
+  buildMatchSummary,
+} from "@/lib/scorecard/match-summary";
 import { edgwareM4DemoScorecard } from "@/lib/scorecard/demo-edgware-m4";
 
 describe("match summary", () => {
@@ -51,5 +54,24 @@ describe("match summary", () => {
     expect(a.coachInsights.map((i) => i.title)).toEqual(
       b.coachInsights.map((i) => i.title),
     );
+  });
+
+  it("commentary summary uses completed result for finished matches", () => {
+    const summary = buildCommentaryMatchSummary(edgwareM4DemoScorecard)!;
+    expect(summary.headline).toBe("Hayes won by 51 runs");
+    expect(summary.marginValue).toBe("51 runs");
+  });
+
+  it("commentary summary shows live header for in-progress matches", () => {
+    const live = {
+      ...edgwareM4DemoScorecard,
+      status: "LIVE",
+      resultBanner: undefined,
+      innings: [edgwareM4DemoScorecard.innings[0]!],
+    };
+    const summary = buildCommentaryMatchSummary(live)!;
+    expect(summary.headline).toBe("Hayes 281/9");
+    expect(summary.marginLabel).toBe("Status");
+    expect(summary.marginValue).toBe("Live");
   });
 });

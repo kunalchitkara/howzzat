@@ -2,6 +2,7 @@ import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { randomToken, slugify, uniqueSlug } from "../api/slug";
 import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
+import { resolveOrganizationId } from "./organizations";
 import type { createTournamentSchema } from "../validations";
 import type { z } from "zod";
 
@@ -14,16 +15,54 @@ export function isExternalTeam(team: { slug: string }): boolean {
   return team.slug.startsWith(EXTERNAL_TEAM_SLUG_PREFIX);
 }
 
+export function teamNamesMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+export function dedupeTournamentTeamsByName<T extends { id: string; name: string }>(
+  teams: T[],
+): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const team of teams) {
+    const key = team.name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(team);
+  }
+  return result;
+}
+
+type TournamentTeamEntry = TournamentEnrollmentContext["teams"][number];
+
+function findTournamentTeamEntryByName(
+  teams: TournamentTeamEntry[],
+  name: string,
+): TournamentTeamEntry | undefined {
+  return teams.find((tt) => teamNamesMatch(tt.team.name, name));
+}
+
+const tournamentTeamEntrySelect = {
+  id: true,
+  publicSlug: true,
+  team: { select: { id: true, name: true, slug: true } },
+} as const;
+
+async function findTournamentTeamEntryInDb(tournamentId: string, name: string) {
+  const entries = await prisma.tournamentTeam.findMany({
+    where: { tournamentId },
+    select: tournamentTeamEntrySelect,
+  });
+  return findTournamentTeamEntryByName(entries, name);
+}
+
 /** Create or reuse a name-only opponent team in the org. */
 export async function ensureExternalTeam(orgId: string, name: string) {
   const trimmed = name.trim();
-  const existing = await prisma.team.findFirst({
-    where: {
-      organizationId: orgId,
-      name: trimmed,
-      slug: { startsWith: EXTERNAL_TEAM_SLUG_PREFIX },
-    },
+  const orgTeams = await prisma.team.findMany({
+    where: { organizationId: orgId },
   });
+  const existing = orgTeams.find((t) => teamNamesMatch(t.name, trimmed));
   if (existing) return existing;
 
   return prisma.team.create({
@@ -82,8 +121,16 @@ export async function findOrCreateTournamentTeamByName(
   const tournament =
     ctx ?? (await loadTournamentEnrollmentContext(tournamentId));
   const trimmed = name.trim();
-  const existing = tournament.teams.find((tt) => tt.team.name === trimmed);
-  if (existing) return existing;
+  const existingInCtx = findTournamentTeamEntryByName(tournament.teams, trimmed);
+  if (existingInCtx) return existingInCtx;
+
+  const existingInDb = await findTournamentTeamEntryInDb(tournamentId, trimmed);
+  if (existingInDb) {
+    if (ctx) {
+      ctx.teams.push(existingInDb);
+    }
+    return existingInDb;
+  }
 
   const team = await ensureExternalTeam(tournament.organizationId, trimmed);
   const entry = await addTeamToTournament(tournamentId, team.id, undefined, {
@@ -95,7 +142,8 @@ export async function findOrCreateTournamentTeamByName(
   return entry;
 }
 
-export async function listTournaments(orgId: string) {
+export async function listTournaments(orgRef: string) {
+  const orgId = await resolveOrganizationId(orgRef);
   return prisma.tournament.findMany({
     where: { organizationId: orgId },
     orderBy: { createdAt: "desc" },
@@ -186,7 +234,19 @@ export async function getTournamentBySlug(orgSlug: string, tournamentSlug: strin
   return tournament;
 }
 
-export async function createTournament(orgId: string, input: CreateTournamentInput) {
+export async function getTournamentByPublicToken(publicToken: string) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { publicToken },
+    include: { organization: true },
+  });
+  if (!tournament || !tournament.isPublic) {
+    throw new ApiError(404, "Tournament not found", "TOURNAMENT_NOT_FOUND");
+  }
+  return tournament;
+}
+
+export async function createTournament(orgRef: string, input: CreateTournamentInput) {
+  const orgId = await resolveOrganizationId(orgRef);
   const org = await prisma.organization.findUnique({ where: { id: orgId } });
   if (!org) throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
 
@@ -255,6 +315,18 @@ export async function addTeamToTournament(
   const organizationId =
     options?.organizationId ??
     (await getTournament(tournamentId)).organizationId;
+  const existingByTeamId = await prisma.tournamentTeam.findUnique({
+    where: { tournamentId_teamId: { tournamentId, teamId } },
+    include: { team: true },
+  });
+  if (existingByTeamId) {
+    throw new ApiError(
+      409,
+      "Team already in tournament",
+      "TEAM_ALREADY_ENROLLED",
+    );
+  }
+
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) throw new ApiError(404, "Team not found", "TEAM_NOT_FOUND");
   if (team.organizationId !== organizationId) {
@@ -263,6 +335,17 @@ export async function addTeamToTournament(
       "Team must belong to the same organization as the tournament",
       "TEAM_ORG_MISMATCH",
     );
+  }
+
+  const tournamentEntries = await prisma.tournamentTeam.findMany({
+    where: { tournamentId },
+    include: { team: true },
+  });
+  const existingByName = tournamentEntries.find((tt) =>
+    teamNamesMatch(tt.team.name, team.name),
+  );
+  if (existingByName) {
+    return existingByName;
   }
 
   const slug = publicSlug ?? slugify(team.slug);

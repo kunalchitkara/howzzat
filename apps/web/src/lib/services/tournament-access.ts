@@ -48,6 +48,13 @@ export async function assertCanScoreMatch(
   }
 }
 
+export function publicTournamentHubPath(
+  orgSlug: string,
+  tournamentSlug: string,
+): string {
+  return `/orgs/${orgSlug}/tournaments/${tournamentSlug}`;
+}
+
 export function tournamentHomeUrl(publicToken: string, origin: string): string {
   return `${origin}/t/${publicToken}`;
 }

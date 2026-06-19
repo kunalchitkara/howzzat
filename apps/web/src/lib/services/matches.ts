@@ -7,6 +7,7 @@ import {
   resolveInningsConfig,
 } from "@howzzat/rules-engine";
 import { resolveInningsConfigForBatting } from "@/lib/scoring/innings-config";
+import { describeSquadConfirmError } from "@/lib/scoring/squad-validation";
 import {
   canAcceptDelivery,
   countLegalBalls,
@@ -153,10 +154,8 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
       .id;
   };
 
-  const [homeTeamId, awayTeamId] = await Promise.all([
-    resolveTeamId(input.homeTeamId, input.homeTeamName),
-    resolveTeamId(input.awayTeamId, input.awayTeamName),
-  ]);
+  const homeTeamId = await resolveTeamId(input.homeTeamId, input.homeTeamName);
+  const awayTeamId = await resolveTeamId(input.awayTeamId, input.awayTeamName);
 
   if (!homeTeamId || !awayTeamId) {
     throw new ApiError(400, "Home and away teams required", "MISSING_TEAMS");
@@ -346,6 +345,19 @@ export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput
   const orgTeamId = tournamentTeam.team.id;
   const legalName = input.legalName.trim();
 
+  const profile = await getRulesProfileFromVersion(
+    match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
+  );
+  const squadMax = profile.playersPerSide.max;
+  const sideCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
+  if (sideCount >= squadMax) {
+    throw new ApiError(
+      400,
+      `${tournamentTeam.team.name} already has ${squadMax} players — remove someone before adding another`,
+      "SQUAD_TOO_LARGE",
+    );
+  }
+
   await assertUniquePlayerNameOnMatchSide(matchId, orgTeamId, legalName);
 
   const player = await prisma.player.create({
@@ -391,14 +403,28 @@ export async function confirmMatchSquads(
   if (homeCount < squadMin || awayCount < squadMin) {
     throw new ApiError(
       400,
-      `Each side needs at least ${squadMin} players in the match squad`,
+      describeSquadConfirmError({
+        homeTeamName: match.homeTeam.team.name,
+        awayTeamName: match.awayTeam.team.name,
+        homeCount,
+        awayCount,
+        min: squadMin,
+        max: squadMax,
+      }),
       "SQUAD_INCOMPLETE",
     );
   }
   if (homeCount > squadMax || awayCount > squadMax) {
     throw new ApiError(
       400,
-      `Each side can have at most ${squadMax} players in the match squad`,
+      describeSquadConfirmError({
+        homeTeamName: match.homeTeam.team.name,
+        awayTeamName: match.awayTeam.team.name,
+        homeCount,
+        awayCount,
+        min: squadMin,
+        max: squadMax,
+      }),
       "SQUAD_TOO_LARGE",
     );
   }

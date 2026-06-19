@@ -675,3 +675,36 @@ export function buildMatchSummary(data: MatchScorecardView): MatchSummary | null
     coachInsights: generateCoachInsights(ctx),
   };
 }
+
+/** Compact match header for the Commentary tab — live-aware headline. */
+export function buildCommentaryMatchSummary(
+  data: MatchScorecardView,
+): MatchSummary | null {
+  const summary = buildMatchSummary(data);
+  if (!summary) return null;
+
+  if (data.status === "COMPLETED" || data.resultBanner) {
+    return summary;
+  }
+
+  const first = data.innings[0]!;
+  const second = data.innings[1];
+
+  if (!second) {
+    return {
+      ...summary,
+      headline: `${first.teamName} ${first.totalRuns}/${first.wickets}`,
+      variant: "neutral",
+      marginLabel: "Status",
+      marginValue: "Live",
+    };
+  }
+
+  return {
+    ...summary,
+    headline: `${first.teamName} ${first.totalRuns} · ${second.teamName} ${second.totalRuns}/${second.wickets}`,
+    variant: "neutral",
+    marginLabel: "Status",
+    marginValue: "Live",
+  };
+}

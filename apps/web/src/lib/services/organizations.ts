@@ -15,9 +15,19 @@ export async function listOrganizations() {
   });
 }
 
-export async function getOrganization(orgId: string) {
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
+/** Resolve dashboard/API org param (cuid or slug) to internal id. */
+export async function resolveOrganizationId(orgRef: string): Promise<string> {
+  const org = await prisma.organization.findFirst({
+    where: { OR: [{ id: orgRef }, { slug: orgRef }] },
+    select: { id: true },
+  });
+  if (!org) throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
+  return org.id;
+}
+
+export async function getOrganization(orgRef: string) {
+  const org = await prisma.organization.findFirst({
+    where: { OR: [{ id: orgRef }, { slug: orgRef }] },
     include: {
       teams: true,
       tournaments: {
@@ -97,8 +107,9 @@ export async function listOrganizationsForUser(userId: string) {
 }
 
 /** Org detail scoped to what the user may see (all tournaments if org member, else managed only). */
-export async function getOrganizationForUser(orgId: string, userId: string) {
-  const org = await getOrganization(orgId);
+export async function getOrganizationForUser(orgRef: string, userId: string) {
+  const org = await getOrganization(orgRef);
+  const orgId = org.id;
 
   const membership = await prisma.orgMembership.findUnique({
     where: { organizationId_userId: { organizationId: orgId, userId } },

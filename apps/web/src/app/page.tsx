@@ -5,11 +5,13 @@ import {
 } from "@howzzat/rules-engine";
 import { prisma } from "@/lib/db";
 import { matchPublicRef } from "@/lib/match-slug";
+import { getServerUser } from "@/lib/auth/server";
 import { BtnLink } from "@/components/dashboard/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const user = await getServerUser();
   const profiles = listBuiltinProfiles();
   const u9 = getBuiltinProfile("u9-softball-london-v1");
   const demoMatch = await prisma.match.findFirst({
@@ -41,10 +43,21 @@ export default async function HomePage() {
           Rules-aware stats, live scorecards, and public dashboards.
         </p>
         <div className="btn-group" style={{ marginTop: 20 }}>
-          <BtnLink href="/login">Sign in</BtnLink>
-          <BtnLink href="/dashboard" variant="secondary">
-            Club dashboard
-          </BtnLink>
+          {user ? (
+            <>
+              <BtnLink href="/dashboard">Club dashboard</BtnLink>
+              <BtnLink href="/dashboard/account" variant="secondary">
+                Account
+              </BtnLink>
+            </>
+          ) : (
+            <>
+              <BtnLink href="/login">Sign in</BtnLink>
+              <BtnLink href="/dashboard" variant="secondary">
+                Club dashboard
+              </BtnLink>
+            </>
+          )}
         </div>
       </header>
 

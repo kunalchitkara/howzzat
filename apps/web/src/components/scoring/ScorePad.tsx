@@ -12,6 +12,11 @@ import { deliveryEndedOver, maxLegalBalls } from "@/lib/scoring/ball-position";
 import { resolveScoringIsLegalBall } from "@/lib/scoring/delivery-legal";
 import { apiFetch } from "@/lib/client/api";
 import { strikeAfterDeliveries } from "@/lib/scoring/strike-state";
+import {
+  canConfirmLineup,
+  describeLineupBlockers,
+  describeSquadConfirmError,
+} from "@/lib/scoring/squad-validation";
 import { deliveryToEvent } from "@/lib/services/match-utils";
 import { BallHistory } from "./BallHistory";
 import { EditBallModal, type DeliveryPatch } from "./EditBallModal";
@@ -330,19 +335,21 @@ export function ScorePad({ matchId }: { matchId: string }) {
         body: JSON.stringify({ side, legalName: name }),
       });
       const data = await refresh();
-      const normalized = name.toLowerCase();
-      const pool =
+      const serverIds =
         side === "home"
-          ? [...data.squads.home, ...data.rosters.home]
-          : [...data.squads.away, ...data.rosters.away];
-      const added = pool.find((p) => p.name.trim().toLowerCase() === normalized);
-      if (added) {
-        if (side === "home") {
-          setDraftHomeIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
-          setDraftHomeCaptainId((current) => current || added.id);
-        } else {
-          setDraftAwayIds((ids) => (ids.includes(added.id) ? ids : [...ids, added.id]));
-          setDraftAwayCaptainId((current) => current || added.id);
+          ? data.squads.home.map((p) => p.id)
+          : data.squads.away.map((p) => p.id);
+      if (side === "home") {
+        setDraftHomeIds((ids) => [...new Set([...ids, ...serverIds])]);
+        const addedId = serverIds.find((id) => !ctx.squads.home.some((p) => p.id === id));
+        if (addedId) {
+          setDraftHomeCaptainId((current) => current || addedId);
+        }
+      } else {
+        setDraftAwayIds((ids) => [...new Set([...ids, ...serverIds])]);
+        const addedId = serverIds.find((id) => !ctx.squads.away.some((p) => p.id === id));
+        if (addedId) {
+          setDraftAwayCaptainId((current) => current || addedId);
         }
       }
       setQuickAddName((prev) => ({ ...prev, [side]: "" }));
@@ -359,12 +366,19 @@ export function ScorePad({ matchId }: { matchId: string }) {
     const { homeIds, awayIds } = squadIdsForConfirm();
     const squadMin = ctx.squadMin ?? 2;
     const squadMax = ctx.squadMax ?? 15;
-    if (homeIds.length < squadMin || awayIds.length < squadMin) {
-      setError(`Select at least ${squadMin} players per side`);
-      return;
-    }
-    if (homeIds.length > squadMax || awayIds.length > squadMax) {
-      setError(`At most ${squadMax} players per side`);
+    if (!canConfirmLineup(homeIds.length, awayIds.length, squadMin, squadMax)) {
+      setError(
+        describeSquadConfirmError({
+          homeTeamName: ctx.homeTeam.name,
+          awayTeamName: ctx.awayTeam.name,
+          homeCount: homeIds.length,
+          awayCount: awayIds.length,
+          min: squadMin,
+          max: squadMax,
+          homeRosterEmpty: ctx.rosters.home.length === 0,
+          awayRosterEmpty: ctx.rosters.away.length === 0,
+        }),
+      );
       return;
     }
     setBusy(true);
@@ -427,9 +441,13 @@ export function ScorePad({ matchId }: { matchId: string }) {
   }
 
   function addToSquad(side: "home" | "away", playerId: string) {
+    if (!ctx) return;
+    const squadMax = ctx.squadMax ?? 15;
     if (side === "home") {
+      if (draftHomeIds.length >= squadMax) return;
       setDraftHomeIds((ids) => (ids.includes(playerId) ? ids : [...ids, playerId]));
     } else {
+      if (draftAwayIds.length >= squadMax) return;
       setDraftAwayIds((ids) => (ids.includes(playerId) ? ids : [...ids, playerId]));
     }
   }
@@ -719,11 +737,22 @@ export function ScorePad({ matchId }: { matchId: string }) {
   const { homeIds: confirmHomeIds, awayIds: confirmAwayIds } = squadIdsForConfirm();
   const squadMin = ctx.squadMin ?? 2;
   const squadMax = ctx.squadMax ?? 15;
-  const canConfirmSquads =
-    confirmHomeIds.length >= squadMin &&
-    confirmAwayIds.length >= squadMin &&
-    confirmHomeIds.length <= squadMax &&
-    confirmAwayIds.length <= squadMax;
+  const canConfirmSquads = canConfirmLineup(
+    confirmHomeIds.length,
+    confirmAwayIds.length,
+    squadMin,
+    squadMax,
+  );
+  const lineupBlockerHint = describeLineupBlockers({
+    homeTeamName: ctx.homeTeam.name,
+    awayTeamName: ctx.awayTeam.name,
+    homeCount: confirmHomeIds.length,
+    awayCount: confirmAwayIds.length,
+    min: squadMin,
+    max: squadMax,
+    homeRosterEmpty: ctx.rosters.home.length === 0,
+    awayRosterEmpty: ctx.rosters.away.length === 0,
+  });
 
   return (
     <div className="sp-wrap">
@@ -894,6 +923,12 @@ export function ScorePad({ matchId }: { matchId: string }) {
                     ))}
                   </ul>
                   <p className="sp-roster-sub">Roster</p>
+                  {available.length === 0 ? (
+                    <p className="sp-muted sp-roster-empty">
+                      No club roster yet — add {squadMin} {squadMin === 1 ? "player" : "players"}{" "}
+                      using Add player below.
+                    </p>
+                  ) : (
                   <ul className="sp-roster-list">
                     {available.map((p) => (
                       <li key={p.id}>
@@ -901,7 +936,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
                         <button
                           type="button"
                           className="sp-roster-btn add"
-                          disabled={busy}
+                          disabled={busy || selectedIds.length >= squadMax}
                           onClick={() => addToSquad(side, p.id)}
                         >
                           +
@@ -909,6 +944,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
                       </li>
                     ))}
                   </ul>
+                  )}
                   <div className="sp-quick-add">
                     <label className="sp-quick-add-label" htmlFor={`sp-quick-add-${side}`}>
                       Add player
@@ -935,7 +971,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
                       <button
                         type="button"
                         className="sp-quick-add-btn"
-                        disabled={busy || !quickAddName[side].trim()}
+                        disabled={busy || selectedIds.length >= squadMax || !quickAddName[side].trim()}
                         aria-label={`Add player to ${teamLabel}`}
                         onClick={() => void quickAddPlayer(side)}
                       >
@@ -976,10 +1012,9 @@ export function ScorePad({ matchId }: { matchId: string }) {
           >
             Confirm lineups &amp; continue
           </button>
-          {!canConfirmSquads && (
-            <p className="sp-muted" style={{ marginTop: 8 }}>
-              Pick {squadMin}–{squadMax} players per side ({confirmHomeIds.length} home,{" "}
-              {confirmAwayIds.length} away).
+          {!canConfirmSquads && lineupBlockerHint && (
+            <p className="sp-muted sp-lineup-hint" style={{ marginTop: 8 }}>
+              {lineupBlockerHint}
             </p>
           )}
         </section>

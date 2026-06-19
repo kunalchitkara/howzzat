@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import type { MatchScorecardView } from "@/lib/scorecard/types";
-import { buildMatchSummary } from "@/lib/scorecard/match-summary";
+import { buildMatchSummary, buildCommentaryMatchSummary } from "@/lib/scorecard/match-summary";
 import { BallByBallPanel } from "./BallByBallPanel";
 import { InningsPanel } from "./InningsPanel";
-import { MatchInsightsPanel, MatchSummaryPanel } from "./MatchSummaryPanel";
+import { CommentaryTossPanel, MatchInsightsPanel, MatchSummaryPanel } from "./MatchSummaryPanel";
 import "./scorecard.css";
 
 type ViewMode = "scorecard" | "commentary";
@@ -22,6 +22,7 @@ export function ScorecardView({
     hasBallByBall ? defaultView : "scorecard",
   );
   const summary = buildMatchSummary(data);
+  const commentarySummary = buildCommentaryMatchSummary(data);
 
   return (
     <div className="sc-wrap">
@@ -73,14 +74,21 @@ export function ScorecardView({
         />
       )}
 
-      {viewMode === "commentary" &&
-        data.ballByBall?.innings.map((bbbInn, i) => (
-          <BallByBallPanel
-            key={bbbInn.label}
-            innings={bbbInn}
-            variant={i % 2 === 1 ? "alt" : "default"}
-          />
-        ))}
+      {viewMode === "commentary" && (
+        <>
+          {commentarySummary && (
+            <MatchSummaryPanel summary={commentarySummary} compact />
+          )}
+          {data.ballByBall?.innings.map((bbbInn, i) => (
+            <BallByBallPanel
+              key={bbbInn.label}
+              innings={bbbInn}
+              variant={i % 2 === 1 ? "alt" : "default"}
+            />
+          ))}
+          {data.toss && <CommentaryTossPanel toss={data.toss} />}
+        </>
+      )}
 
       {data.rulesNote && (
         <p className="sc-rules-note">{data.rulesNote}</p>

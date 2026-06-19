@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AddPlayerForm, EditTeamForm } from "@/components/dashboard/forms";
 import { PlayerList } from "@/components/dashboard/PlayerList";
 import { BtnLink, PageShell } from "@/components/dashboard/ui";
+import { getOrganization } from "@/lib/services/organizations";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function TeamPage({
   params: Promise<{ orgId: string; teamId: string }>;
 }) {
   const { orgId, teamId } = await params;
+  const org = await getOrganization(orgId);
   const team = await prisma.team.findUnique({
     where: { id: teamId },
     include: {
@@ -23,13 +25,13 @@ export default async function TeamPage({
       },
     },
   });
-  if (!team || team.organizationId !== orgId) notFound();
+  if (!team || team.organizationId !== org.id) notFound();
 
   return (
     <PageShell title={team.name} subtitle={`${team.organization.name} roster`}>
       <p style={{ marginBottom: 16 }}>
         <BtnLink
-          href={`/dashboard/organizations/${orgId}/teams`}
+          href={`/dashboard/organizations/${org.id}/teams`}
           variant="secondary"
           className="btn-nav"
         >
@@ -41,7 +43,7 @@ export default async function TeamPage({
         Team details
       </h2>
       <EditTeamForm
-        orgId={orgId}
+        orgId={org.id}
         teamId={teamId}
         initialName={team.name}
         initialAgeGroup={team.ageGroup}

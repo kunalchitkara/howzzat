@@ -461,13 +461,13 @@ const scoringSteps = [
 const scoringBugs = [
   { id: "B1", severity: "Critical", screen: "Match score /score", description: "“Sign in to score” shown for logged-in club owner", repro: "Sign in as ECC owner → open non-demo match score URL", fix: "Use needsSignIn for banner; keep requiresAuth for API semantics", status: "Fixed" },
   { id: "B2", severity: "Critical", screen: "Match score /score", description: "Claim/toss/mutations 500 when URL uses slug", repro: "Open /match/u9-ecc-…/score → page loads → claim or save toss", fix: "Use match.id from getMatch() for all Prisma writes", status: "Fixed" },
-  { id: "B3", severity: "Medium", screen: "Homepage /", description: "Shows “Sign in” while session active", repro: "Log in → visit /", fix: "Server-render auth state in homepage hero (read session cookie)", status: "Open" },
-  { id: "B4", severity: "Medium", screen: "Org dashboard", description: "/dashboard/organizations/ecc → 404", repro: "Navigate by org slug instead of id", fix: "Support slug in route or redirect", status: "Open" },
-  { id: "B5", severity: "Medium", screen: "Tournament page", description: "Duplicate Test Hayes U9 in teams list", repro: "Add opponent via quick-add twice / UI + API race", fix: "Dedupe tournament teams by name; idempotent add", status: "Open" },
-  { id: "B6", severity: "Low", screen: "Tournament schedule form", description: "Home & Away both default to same opponent team", repro: "Open schedule form after adding Hayes", fix: "Reset away dropdown when home changes", status: "Open" },
-  { id: "B7", severity: "Low", screen: "Tournament page", description: "Next.js dev “N Issues” overlay", repro: "Run dev server, visit tournament page", fix: "Investigate console/hydration warnings", status: "Open" },
-  { id: "B8", severity: "Low", screen: "Lineups", description: "Confirm disabled — only 3 roster players, rules need 6+", repro: "Open lineups for U9 ECC with small roster", fix: "Clearer “need N more players” CTA; link to roster management", status: "Open" },
-  { id: "B9", severity: "Low", screen: "Public URLs", description: "/t/{slug} 404", repro: "Visit /t/test-ecc-u9", fix: "Redirect or document /orgs/{org}/tournaments/{slug}", status: "Open" },
+  { id: "B3", severity: "Medium", screen: "Homepage /", description: "Shows “Sign in” while session active", repro: "Log in → visit /", fix: "Server-render auth state in homepage hero (read session cookie)", status: "Fixed" },
+  { id: "B4", severity: "Medium", screen: "Org dashboard", description: "/dashboard/organizations/ecc → 404", repro: "Navigate by org slug instead of id", fix: "Support slug in route or redirect", status: "Fixed" },
+  { id: "B5", severity: "Medium", screen: "Tournament page", description: "Duplicate Test Hayes U9 in teams list", repro: "Add opponent via quick-add twice / UI + API race", fix: "Dedupe tournament teams by name; idempotent add", status: "Fixed" },
+  { id: "B6", severity: "Low", screen: "Tournament schedule form", description: "Home & Away both default to same opponent team", repro: "Open schedule form after adding Hayes", fix: "Reset away dropdown when home changes", status: "Fixed" },
+  { id: "B7", severity: "Low", screen: "Tournament page", description: "Next.js dev “N Issues” overlay", repro: "Run dev server, visit tournament page", fix: "Investigate console/hydration warnings", status: "Open (dev-only)" },
+  { id: "B8", severity: "Low", screen: "Lineups", description: "Confirm disabled — roster below old 6+ minimum", repro: "Open lineups for U9 with small roster", fix: "Clearer lineup blockers; U9 min 4 in MJCA profile", status: "Fixed" },
+  { id: "B9", severity: "Low", screen: "Public URLs", description: "/t/{slug} 404", repro: "Visit /t/test-ecc-u9", fix: "Redirect to /orgs/{org}/tournaments/{slug}", status: "Fixed" },
   { id: "B10", severity: "Low", screen: "Dashboard club link", description: "Click on list item intercepted", repro: "Click ECC card body on dashboard", fix: "Make entire card clickable or fix z-index", status: "Open" },
   { id: "B11", severity: "Info", screen: "Screenshot tooling", description: "Full-page screenshots intermittently timeout", repro: "browser_take_screenshot with fullPage: true", fix: "Retry without fullPage (workaround used)", status: "N/A" },
 ];
@@ -534,12 +534,14 @@ const scoringHtml = buildReport({
   ],
   summaryHtml: `<section class="content-block">
     <h2>Executive summary</h2>
-    <p>Walked the manager → tournament → score flow for <strong>Test ECC U9 vs Test Hayes U9</strong>. The reported <strong>“Sign in to score” banner while logged in</strong> was reproduced in code review and fixed. A second <strong>critical</strong> bug was found: <strong>all match mutations via public slug URLs returned 500</strong> because Prisma updates used the slug instead of the internal match id.</p>
+    <p>Walked the manager → tournament → score flow for <strong>Test ECC U9 vs Test Hayes U9</strong>. Critical auth banner and slug mutation bugs are fixed. This re-run also verified homepage session, org slug routes, tournament dedupe/schedule defaults, public <code>/t/{token}</code> redirect, and U9 lineup minimum (4 players).</p>
     <div class="summary-highlights">
-      <div class="highlight fixed"><strong>Auth bug fixed:</strong> yes — see Auth bug analysis section</div>
-      <div class="highlight fixed"><strong>Slug mutation bug fixed:</strong> yes (claim + toss + other match writes)</div>
-      <div class="highlight"><strong>Screenshots captured:</strong> 9</div>
-      <div class="highlight"><strong>Bugs logged:</strong> 11 (2 critical, fixed in this session)</div>
+      <div class="highlight fixed"><strong>All critical/high bugs resolved</strong> — auth banner + slug mutations</div>
+      <div class="highlight fixed"><strong>Medium bugs fixed:</strong> B3 homepage session, B4 org slug, B5 duplicate teams</div>
+      <div class="highlight fixed"><strong>Also fixed:</strong> B6 schedule defaults, B8 lineup hints + U9 min 4, B9 public token redirect</div>
+      <div class="highlight"><strong>Deferred (low/dev):</strong> B7 dev overlay, B10 dashboard card click</div>
+      <div class="highlight"><strong>Screenshots captured:</strong> 8 embedded</div>
+      <div class="highlight"><strong>Bugs logged:</strong> 11 — 8 fixed, 2 open (low/dev), 1 N/A</div>
     </div>
   </section>
   <nav class="content-block toc">
@@ -587,14 +589,14 @@ const coachDir = "docs/qa-screenshots/coach-2026-06-19";
 const coachImages = {};
 let coachImageCount = 0;
 for (const f of [
-  "01-homepage-unauthenticated.png", "02-login-email-code-default.png",
+  "01-homepage-unauthenticated.png", "02-login-password-default.png",
   "03-signup-password-form.png", "04-dashboard-post-signup.png",
   "05-create-organization-form.png", "06-dashboard-after-org-created.png",
   "07-organization-hub.png", "08-tournaments-empty-state.png",
   "09-create-tournament-form.png", "10-tournaments-list-after-create.png",
   "11-tournament-dashboard-empty-fixtures.png", "12-schedule-match-filled.png",
   "13-fixtures-with-match.png", "14-match-score-pad-pre-start.png",
-  "15-wallet-page.png", "16-score-page-loaded.png",
+  "15-score-page-loaded.png",
 ]) {
   coachImages[f] = embedImage(join(coachDir, f).replace(/\\/g, "/"));
   coachImageCount++;
@@ -604,17 +606,17 @@ const coachSteps = [
   { num: 1, title: "Landing / homepage (unauthenticated)", url: "/", screenshotFile: "01-homepage-unauthenticated.png", caption: "Homepage — logged-out hero",
     bullets: ["Hero: <strong>Sign in</strong> + <strong>Club dashboard</strong> (dashboard link works only when already signed in).", "Marketing lists all built-in rules profiles, including <strong>Demo</strong> entries — fine for homepage, but coaches should not see demo templates in the tournament form (they do not; see step 6).", "Homepage always renders logged-out hero even if a session cookie exists (see bug C3)."] },
   { num: 2, title: "Sign up", url: "/login?redirect=/dashboard", caption: "Login and sign-up flow",
-    extra: `<p><strong>Path used:</strong> <strong>Password</strong> tab → <strong>Need an account? Create one</strong> → email + name + password → <strong>Create account</strong>.</p>
+    extra: `<p><strong>Path used:</strong> <strong>Password</strong> tab (default when email OTP unavailable) → <strong>Need an account? Create one</strong> → email + name + password → <strong>Create account</strong>.</p>
     ${dataTable(["Method", "Result"], [
-      ["Email code (default tab before fix)", "Fails — EMAIL_NOT_CONFIGURED (no RESEND_API_KEY / EMAIL_FROM, no DEV_EMAIL_BYPASS_* in .env.local)"],
-      ["Password", "Works — lands on dashboard"],
-      ["Google", "Not tested; dev hint shows redirect URI on port 3000 (env mismatch)"],
+      ["Email code", "Fails without RESEND_API_KEY / EMAIL_FROM or DEV_EMAIL_BYPASS_*"],
+      ["Password", "Works — lands on dashboard (default tab when OTP unavailable)"],
+      ["Google", "Uses app origin default http://localhost:3005 when env unset"],
     ])}
     <p><strong>Dev bypass (optional):</strong> add to <code>apps/web/.env.local</code>:</p>
     <pre class="code-block"><code>DEV_EMAIL_BYPASS_EMAIL="dev@local.club"
 DEV_EMAIL_BYPASS_CODE="123456"</code></pre>
-    <div class="callout callout-success"><strong>Fix applied:</strong> login page now defaults to <strong>Password</strong> tab when email OTP is not configured (<code>apps/web/src/app/login/page.tsx</code>).</div>
-    ${screenshot(coachImages["02-login-email-code-default.png"], "Login — Email code tab (pre-fix default)")}
+    <div class="callout callout-success"><strong>Fix applied:</strong> login page defaults to <strong>Password</strong> tab when email OTP is not configured.</div>
+    ${screenshot(coachImages["02-login-password-default.png"], "Login — Password tab (default when OTP unavailable)")}
     ${screenshot(coachImages["03-signup-password-form.png"], "Password registration form")}` },
   { num: 3, title: "Post-signup dashboard (empty state)", url: "/dashboard", screenshotFile: "04-dashboard-post-signup.png", caption: "Empty dashboard after sign-up",
     bullets: ["Clear empty state: “You are not part of any club yet…”", "CTAs: <strong>Create your first club</strong> and <strong>+ New club</strong>.", "Header shows coach name, Account, Sign out."] },
@@ -641,18 +643,18 @@ DEV_EMAIL_BYPASS_CODE="123456"</code></pre>
     bullets: ["Balance <strong>£0.00</strong>; top-up buttons £10 / £20 / £50 (Stripe test mode hint).", "<strong>Redeem coupon</strong> form present.", "Wallet not required to <strong>schedule</strong> a match; billing applies at finalize."] },
   { num: 11, title: "Optional — scorer entry (post-schedule)", url: "/match/{slug}/score", caption: "Scorer entry after scheduling",
     bullets: ["Immediate navigation can flash <strong>“Loading scorer…”</strong> for several seconds; full UI loads with <strong>Record the toss</strong> step.", "Club owner sees toss UI (no erroneous “Sign in to score” banner — see manager walkthrough fix).", "Confirms product intent: <strong>overs/lineups at match start</strong>, not at schedule time."],
-    extra: `${screenshot(coachImages["14-match-score-pad-pre-start.png"], "Scorer loading state (early)")}${screenshot(coachImages["16-score-page-loaded.png"], "Toss step — scorer ready")}` },
+    extra: `${screenshot(coachImages["14-match-score-pad-pre-start.png"], "Scorer loading state (early)")}${screenshot(coachImages["15-score-page-loaded.png"], "Toss step — scorer ready")}` },
 ];
 
 const coachBugs = [
   { id: "C1", severity: "High", screen: "/login", description: "Default Email code tab; Send code fails when Resend/bypass unset", repro: "Open login → Send code", fix: "Default to Password when OTP unavailable; document bypass in .env.local", status: "Fixed (default tab)" },
-  { id: "C2", severity: "Medium", screen: "/login dev hint", description: "Google redirect URI shows localhost:3000 while dev uses 3005", repro: "Open login → read yellow dev box", fix: "Set NEXT_PUBLIC_APP_URL=http://localhost:3005 in .env.local", status: "Open (env)" },
-  { id: "C3", severity: "Medium", screen: "/", description: "Homepage hero always shows Sign in even with active session", repro: "Sign in → visit /", fix: "SSR session check on homepage hero", status: "Open" },
+  { id: "C2", severity: "Medium", screen: "/login dev hint", description: "Google redirect URI shows localhost:3000 while dev uses 3005", repro: "Open login → read yellow dev box", fix: "Default app origin to localhost:3005 when env unset", status: "Fixed" },
+  { id: "C3", severity: "Medium", screen: "/", description: "Homepage hero always shows Sign in even with active session", repro: "Sign in → visit /", fix: "SSR session check on homepage hero", status: "Fixed" },
   { id: "C4", severity: "Low", screen: "Create org", description: "After create, lands on dashboard root not org hub", repro: "Create club → observe redirect", fix: "Redirect to /dashboard/organizations/{id}", status: "Open" },
-  { id: "C5", severity: "Low", screen: "Tournament dashboard", description: "Manager invites section prominent; coaches may think invites are required", repro: "Open new tournament page", fix: "Collapse invites behind “Advanced” or add “optional” label", status: "Open" },
-  { id: "C6", severity: "Low", screen: "Homepage", description: "Demo rules profiles listed in public marketing", repro: "Visit /", fix: "Separate “Try demos” from coach-facing copy", status: "Open" },
-  { id: "C7", severity: "Low", screen: "Scorer /score", description: "Loading scorer… persists several seconds on first paint", repro: "Click Score immediately after schedule", fix: "Skeleton with step hint; prefetch match context", status: "Open" },
-  { id: "C8", severity: "Info", screen: "Dev tooling", description: "Next.js “1 Issue” badge on several pages", repro: "Any dashboard page in dev", fix: "Inspect hydration/console warnings", status: "Open" },
+  { id: "C5", severity: "Low", screen: "Tournament dashboard", description: "Manager invites section prominent; coaches may think invites are required", repro: "Open new tournament page", fix: "Collapse invites behind “Advanced” or add “optional” label", status: "Open (deferred)" },
+  { id: "C6", severity: "Low", screen: "Homepage", description: "Demo rules profiles listed in public marketing", repro: "Visit /", fix: "Separate “Try demos” from coach-facing copy", status: "Open (deferred)" },
+  { id: "C7", severity: "Low", screen: "Scorer /score", description: "Loading scorer… persists several seconds on first paint", repro: "Click Score immediately after schedule", fix: "Skeleton with step hint; prefetch match context", status: "Open (deferred)" },
+  { id: "C8", severity: "Info", screen: "Dev tooling", description: "Next.js “1 Issue” badge on several pages", repro: "Any dashboard page in dev", fix: "Inspect hydration/console warnings", status: "Open (dev-only)" },
 ];
 
 const coachHtml = buildReport({
@@ -668,13 +670,13 @@ const coachHtml = buildReport({
   ],
   summaryHtml: `<section class="content-block">
     <h2>Executive summary</h2>
-    <p>Walked a <strong>brand-new coach</strong> from homepage → password sign-up → create club → create U9 tournament → schedule a fixture using <strong>team names only</strong> (no invites, no org squads). The happy path completes in ~6 seconds of UI time; match slug URLs are readable and the scorer opens at the toss step for the club owner.</p>
+    <p>Walked a <strong>brand-new coach</strong> from homepage → password sign-up → create club → create U9 tournament → schedule a fixture using <strong>team names only</strong>. Password path completes without blockers; login defaults to Password when email OTP is unavailable.</p>
     <div class="summary-highlights">
-      <div class="highlight fixed"><strong>Blockers to scheduled match:</strong> none on the password path</div>
-      <div class="highlight"><strong>Top friction:</strong> default Email code tab fails without Resend or DEV_EMAIL_BYPASS_*; Google OAuth dev hint shows port 3000 while dev runs on 3005</div>
-      <div class="highlight"><strong>Rules template picker:</strong> MJCA templates only in tournament form (no demo profiles); default MJCA U9 Outdoor (suggested)</div>
-      <div class="highlight"><strong>Screenshots captured:</strong> 16</div>
-      <div class="highlight"><strong>Bugs logged:</strong> 8 (0 critical for password path; 1 quick fix applied for login default tab)</div>
+      <div class="highlight fixed"><strong>All critical/high bugs resolved</strong> — password sign-up path unblocked (C1)</div>
+      <div class="highlight fixed"><strong>Medium fixes:</strong> C2 OAuth default port 3005, C3 homepage session</div>
+      <div class="highlight"><strong>Deferred (low):</strong> C4 post-create redirect, C5 invites prominence, C6 demo marketing, C7 scorer loading</div>
+      <div class="highlight"><strong>Screenshots captured:</strong> 15 embedded</div>
+      <div class="highlight"><strong>Bugs logged:</strong> 8 — 3 fixed, 4 deferred, 1 dev-only</div>
     </div>
   </section>
   <section class="content-block">
@@ -786,12 +788,12 @@ const indexHtml = `<!DOCTYPE html>
         <a class="report-card" href="e2e-scoring-qa-report.html">
           <h2>Scoring / Manager flow</h2>
           <p>Manager → tournament → score flow for Test ECC U9 vs Test Hayes U9. Auth banner + slug mutation bugs fixed.</p>
-          <div class="meta">9 screenshots · 11 bugs (2 critical fixed)</div>
+          <div class="meta">8 screenshots · 11 bugs (8 fixed, 2 low open)</div>
         </a>
         <a class="report-card" href="e2e-coach-qa-report.html">
           <h2>Coach persona (zero → match)</h2>
           <p>New coach sign-up through club, tournament, and scheduled fixture using team names only.</p>
-          <div class="meta">16 screenshots · 8 bugs (1 fixed)</div>
+          <div class="meta">15 screenshots · 8 bugs (3 fixed, 4 deferred)</div>
         </a>
       </div>
     </section>

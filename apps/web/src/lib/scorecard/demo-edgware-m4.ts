@@ -11,6 +11,10 @@ export const edgwareM4DemoScorecard: MatchScorecardView = {
     subtext: "20 overs · U9 Softball",
     variant: "loss",
   },
+  toss: {
+    winnerName: "Hayes",
+    electedTo: "bat",
+  },
   rulesNote:
     "Base 200 + bat runs − 5 per wicket. Net runs = bat runs − (5 × wickets lost).",
   innings: [

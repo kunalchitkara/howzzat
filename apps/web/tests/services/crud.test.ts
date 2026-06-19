@@ -17,6 +17,8 @@ import {
 import {
   createTournament,
   addTeamToTournament,
+  addNamedTeamToTournament,
+  findOrCreateTournamentTeamByName,
   getTournament,
   getTournamentBySlug,
 } from "@/lib/services/tournaments";
@@ -54,6 +56,13 @@ describe("organizations service", () => {
     const org = await createOrganization({ name: "Get Test" });
     const fetched = await getOrganization(org.id);
     expect(fetched.name).toBe("Get Test");
+  });
+
+  it("gets organization by slug", async () => {
+    const org = await createOrganization({ name: "Slug Test", slug: "slug-test" });
+    const fetched = await getOrganization("slug-test");
+    expect(fetched.id).toBe(org.id);
+    expect(fetched.name).toBe("Slug Test");
   });
 });
 
@@ -196,6 +205,121 @@ describe("teams and tournaments service", () => {
     expect(match.homeTeam.team.name).toBe("Edgware U9");
     expect(match.awayTeam.team.name).toBe("Hayes U9");
     expect(match.awayTeam.team.slug.startsWith("ext-")).toBe(true);
+  });
+
+  it("does not duplicate tournament teams when adding the same name twice", async () => {
+    const org = await createOrganization({ name: "Dedupe Club" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Dedupe Cup",
+      rulesProfileVersionId: version.id,
+    });
+
+    await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+    await addNamedTeamToTournament(tournament.id, "test hayes u9");
+
+    const enrolled = await prisma.tournamentTeam.findMany({
+      where: { tournamentId: tournament.id },
+      include: { team: true },
+    });
+    expect(enrolled).toHaveLength(1);
+    expect(enrolled[0]?.team.name).toBe("Test Hayes U9");
+  });
+
+  it("reuses org roster team when enrolling by name instead of creating external duplicate", async () => {
+    const org = await createOrganization({ name: "Roster Dedupe Club" });
+    const rosterTeam = await createTeam(org.id, { name: "Test Hayes U9", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Roster Cup",
+      rulesProfileVersionId: version.id,
+    });
+
+    const entry = await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+
+    expect(entry.team.id).toBe(rosterTeam.id);
+    expect(entry.team.slug.startsWith("ext-")).toBe(false);
+  });
+
+  it("dedupes org roster enrollment when an external team with the same name is already enrolled", async () => {
+    const org = await createOrganization({ name: "Mixed Dedupe Club" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Mixed Cup",
+      rulesProfileVersionId: version.id,
+    });
+
+    const externalEntry = await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+    expect(externalEntry.team.slug.startsWith("ext-")).toBe(true);
+
+    const rosterTeam = await createTeam(org.id, { name: "Test Hayes U9", ageGroup: "U9" });
+    const viaRoster = await addTeamToTournament(tournament.id, rosterTeam.id);
+
+    const enrolled = await prisma.tournamentTeam.findMany({
+      where: { tournamentId: tournament.id },
+    });
+    expect(enrolled).toHaveLength(1);
+    expect(viaRoster.id).toBe(externalEntry.id);
+  });
+
+  it("scheduling a match does not duplicate an opponent already in the tournament", async () => {
+    const org = await createOrganization({ name: "Schedule Dedupe Club" });
+    const homeTeam = await createTeam(org.id, { name: "U9 ECC", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Schedule Cup",
+      ageGroup: "U9",
+      rulesProfileVersionId: version.id,
+    });
+    await addTeamToTournament(tournament.id, homeTeam.id);
+    await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+
+    await createMatch(tournament.id, {
+      homeTeamName: "U9 ECC",
+      awayTeamName: "Test Hayes U9",
+      venue: "Main Ground",
+    });
+
+    const enrolled = await prisma.tournamentTeam.findMany({
+      where: { tournamentId: tournament.id },
+      include: { team: true },
+    });
+    expect(enrolled).toHaveLength(2);
+    expect(enrolled.map((tt) => tt.team.name).sort()).toEqual(["Test Hayes U9", "U9 ECC"]);
+  });
+
+  it("findOrCreateTournamentTeamByName is idempotent within one scheduling context", async () => {
+    const org = await createOrganization({ name: "Ctx Dedupe Club" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Ctx Cup",
+      rulesProfileVersionId: version.id,
+    });
+    const ctx = {
+      id: tournament.id,
+      organizationId: org.id,
+      ageGroup: "U9" as string | null,
+      rulesProfileVersionId: version.id,
+      teams: [] as Array<{
+        id: string;
+        publicSlug: string | null;
+        team: { id: string; name: string; slug: string };
+      }>,
+    };
+
+    const first = await findOrCreateTournamentTeamByName(
+      tournament.id,
+      "Test Hayes U9",
+      ctx,
+    );
+    const second = await findOrCreateTournamentTeamByName(
+      tournament.id,
+      "Test Hayes U9",
+      ctx,
+    );
+
+    expect(second.id).toBe(first.id);
+    expect(ctx.teams).toHaveLength(1);
   });
 
   it("rejects org team ids when scheduling a match", async () => {

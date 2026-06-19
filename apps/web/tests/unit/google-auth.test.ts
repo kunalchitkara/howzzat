@@ -10,6 +10,15 @@ import {
 import { googleRedirectUri } from "@/lib/auth/google";
 
 describe("google oauth helpers", () => {
+  it("defaults to port 3005 when NEXT_PUBLIC_APP_URL is unset", () => {
+    const prevUrl = process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    expect(googleRedirectUri()).toBe(
+      "http://localhost:3005/api/v1/auth/google/callback",
+    );
+    process.env.NEXT_PUBLIC_APP_URL = prevUrl;
+  });
+
   it("builds callback redirect URI from app URL", () => {
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
     expect(googleRedirectUri()).toBe(

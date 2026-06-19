@@ -580,6 +580,30 @@ function todayDateInputValue(): string {
   return `${y}-${m}-${day}`;
 }
 
+function scheduleTeamNamesMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function defaultAwayTeamName(
+  tournamentTeams: { name: string }[],
+  homeName: string,
+): string {
+  const other = tournamentTeams.find((t) => !scheduleTeamNamesMatch(t.name, homeName));
+  return other?.name ?? "";
+}
+
+function uniqueTeamNameSuggestions(names: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const name of names) {
+    const key = name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
 export function CreateMatchForm({
   tournamentId,
   tournamentTeams,
@@ -588,8 +612,11 @@ export function CreateMatchForm({
   tournamentTeams: { id: string; name: string }[];
 }) {
   const router = useRouter();
-  const [homeTeamName, setHomeTeamName] = useState(tournamentTeams[0]?.name ?? "");
-  const [awayTeamName, setAwayTeamName] = useState(tournamentTeams[1]?.name ?? "");
+  const initialHome = tournamentTeams[0]?.name ?? "";
+  const [homeTeamName, setHomeTeamName] = useState(initialHome);
+  const [awayTeamName, setAwayTeamName] = useState(() =>
+    defaultAwayTeamName(tournamentTeams, initialHome),
+  );
   const [scheduledDate, setScheduledDate] = useState(todayDateInputValue);
   const [venue, setVenue] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -597,12 +624,21 @@ export function CreateMatchForm({
 
   useEffect(() => {
     if (tournamentTeams.length === 0) return;
-    setHomeTeamName((prev) => prev || tournamentTeams[0]!.name);
-    setAwayTeamName((prev) => prev || (tournamentTeams[1]?.name ?? ""));
+    setHomeTeamName((prevHome) => {
+      const home = prevHome || tournamentTeams[0]!.name;
+      setAwayTeamName((prevAway) =>
+        prevAway && !scheduleTeamNamesMatch(prevAway, home)
+          ? prevAway
+          : defaultAwayTeamName(tournamentTeams, home),
+      );
+      return home;
+    });
   }, [tournamentTeams]);
 
   const displayError = localError ?? error;
-  const teamSuggestions = tournamentTeams.map((t) => t.name);
+  const teamSuggestions = uniqueTeamNameSuggestions(
+    tournamentTeams.map((t) => t.name),
+  );
 
   return (
     <form
@@ -633,6 +669,11 @@ export function CreateMatchForm({
           if (ok) {
             setVenue("");
             setScheduledDate(todayDateInputValue());
+            setAwayTeamName((prevAway) =>
+              scheduleTeamNamesMatch(prevAway, homeTeamName)
+                ? defaultAwayTeamName(tournamentTeams, homeTeamName)
+                : prevAway,
+            );
             router.refresh();
           }
         });
@@ -643,7 +684,15 @@ export function CreateMatchForm({
           required
           list="tournament-team-names"
           value={homeTeamName}
-          onChange={(e) => setHomeTeamName(e.target.value)}
+          onChange={(e) => {
+            const nextHome = e.target.value;
+            setHomeTeamName(nextHome);
+            setAwayTeamName((prevAway) =>
+              scheduleTeamNamesMatch(prevAway, nextHome)
+                ? defaultAwayTeamName(tournamentTeams, nextHome)
+                : prevAway,
+            );
+          }}
           placeholder="Your club team"
           style={input}
         />

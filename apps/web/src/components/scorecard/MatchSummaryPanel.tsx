@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import type { MatchSummary } from "@/lib/scorecard/match-summary";
+import type { MatchTossInfo } from "@/lib/scorecard/types";
 
-export function MatchSummaryPanel({ summary }: { summary: MatchSummary }) {
+export function MatchSummaryPanel({
+  summary,
+  compact = false,
+}: {
+  summary: MatchSummary;
+  compact?: boolean;
+}) {
   return (
     <section className="ms-panel">
       <div className={`ms-hero ms-hero-${summary.variant}`}>
@@ -32,7 +39,7 @@ export function MatchSummaryPanel({ summary }: { summary: MatchSummary }) {
         )}
       </div>
 
-      {(summary.highlights.length > 0 || summary.playerOfMatch) && (
+      {!compact && (summary.highlights.length > 0 || summary.playerOfMatch) && (
         <div className="ms-highlights">
           {summary.highlights.map((h) => (
             <div key={h.label} className="ms-highlight">
@@ -50,6 +57,18 @@ export function MatchSummaryPanel({ summary }: { summary: MatchSummary }) {
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+export function CommentaryTossPanel({ toss }: { toss: MatchTossInfo }) {
+  return (
+    <section className="sc-toss-panel" aria-label="Toss">
+      <h3 className="sc-toss-title">Toss</h3>
+      <p className="sc-toss-line">
+        <strong>{toss.winnerName}</strong> won the toss and elected to{" "}
+        <strong>{toss.electedTo === "bat" ? "bat" : "bowl"}</strong>
+      </p>
     </section>
   );
 }
