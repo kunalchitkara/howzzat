@@ -1,47 +1,66 @@
-/** Minimal config shape for rules template dropdown labels. */
+/** Minimal config shape for rules template picker labels and descriptions. */
 export type RulesTemplateLabelConfig = {
-  pairOvers?: number;
-  playersPerSide?: { default?: number; min?: number; max?: number };
-  oversPerInnings?: { formula?: string };
+  format?: string;
+  startingScore?: number;
+  wicketPenalty?: number;
+  league?: { ballType?: string; ageGroup?: string };
+  scoring?: {
+    wide?: { default?: { runs?: number; rebowl?: boolean } };
+    noBall?: { default?: { runs?: number; rebowl?: boolean } };
+  };
 };
 
-/** Human-readable overs summary for tournament template picker options. */
-export function formatOversSummary(config: RulesTemplateLabelConfig | undefined): string {
-  if (!config) return "";
-  const formula = config.oversPerInnings?.formula;
-  const def = config.playersPerSide?.default;
+const DEMO_BUILTIN_PREFIX = "demo-";
 
-  if (formula === "2 * playersPerSide") {
-    if (def != null) {
-      return `2 overs/player (${def} players → ${2 * def} total)`;
-    }
-    return "2 overs/player";
-  }
-
-  if (formula === "playersPerSide") {
-    const perPlayer = config.pairOvers ?? 2;
-    if (def != null) {
-      return `${perPlayer} overs/player (${def} players → ${def} total)`;
-    }
-    return `${perPlayer} overs/player`;
-  }
-
-  if (formula?.startsWith("fixed:")) {
-    const fixed = Number(formula.slice("fixed:".length));
-    if (config.pairOvers === fixed && def != null) {
-      return `${fixed} overs/pair (${def} players)`;
-    }
-    return `${fixed} overs/innings`;
-  }
-
-  return "";
+/** Demo-only profiles (iOS/U9 reset flows) — hidden from tournament picker. */
+export function isDemoRulesTemplate(builtinId: string | null | undefined): boolean {
+  return builtinId?.startsWith(DEMO_BUILTIN_PREFIX) ?? false;
 }
 
-export function templateOptionLabel(
-  name: string,
-  config: RulesTemplateLabelConfig | undefined,
-): string {
-  const overs = formatOversSummary(config);
-  if (overs) return `${name} — ${overs}`;
+/** Dropdown option: profile name only (no overs or squad size). */
+export function templateOptionLabel(name: string): string {
   return name;
+}
+
+function formatExtra(name: string, runs?: number, rebowl?: boolean): string | null {
+  if (runs == null) return null;
+  return rebowl ? `${name} ${runs}, rebowl` : `${name} ${runs}`;
+}
+
+/** Rules-focused blurb for the template picker (scoring behaviour, not match length). */
+export function rulesTemplateDescription(
+  config: RulesTemplateLabelConfig | undefined,
+  fallback?: string | null,
+): string {
+  if (!config) return fallback ?? "";
+
+  const parts: string[] = [];
+
+  if (config.format === "pairs_single_innings") parts.push("Pairs innings");
+  else if (config.format === "standard_innings") parts.push("Standard innings");
+
+  const ball = config.league?.ballType;
+  if (ball) parts.push(ball);
+
+  if (config.startingScore != null && config.startingScore > 0) {
+    parts.push(`${config.startingScore} start`);
+  }
+  if (config.wicketPenalty != null && config.wicketPenalty > 0) {
+    parts.push(`−${config.wicketPenalty} per wicket`);
+  }
+
+  const wide = formatExtra(
+    "Wides",
+    config.scoring?.wide?.default?.runs,
+    config.scoring?.wide?.default?.rebowl,
+  );
+  const noBall = formatExtra(
+    "No-balls",
+    config.scoring?.noBall?.default?.runs,
+    config.scoring?.noBall?.default?.rebowl,
+  );
+  if (wide) parts.push(wide);
+  if (noBall) parts.push(noBall);
+
+  return parts.length > 0 ? parts.join(" · ") : (fallback ?? "");
 }

@@ -24,7 +24,10 @@ import {
 } from "../match-slug";
 import { getRulesProfileFromVersion } from "./rules-helpers";
 import { chargeMatchAtFinalize } from "./tournament-billing";
-import { getTournament, findOrCreateTournamentTeamByName } from "./tournaments";
+import {
+  findOrCreateTournamentTeamByName,
+  loadTournamentEnrollmentContext,
+} from "./tournaments";
 import type {
   createMatchSchema,
   createInningsSchema,
@@ -138,21 +141,22 @@ export function shouldRedirectToMatchSlug(
 }
 
 export async function createMatch(tournamentId: string, input: CreateMatchInput) {
-  const tournament = await getTournament(tournamentId);
+  const ctx = await loadTournamentEnrollmentContext(tournamentId);
 
-  let homeTeamId = input.homeTeamId;
-  let awayTeamId = input.awayTeamId;
+  const resolveTeamId = async (
+    teamId: string | undefined,
+    teamName: string | undefined,
+  ) => {
+    if (teamId) return teamId;
+    if (!teamName) return undefined;
+    return (await findOrCreateTournamentTeamByName(tournamentId, teamName, ctx))
+      .id;
+  };
 
-  if (!homeTeamId && input.homeTeamName) {
-    homeTeamId = (
-      await findOrCreateTournamentTeamByName(tournamentId, input.homeTeamName)
-    ).id;
-  }
-  if (!awayTeamId && input.awayTeamName) {
-    awayTeamId = (
-      await findOrCreateTournamentTeamByName(tournamentId, input.awayTeamName)
-    ).id;
-  }
+  const [homeTeamId, awayTeamId] = await Promise.all([
+    resolveTeamId(input.homeTeamId, input.homeTeamName),
+    resolveTeamId(input.awayTeamId, input.awayTeamName),
+  ]);
 
   if (!homeTeamId || !awayTeamId) {
     throw new ApiError(400, "Home and away teams required", "MISSING_TEAMS");
@@ -162,15 +166,9 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
     throw new ApiError(400, "Home and away teams must differ", "SAME_TEAMS");
   }
 
-  const home = await prisma.tournamentTeam.findUnique({
-    where: { id: homeTeamId },
-    include: { team: true },
-  });
-  const away = await prisma.tournamentTeam.findUnique({
-    where: { id: awayTeamId },
-    include: { team: true },
-  });
-  if (!home || !away || home.tournamentId !== tournamentId || away.tournamentId !== tournamentId) {
+  const home = ctx.teams.find((tt) => tt.id === homeTeamId);
+  const away = ctx.teams.find((tt) => tt.id === awayTeamId);
+  if (!home || !away) {
     throw new ApiError(400, "Invalid tournament teams", "INVALID_TEAMS");
   }
 
@@ -178,7 +176,7 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
   const slug = await allocateUniqueMatchSlug(
     prisma,
     buildMatchSlug({
-      ageGroup: tournament.ageGroup,
+      ageGroup: ctx.ageGroup,
       homeTeam: home,
       awayTeam: away,
       scheduledAt,
@@ -198,7 +196,7 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
       isOfficial: input.isOfficial ?? true,
       publicSlug: input.publicSlug,
       slug,
-      rulesVersionId: tournament.rulesProfileVersionId,
+      rulesVersionId: ctx.rulesProfileVersionId,
     },
     include: {
       homeTeam: { include: { team: true } },
@@ -208,9 +206,9 @@ export async function createMatch(tournamentId: string, input: CreateMatchInput)
 }
 
 export async function updateMatch(matchId: string, input: UpdateMatchInput) {
-  await getMatch(matchId);
+  const match = await getMatch(matchId);
   return prisma.match.update({
-    where: { id: matchId },
+    where: { id: match.id },
     data: {
       status: input.status,
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
@@ -238,6 +236,7 @@ export async function recordToss(
   },
 ) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (match.squadsConfirmedAt) {
     throw new ApiError(
       400,
@@ -279,6 +278,7 @@ export async function recordToss(
 
 export async function setMatchSquad(matchId: string, input: SetSquadInput) {
   const match = await getMatch(matchId);
+  matchId = match.id;
 
   const players = await prisma.player.findMany({
     where: { id: { in: input.playerIds } },
@@ -333,6 +333,7 @@ export async function setMatchSquad(matchId: string, input: SetSquadInput) {
 
 export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (match.squadsConfirmedAt) {
     throw new ApiError(400, "Lineups already confirmed", "SQUADS_ALREADY_CONFIRMED");
   }
@@ -368,6 +369,7 @@ export async function confirmMatchSquads(
   options?: { totalOvers?: number },
 ) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (!match.tossWinnerId) {
     throw new ApiError(
       400,
@@ -427,6 +429,7 @@ export async function confirmMatchSquads(
 /** Undo squad confirm (and toss) before any innings — returns to step 1. */
 export async function reopenMatchSquads(matchId: string) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (match.status === "COMPLETED") {
     throw new ApiError(400, "Match is complete", "MATCH_COMPLETE");
   }
@@ -449,6 +452,7 @@ export async function reopenMatchSquads(matchId: string) {
 
 export async function endInningsEarly(matchId: string, inningsId: string) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   const innings = match.innings.find((i) => i.id === inningsId);
   if (!innings) {
     throw new ApiError(404, "Innings not found", "INNINGS_NOT_FOUND");
@@ -464,6 +468,7 @@ export async function endInningsEarly(matchId: string, inningsId: string) {
 
 export async function continueChaseAfterTarget(matchId: string) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (match.innings.length < 2) {
     throw new ApiError(400, "Second innings not started", "NO_CHASE");
   }
@@ -476,6 +481,7 @@ export async function continueChaseAfterTarget(matchId: string) {
 
 export async function createInnings(matchId: string, input: CreateInningsInput) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   const rulesVersionId =
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId;
 
@@ -857,6 +863,7 @@ function computeStoredMatchResult(
 /** Refresh stored result lines after a delivery edit on a finished match. */
 export async function syncMatchResultScores(matchId: string) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   if (match.innings.length < 2) return match;
   const profile = await getRulesProfileFromVersion(
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
@@ -878,6 +885,7 @@ export async function syncMatchResultScores(matchId: string) {
 
 export async function finalizeMatchInnings(matchId: string) {
   const match = await getMatch(matchId);
+  matchId = match.id;
   const profile = await getRulesProfileFromVersion(
     match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
   );

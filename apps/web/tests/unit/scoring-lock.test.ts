@@ -56,12 +56,14 @@ describe("scoring lock", () => {
     );
     expect(info.canScore).toBe(true);
     expect(info.requiresAuth).toBe(false);
+    expect(info.needsSignIn).toBe(false);
   });
 
   it("requires auth on non-demo matches", () => {
     const info = buildScoringLockInfo(mockMatch(), null);
     expect(info.canScore).toBe(false);
     expect(info.requiresAuth).toBe(true);
+    expect(info.needsSignIn).toBe(true);
   });
 
   it("blocks second manager when lock is held", () => {
@@ -90,6 +92,7 @@ describe("scoring lock", () => {
     );
     expect(info.canScore).toBe(true);
     expect(info.requiresAuth).toBe(false);
+    expect(info.needsSignIn).toBe(false);
   });
 
   it("allows holder to continue scoring", () => {
@@ -102,7 +105,15 @@ describe("scoring lock", () => {
     );
     expect(info.isHolder).toBe(true);
     expect(info.canScore).toBe(true);
+    expect(info.needsSignIn).toBe(false);
     expect(info.lockedByOther).toBe(false);
+  });
+
+  it("does not show sign-in prompt for signed-in managers on club matches", () => {
+    const info = buildScoringLockInfo(mockMatch(), manager);
+    expect(info.requiresAuth).toBe(true);
+    expect(info.needsSignIn).toBe(false);
+    expect(info.canScore).toBe(true);
   });
 
   it("formats scorer display name", () => {

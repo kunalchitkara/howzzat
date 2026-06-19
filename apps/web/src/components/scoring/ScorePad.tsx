@@ -106,7 +106,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
 
   useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
-    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.requiresAuth) return;
+    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.needsSignIn) return;
 
     setClaimAttempted(true);
     api<MatchScoringContext>(`/api/v1/matches/${matchId}/scoring/claim`, {
@@ -744,7 +744,7 @@ export function ScorePad({ matchId }: { matchId: string }) {
 
       {error && <p className="sp-error">{error}</p>}
 
-      {ctx.scoringLock.requiresAuth && (
+      {ctx.scoringLock.needsSignIn && (
         <div className="sp-scoring-lock">
           <strong>Sign in to score</strong>
           Club managers must sign in before scoring. Parents can watch the{" "}

@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u14-hardball-v1",
   "name": "MJCA Girls U14 Hardball",
-  "description": "Girls U14 hardball: 11 players, 20 overs, wides/no-balls 1 run + runs, re-bowled throughout.",
+  "description": "Girls U14 hardball: wides/no-balls 1 run + runs; rebowled throughout.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

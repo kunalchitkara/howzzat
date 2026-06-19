@@ -21,7 +21,10 @@ export function scorerDisplayName(user: {
 }
 
 export interface ScoringLockInfo {
+  /** Match is not a public demo — sign-in required before scoring. */
   requiresAuth: boolean;
+  /** Viewer is not signed in (show sign-in prompt). */
+  needsSignIn: boolean;
   canScore: boolean;
   lockedByOther: boolean;
   isHolder: boolean;
@@ -42,6 +45,7 @@ export function buildScoringLockInfo(
   if (!user) {
     return {
       requiresAuth: !demo,
+      needsSignIn: !demo,
       canScore: demo,
       lockedByOther: false,
       isHolder: false,
@@ -56,6 +60,7 @@ export function buildScoringLockInfo(
   if (!isCoach && !demo) {
     return {
       requiresAuth: true,
+      needsSignIn: false,
       canScore: false,
       lockedByOther: false,
       isHolder: false,
@@ -70,6 +75,7 @@ export function buildScoringLockInfo(
 
   return {
     requiresAuth: !demo,
+    needsSignIn: false,
     canScore: isHolder,
     lockedByOther,
     isHolder: isHolder && Boolean(holder),
@@ -111,14 +117,14 @@ export async function claimMatchScoring(
   }
 
   await prisma.match.update({
-    where: { id: matchId },
+    where: { id: match.id },
     data: {
       scoringUserId: user.id,
       scoringClaimedAt: new Date(),
     },
   });
 
-  return getMatch(matchId);
+  return getMatch(match.id);
 }
 
 /** Enforce exclusive scoring lock before mutating match state. */
@@ -160,7 +166,7 @@ export async function assertCanMutateScoring(
   }
 
   await prisma.match.update({
-    where: { id: matchId },
+    where: { id: match.id },
     data: {
       scoringUserId: user.id,
       scoringClaimedAt: new Date(),

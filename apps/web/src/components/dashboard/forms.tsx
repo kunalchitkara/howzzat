@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { AGE_GROUPS } from "@/lib/age-groups";
 import { apiFetch } from "@/lib/client/api";
-import { templateOptionLabel as templateOptionLabelFromLib } from "@/lib/rules/template-labels";
+import {
+  isDemoRulesTemplate,
+  rulesTemplateDescription,
+  templateOptionLabel as templateOptionLabelFromLib,
+} from "@/lib/rules/template-labels";
 import { btn, card, Field, input } from "./ui";
 
 function AgeGroupSelect({
@@ -202,17 +206,35 @@ type RulesTemplateOption = {
 };
 
 function templateOptionLabel(t: RulesTemplateOption): string {
-  return templateOptionLabelFromLib(t.name, t.latestVersion?.config);
+  return templateOptionLabelFromLib(t.name);
 }
 
 function groupTemplates(templates: RulesTemplateOption[]) {
-  const mjca = templates.filter((t) => t.builtinId?.startsWith("mjca-"));
-  const demo = templates.filter((t) => t.builtinId?.startsWith("demo-"));
-  const other = templates.filter(
+  const coachFacing = templates.filter((t) => !isDemoRulesTemplate(t.builtinId));
+  const u9 = coachFacing.filter(
     (t) =>
-      !t.builtinId?.startsWith("mjca-") && !t.builtinId?.startsWith("demo-"),
+      t.builtinId === "mjca-u9-outdoor-v1" ||
+      t.builtinId === "u9-softball-london-v1" ||
+      t.latestVersion?.config?.league?.ageGroup === "U9",
   );
-  return { mjca, demo, other };
+  const boys = coachFacing.filter(
+    (t) =>
+      t.builtinId?.startsWith("mjca-u") &&
+      !t.builtinId?.includes("girls") &&
+      !u9.includes(t),
+  );
+  const girls = coachFacing.filter((t) => t.builtinId?.includes("girls-"));
+  const other = coachFacing.filter(
+    (t) => !u9.includes(t) && !boys.includes(t) && !girls.includes(t),
+  );
+  const sortByName = (a: RulesTemplateOption, b: RulesTemplateOption) =>
+    a.name.localeCompare(b.name);
+  return {
+    u9: u9.sort(sortByName),
+    boys: boys.sort(sortByName),
+    girls: girls.sort(sortByName),
+    other: other.sort(sortByName),
+  };
 }
 
 export function CreateTournamentForm({
@@ -222,11 +244,12 @@ export function CreateTournamentForm({
   orgId: string;
   templates: RulesTemplateOption[];
 }) {
+  const coachTemplates = templates.filter((t) => !isDemoRulesTemplate(t.builtinId));
   const defaultBuiltin =
-    templates.find((t) => t.builtinId === "mjca-u9-outdoor-v1")?.builtinId ??
-    templates.find((t) => t.builtinId === "u9-softball-london-v1")?.builtinId ??
-    templates[0]?.builtinId ??
-    "u9-softball-london-v1";
+    coachTemplates.find((t) => t.builtinId === "mjca-u9-outdoor-v1")?.builtinId ??
+    coachTemplates.find((t) => t.builtinId === "u9-softball-london-v1")?.builtinId ??
+    coachTemplates[0]?.builtinId ??
+    "mjca-u9-outdoor-v1";
 
   const [name, setName] = useState("");
   const [ageGroup, setAgeGroup] = useState("U9");
@@ -242,9 +265,9 @@ export function CreateTournamentForm({
   const [noBallRebowl, setNoBallRebowl] = useState("false");
   const { run, error, busy } = useSubmit<{ id: string }>();
 
-  const selected = templates.find((t) => t.builtinId === builtinId);
+  const selected = coachTemplates.find((t) => t.builtinId === builtinId);
   const config = selected?.latestVersion?.config;
-  const { mjca, demo, other } = groupTemplates(templates);
+  const { u9, boys, girls, other } = groupTemplates(templates);
 
   function applyTemplateDefaults(id: string) {
     const tpl = templates.find((t) => t.builtinId === id);
@@ -346,18 +369,27 @@ export function CreateTournamentForm({
           }}
           style={input}
         >
-          {mjca.length > 0 && (
-            <optgroup label="MJCA (Middlesex / London)">
-              {mjca.map((t) => (
+          {u9.length > 0 && (
+            <optgroup label="U9">
+              {u9.map((t) => (
                 <option key={t.builtinId!} value={t.builtinId!}>
                   {templateOptionLabel(t)}
                 </option>
               ))}
             </optgroup>
           )}
-          {demo.length > 0 && (
-            <optgroup label="Demo">
-              {demo.map((t) => (
+          {boys.length > 0 && (
+            <optgroup label="Boys & senior">
+              {boys.map((t) => (
+                <option key={t.builtinId!} value={t.builtinId!}>
+                  {templateOptionLabel(t)}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {girls.length > 0 && (
+            <optgroup label="Girls">
+              {girls.map((t) => (
                 <option key={t.builtinId!} value={t.builtinId!}>
                   {templateOptionLabel(t)}
                 </option>
@@ -377,7 +409,7 @@ export function CreateTournamentForm({
       </Field>
       {config && (
         <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: 12 }}>
-          {selected?.description ?? config.description}
+          {rulesTemplateDescription(config, selected?.description ?? config.description)}
           {config.league?.sourceUrl && (
             <>
               {" "}
@@ -540,6 +572,14 @@ export function AddTournamentTeamForm({
   );
 }
 
+function todayDateInputValue(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function CreateMatchForm({
   tournamentId,
   tournamentTeams,
@@ -550,6 +590,7 @@ export function CreateMatchForm({
   const router = useRouter();
   const [homeTeamName, setHomeTeamName] = useState(tournamentTeams[0]?.name ?? "");
   const [awayTeamName, setAwayTeamName] = useState(tournamentTeams[1]?.name ?? "");
+  const [scheduledDate, setScheduledDate] = useState(todayDateInputValue);
   const [venue, setVenue] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const { run, error, busy } = useSubmit<{ id: string }>();
@@ -582,12 +623,16 @@ export function CreateMatchForm({
         void run(`/api/v1/tournaments/${tournamentId}/matches`, {
           homeTeamName: home,
           awayTeamName: away,
+          scheduledAt: scheduledDate
+            ? new Date(scheduledDate).toISOString()
+            : undefined,
           venue: venue || undefined,
           playersPerSide: 8,
           isOfficial: true,
         }).then((ok) => {
           if (ok) {
             setVenue("");
+            setScheduledDate(todayDateInputValue());
             router.refresh();
           }
         });
@@ -621,12 +666,21 @@ export function CreateMatchForm({
       <Field label="Venue">
         <input value={venue} onChange={(e) => setVenue(e.target.value)} style={input} />
       </Field>
+      <Field label="Match date">
+        <input
+          type="date"
+          required
+          value={scheduledDate}
+          onChange={(e) => setScheduledDate(e.target.value)}
+          style={input}
+        />
+      </Field>
       {displayError && (
         <p style={{ color: "var(--red)", marginBottom: 12 }}>{displayError}</p>
       )}
       <button
         type="submit"
-        disabled={busy || !homeTeamName.trim() || !awayTeamName.trim()}
+        disabled={busy || !homeTeamName.trim() || !awayTeamName.trim() || !scheduledDate}
         style={btn}
       >
         Schedule match

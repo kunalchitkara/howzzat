@@ -1,10 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const profilesDir = join(__dirname, "../../rules-engine/profiles");
 
 export function getU9ProfileJson(): string {
   return readFileSync(
@@ -43,16 +42,17 @@ export async function resetDatabase(prisma: PrismaClient) {
 }
 
 async function seedAllRulesProfiles(prisma: PrismaClient) {
+  const { listBuiltinProfiles } = await import("@howzzat/rules-engine");
   const results = [];
-  for (const file of readdirSync(profilesDir).filter((f) => f.endsWith(".json"))) {
-    const json = readFileSync(join(profilesDir, file), "utf-8");
-    const profile = JSON.parse(json) as { id: string; name: string; description: string };
+  for (const profile of listBuiltinProfiles()) {
+    const json = JSON.stringify(profile);
+    const isPublic = !profile.id.startsWith("demo-");
     const template = await prisma.rulesProfileTemplate.create({
       data: {
         builtinId: profile.id,
         name: profile.name,
         description: profile.description,
-        isPublic: true,
+        isPublic,
       },
     });
     const version = await prisma.rulesProfileVersion.create({
@@ -65,7 +65,7 @@ async function seedAllRulesProfiles(prisma: PrismaClient) {
     });
     results.push({ template, version });
   }
-  const u9 = results.find((r) => r.template.builtinId === "u9-softball-london-v1");
+  const u9 = results.find((r) => r.template.builtinId === "mjca-u9-outdoor-v1");
   return u9 ?? results[0]!;
 }
 

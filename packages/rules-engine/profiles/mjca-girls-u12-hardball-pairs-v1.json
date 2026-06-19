@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u12-hardball-pairs-v1",
   "name": "MJCA Girls U12 Hardball Pairs",
-  "description": "Girls U12 hardball pairs: 8 players, 16 overs, pink 4¾oz junior ball.",
+  "description": "Girls U12 hardball pairs: pink 4¾oz junior ball.",
   "version": 1,
   "format": "pairs_single_innings",
   "playersPerSide": { "min": 8, "max": 10, "default": 8 },

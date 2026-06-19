@@ -65,7 +65,7 @@ export default function MobileScoreScreen() {
   useEffect(() => {
     if (google.busy) return;
     void refresh().then((data) => {
-      if (data && !data.scoringLock.requiresAuth) {
+      if (data && !data.scoringLock.needsSignIn) {
         setClaimAttempted(false);
       }
     });
@@ -73,7 +73,7 @@ export default function MobileScoreScreen() {
 
   useEffect(() => {
     if (!ctx || claimAttempted || ctx.status === "COMPLETED") return;
-    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.requiresAuth) return;
+    if (ctx.scoringLock.lockedByOther || ctx.scoringLock.needsSignIn) return;
     if (ctx.scoringLock.isHolder && ctx.scoringLock.canScore) return;
     setClaimAttempted(true);
     void getSessionToken().then((token) => {
@@ -787,7 +787,7 @@ export default function MobileScoreScreen() {
         </View>
       )}
 
-      {ctx.scoringLock.requiresAuth && (
+      {ctx.scoringLock.needsSignIn && (
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Sign in to score</Text>
           <Text style={styles.lockBody}>

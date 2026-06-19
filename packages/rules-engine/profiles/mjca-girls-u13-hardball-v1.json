@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u13-hardball-v1",
   "name": "MJCA Girls U13 Hardball",
-  "description": "Girls U13 hardball: 11 players (min 8), 20 overs, wides/no-balls 2 runs + runs (rebowl final over only).",
+  "description": "Girls U13 hardball: wides/no-balls 2 runs + runs scored; rebowl final over only.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

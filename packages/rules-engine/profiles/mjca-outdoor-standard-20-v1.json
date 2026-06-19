@@ -1,7 +1,7 @@
 {
   "id": "mjca-outdoor-standard-20-v1",
-  "name": "MJCA Outdoor Standard (20 overs)",
-  "description": "Main MJCA outdoor rules: 20 overs per innings, 11 players, 1/5th bowling limit, standard result & points.",
+  "name": "MJCA Outdoor Standard",
+  "description": "Main MJCA outdoor rules: 1/5th bowling limit, standard result & points.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

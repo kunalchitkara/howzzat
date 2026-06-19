@@ -148,7 +148,7 @@ export async function resolveRulesVersionForTournament(input: {
   }
 
   const defaultTemplate = await prisma.rulesProfileTemplate.findUnique({
-    where: { builtinId: "u9-softball-london-v1" },
+    where: { builtinId: "mjca-u9-outdoor-v1" },
     include: { versions: { orderBy: { version: "desc" }, take: 1 } },
   });
   if (!defaultTemplate?.versions[0]) {

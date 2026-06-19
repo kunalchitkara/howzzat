@@ -35,18 +35,64 @@ export async function ensureExternalTeam(orgId: string, name: string) {
   });
 }
 
+/** Lightweight tournament row for match scheduling (avoids full roster/match includes). */
+export type TournamentEnrollmentContext = {
+  id: string;
+  organizationId: string;
+  ageGroup: string | null;
+  rulesProfileVersionId: string;
+  teams: Array<{
+    id: string;
+    publicSlug: string | null;
+    team: { id: string; name: string; slug: string };
+  }>;
+};
+
+export async function loadTournamentEnrollmentContext(
+  tournamentId: string,
+): Promise<TournamentEnrollmentContext> {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: {
+      id: true,
+      organizationId: true,
+      ageGroup: true,
+      rulesProfileVersionId: true,
+      teams: {
+        select: {
+          id: true,
+          publicSlug: true,
+          team: { select: { id: true, name: true, slug: true } },
+        },
+      },
+    },
+  });
+  if (!tournament) {
+    throw new ApiError(404, "Tournament not found", "TOURNAMENT_NOT_FOUND");
+  }
+  return tournament;
+}
+
 /** Enroll a team by org roster id or free-text name (creates external team). */
 export async function findOrCreateTournamentTeamByName(
   tournamentId: string,
   name: string,
+  ctx?: TournamentEnrollmentContext,
 ) {
-  const tournament = await getTournament(tournamentId);
+  const tournament =
+    ctx ?? (await loadTournamentEnrollmentContext(tournamentId));
   const trimmed = name.trim();
   const existing = tournament.teams.find((tt) => tt.team.name === trimmed);
   if (existing) return existing;
 
   const team = await ensureExternalTeam(tournament.organizationId, trimmed);
-  return addTeamToTournament(tournamentId, team.id);
+  const entry = await addTeamToTournament(tournamentId, team.id, undefined, {
+    organizationId: tournament.organizationId,
+  });
+  if (ctx) {
+    ctx.teams.push(entry);
+  }
+  return entry;
 }
 
 export async function listTournaments(orgId: string) {
@@ -204,11 +250,14 @@ export async function addTeamToTournament(
   tournamentId: string,
   teamId: string,
   publicSlug?: string,
+  options?: { organizationId: string },
 ) {
-  const tournament = await getTournament(tournamentId);
+  const organizationId =
+    options?.organizationId ??
+    (await getTournament(tournamentId)).organizationId;
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) throw new ApiError(404, "Team not found", "TEAM_NOT_FOUND");
-  if (team.organizationId !== tournament.organizationId) {
+  if (team.organizationId !== organizationId) {
     throw new ApiError(
       400,
       "Team must belong to the same organization as the tournament",

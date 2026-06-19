@@ -85,6 +85,7 @@ export interface SuggestedResult {
 
 export interface ScoringLockInfo {
   requiresAuth: boolean;
+  needsSignIn: boolean;
   canScore: boolean;
   lockedByOther: boolean;
   isHolder: boolean;

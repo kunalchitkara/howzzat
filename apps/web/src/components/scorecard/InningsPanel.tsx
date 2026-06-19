@@ -114,8 +114,8 @@ function FieldingTable({ rows }: { rows: FieldingRow[] }) {
           <thead>
             <tr>
               <th>Fielder</th>
-              <th className="num">C</th>
-              <th className="num">RO</th>
+              <th className="num">Catches</th>
+              <th className="num">Run-outs</th>
             </tr>
           </thead>
           <tbody>

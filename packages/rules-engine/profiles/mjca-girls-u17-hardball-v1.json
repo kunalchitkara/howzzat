@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u17-hardball-v1",
   "name": "MJCA Girls U17 Hardball",
-  "description": "Girls U17 hardball: 11 players, 20 overs, wides/no-balls 1+rebowl, free hit after front-foot no-ball.",
+  "description": "Girls U17 hardball: wides/no-balls 1+rebowl, free hit after front-foot no-ball.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

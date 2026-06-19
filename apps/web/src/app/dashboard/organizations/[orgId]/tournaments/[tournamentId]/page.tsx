@@ -142,6 +142,9 @@ export default async function TournamentDashboardPage({
                   </strong>
                   <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 4 }}>
                     {m.status}
+                    {m.scheduledAt
+                      ? ` · ${m.scheduledAt.toISOString().slice(0, 10)}`
+                      : ""}
                     {m.venue ? ` · ${m.venue}` : ""}
                     {m.marginText ? ` · ${m.marginText}` : ""}
                   </p>

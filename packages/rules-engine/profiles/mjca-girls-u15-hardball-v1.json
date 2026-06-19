@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u15-hardball-v1",
   "name": "MJCA Girls U15 Hardball",
-  "description": "Girls U15 hardball: 11 players, 20 overs, wides/no-balls 1+rebowl, free hit, 30yd fielding circle.",
+  "description": "Girls U15 hardball: wides/no-balls 1+rebowl, free hit, 30yd fielding circle.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

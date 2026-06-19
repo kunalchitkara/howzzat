@@ -1,47 +1,45 @@
 import { describe, expect, it } from "vitest";
 import {
-  formatOversSummary,
+  isDemoRulesTemplate,
+  rulesTemplateDescription,
   templateOptionLabel,
 } from "@/lib/rules/template-labels";
 
 describe("rules template labels", () => {
-  it("describes MJCA pairs as overs per player", () => {
-    expect(
-      formatOversSummary({
-        oversPerInnings: { formula: "2 * playersPerSide" },
-        playersPerSide: { default: 8 },
-        pairOvers: 4,
-      }),
-    ).toBe("2 overs/player (8 players → 16 total)");
+  it("returns profile name only in dropdown labels", () => {
+    expect(templateOptionLabel("MJCA U9 Outdoor (suggested)")).toBe(
+      "MJCA U9 Outdoor (suggested)",
+    );
+    expect(templateOptionLabel("Demo — 2 overs per player (iOS)")).toBe(
+      "Demo — 2 overs per player (iOS)",
+    );
   });
 
-  it("describes iOS demo as overs per player", () => {
-    expect(
-      formatOversSummary({
-        oversPerInnings: { formula: "playersPerSide" },
-        playersPerSide: { default: 2 },
-        pairOvers: 2,
-      }),
-    ).toBe("2 overs/player (2 players → 2 total)");
+  it("identifies demo-only templates", () => {
+    expect(isDemoRulesTemplate("demo-u9-4-over-v1")).toBe(true);
+    expect(isDemoRulesTemplate("demo-2-over-pairs-v1")).toBe(true);
+    expect(isDemoRulesTemplate("mjca-u9-outdoor-v1")).toBe(false);
+    expect(isDemoRulesTemplate(null)).toBe(false);
   });
 
-  it("describes fixed-length demo pairs as overs per pair", () => {
+  it("builds rules-focused descriptions without overs or squad size", () => {
     expect(
-      formatOversSummary({
-        oversPerInnings: { formula: "fixed:4" },
-        playersPerSide: { default: 4 },
-        pairOvers: 4,
+      rulesTemplateDescription({
+        format: "pairs_single_innings",
+        startingScore: 200,
+        wicketPenalty: 5,
+        league: { ballType: "softball" },
+        scoring: {
+          wide: { default: { runs: 2, rebowl: false } },
+          noBall: { default: { runs: 2, rebowl: false } },
+        },
       }),
-    ).toBe("4 overs/pair (4 players)");
+    ).toBe(
+      "Pairs innings · softball · 200 start · −5 per wicket · Wides 2 · No-balls 2",
+    );
   });
 
-  it("builds full dropdown option label", () => {
-    expect(
-      templateOptionLabel("Demo — 2 overs per player (iOS)", {
-        oversPerInnings: { formula: "playersPerSide" },
-        playersPerSide: { default: 2 },
-        pairOvers: 2,
-      }),
-    ).toBe("Demo — 2 overs per player (iOS) — 2 overs/player (2 players → 2 total)");
+  it("falls back to stored description when config is empty", () => {
+    expect(rulesTemplateDescription(undefined, "Legacy profile")).toBe("Legacy profile");
   });
 });

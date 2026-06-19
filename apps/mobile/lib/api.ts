@@ -134,6 +134,7 @@ export type ScoringContext = {
   suggestedResult: { line: string; hostWon: boolean } | null;
   scoringLock: {
     requiresAuth: boolean;
+    needsSignIn: boolean;
     canScore: boolean;
     lockedByOther: boolean;
     isHolder: boolean;

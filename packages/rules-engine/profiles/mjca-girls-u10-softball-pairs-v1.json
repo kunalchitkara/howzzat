@@ -1,7 +1,7 @@
 {
   "id": "mjca-girls-u10-softball-pairs-v1",
   "name": "MJCA Girls U10 Softball Pairs",
-  "description": "Girls U10 softball pairs: 8 players (up to 10), 16 overs, incrediball, plastic bats permitted.",
+  "description": "Girls U10 softball pairs: incrediball, plastic bats permitted. Pairs scoring with wicket penalty.",
   "version": 1,
   "format": "pairs_single_innings",
   "playersPerSide": { "min": 8, "max": 10, "default": 8 },

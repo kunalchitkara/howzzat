@@ -1,7 +1,7 @@
 {
   "id": "mjca-u17-premier-v1",
   "name": "MJCA Boys U17 Premier",
-  "description": "Boys U17 Premier League: 20 overs, fielding restrictions, variable run rate, free hit, profile wides.",
+  "description": "Boys U17 Premier: fielding restrictions, variable run rate, free hit, profile wides.",
   "version": 1,
   "format": "standard_innings",
   "playersPerSide": { "min": 8, "max": 11, "default": 11 },

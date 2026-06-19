@@ -1,7 +1,7 @@
 {
   "id": "u9-softball-london-v1",
   "name": "U9 Softball (London)",
-  "description": "Pairs innings, 200 starting score, 4-over batting pairs. Common across Middlesex / London junior Sunday leagues.",
+  "description": "London/Middlesex U9 pairs softball: 200 start, −5 per wicket, pairs continue after dismissal.",
   "version": 1,
   "format": "pairs_single_innings",
   "playersPerSide": { "min": 8, "max": 10, "default": 8 },

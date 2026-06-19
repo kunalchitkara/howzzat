@@ -1,7 +1,7 @@
 {
   "id": "mjca-u10-boys-pairs-v1",
   "name": "MJCA U10 Boys Pairs",
-  "description": "Middlesex U10 boys pairs league: 8 players, 16 overs, 4-over pairs, 200 start, −5 per wicket. Tie-break: wickets then progressive overs.",
+  "description": "U10 boys pairs: 200 start, −5 per wicket. Tie-break: wickets then progressive overs.",
   "version": 1,
   "format": "pairs_single_innings",
   "playersPerSide": { "min": 8, "max": 10, "default": 8 },

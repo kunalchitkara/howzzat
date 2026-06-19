@@ -39,6 +39,11 @@ export default async function LoginPage({
       <LoginForm
         redirectTo={redirectTo ?? "/dashboard"}
         initialError={errorMessage}
+        defaultTab={
+          process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim()
+            ? "email-code"
+            : "email-password"
+        }
         setupHints={{
           googleRedirectUri: googleRedirectUri(),
           emailOtpReady: Boolean(

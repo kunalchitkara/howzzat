@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Howzzat QA Reports</title>
+  <style>
+:root {
+  --navy: #0a1628;
+  --navy-light: #132035;
+  --blue: #3b82f6;
+  --blue-light: #60a5fa;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --bg: #f8fafc;
+  --white: #ffffff;
+  --critical: #dc2626;
+  --high: #ea580c;
+  --medium: #d97706;
+  --low: #65a30d;
+  --info: #64748b;
+  --fixed: #059669;
+  --open: #6366f1;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+}
+header.report-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  color: var(--white);
+  padding: 2.5rem 1.5rem 2rem;
+  border-bottom: 4px solid var(--blue);
+}
+header.report-header .brand {
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue-light);
+  margin-bottom: 0.5rem;
+}
+header.report-header h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+header.report-header .subtitle {
+  margin: 0;
+  font-size: 1.05rem;
+  opacity: 0.9;
+  max-width: 48rem;
+}
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+section.content-block {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 1px 3px rgba(10, 22, 40, 0.06);
+}
+section.content-block h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.35rem;
+  color: var(--navy);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--blue);
+}
+section.content-block h3 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--navy);
+}
+section.content-block h3:first-child { margin-top: 0; }
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.5rem; }
+li { margin-bottom: 0.35rem; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  background: #f1f5f9;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  word-break: break-all;
+}
+.meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.meta-table th {
+  text-align: left;
+  padding: 0.5rem 1rem 0.5rem 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  width: 11rem;
+  vertical-align: top;
+}
+.meta-table td { padding: 0.5rem 0; }
+.summary-highlights {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.summary-highlights .highlight {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #eff6ff;
+  border-left: 4px solid var(--blue);
+  font-size: 0.95rem;
+}
+.summary-highlights .highlight.fixed {
+  background: #ecfdf5;
+  border-left-color: var(--fixed);
+}
+.table-wrap { overflow-x: auto; margin: 1rem 0; -webkit-overflow-scrolling: touch; }
+table.bug-table, table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+table.bug-table th, table.data-table th {
+  background: var(--navy);
+  color: var(--white);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+table.bug-table td, table.data-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.bug-table tbody tr:nth-child(even),
+table.data-table tbody tr:nth-child(even) { background: #f8fafc; }
+.badge {
+  display: inline-block;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.sev-critical { background: #fee2e2; color: var(--critical); }
+.sev-high { background: #ffedd5; color: var(--high); }
+.sev-medium { background: #fef3c7; color: var(--medium); }
+.sev-low { background: #ecfccb; color: var(--low); }
+.sev-info { background: #f1f5f9; color: var(--info); }
+.status-fixed { background: #d1fae5; color: var(--fixed); }
+.status-open { background: #e0e7ff; color: var(--open); }
+.status-na { background: #f1f5f9; color: var(--info); }
+.walkthrough-step {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+.walkthrough-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.step-url, .step-screenshot-ref { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+figure.screenshot {
+  margin: 1.25rem 0 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+figure.screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+figure.screenshot figcaption {
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--white);
+  border-top: 1px solid var(--border);
+}
+.screenshot-missing {
+  padding: 1rem;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.callout {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+.callout-info { background: #eff6ff; border-left: 4px solid var(--blue); }
+.callout-warn { background: #fef3c7; border-left: 4px solid var(--medium); }
+.callout-success { background: #ecfdf5; border-left: 4px solid var(--fixed); }
+.auth-table { font-size: 0.875rem; }
+pre.code-block {
+  background: var(--navy);
+  color: #e2e8f0;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 1rem 0;
+}
+pre.code-block code { background: none; padding: 0; color: inherit; word-break: normal; }
+.fix-list { list-style: none; padding-left: 0; }
+.fix-list li {
+  padding: 0.5rem 0 0.5rem 1.75rem;
+  position: relative;
+}
+.fix-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--fixed);
+  font-weight: bold;
+}
+footer.report-footer {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+nav.toc ol { padding-left: 1.25rem; }
+nav.toc a { color: var(--blue); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+.comparison-table td:first-child { font-weight: 600; }
+.comparison-pass { color: var(--fixed); font-weight: 600; }
+@media (max-width: 640px) {
+  main { padding: 1.25rem 1rem 3rem; }
+  section.content-block { padding: 1.25rem; }
+}
+@media print {
+  body { background: white; font-size: 11pt; }
+  header.report-header {
+    background: var(--navy) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 1.5rem;
+  }
+  main { max-width: 100%; padding: 0; }
+  section.content-block {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+    padding: 0 0 1rem;
+    border-bottom: 1px solid #ccc;
+  }
+  .walkthrough-step { page-break-inside: avoid; }
+  figure.screenshot { page-break-inside: avoid; max-height: 85vh; }
+  figure.screenshot img { max-height: 75vh; object-fit: contain; }
+  .table-wrap { overflow: visible; }
+  table.bug-table { font-size: 8pt; }
+  table.bug-table th { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { color: inherit; text-decoration: none; }
+  nav.toc { display: none; }
+}
+
+  .report-cards { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .report-card {
+    display: block;
+    padding: 1.5rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .report-card:hover {
+    border-color: var(--blue);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+  .report-card h2 { margin: 0 0 0.5rem; font-size: 1.15rem; color: var(--navy); border: none; padding: 0; }
+  .report-card p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+  .report-card .meta { margin-top: 1rem; font-size: 0.8rem; color: var(--blue); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="report-header">
+    <div class="brand">Howzzat</div>
+    <h1>E2E QA Reports</h1>
+    <p class="subtitle">Self-contained HTML walkthrough reports with embedded screenshots · 2026-06-19</p>
+  </header>
+  <main>
+    <section class="content-block">
+      <h2>Available reports</h2>
+      <div class="report-cards">
+        <a class="report-card" href="e2e-scoring-qa-report.html">
+          <h2>Scoring / Manager flow</h2>
+          <p>Manager → tournament → score flow for Test ECC U9 vs Test Hayes U9. Auth banner + slug mutation bugs fixed.</p>
+          <div class="meta">9 screenshots · 11 bugs (2 critical fixed)</div>
+        </a>
+        <a class="report-card" href="e2e-coach-qa-report.html">
+          <h2>Coach persona (zero → match)</h2>
+          <p>New coach sign-up through club, tournament, and scheduled fixture using team names only.</p>
+          <div class="meta">16 screenshots · 8 bugs (1 fixed)</div>
+        </a>
+      </div>
+    </section>
+    <section class="content-block">
+      <h2>Export to PDF</h2>
+      <p>Open any report in your browser, then use <strong>File → Print</strong> (or <kbd>⌘P</kbd> / <kbd>Ctrl+P</kbd>) and choose <strong>Save as PDF</strong>. Reports include print-optimized CSS.</p>
+    </section>
+  </main>
+  <footer class="report-footer">Howzzat QA Reports Index</footer>
+</body>
+</html>

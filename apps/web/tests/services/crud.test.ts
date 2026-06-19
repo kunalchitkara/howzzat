@@ -151,6 +151,30 @@ describe("teams and tournaments service", () => {
     expect(match.awayTeamId).toBe(ttAway.id);
   });
 
+  it("persists scheduledAt when creating a match", async () => {
+    const org = await createOrganization({ name: "Dated Fixture Club" });
+    const teamA = await createTeam(org.id, { name: "Home XI", ageGroup: "U9" });
+    const teamB = await createTeam(org.id, { name: "Away XI", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Dated Cup",
+      rulesProfileVersionId: version.id,
+    });
+    const ttHome = await addTeamToTournament(tournament.id, teamA.id);
+    const ttAway = await addTeamToTournament(tournament.id, teamB.id);
+
+    const scheduledAt = "2026-07-12T10:00:00.000Z";
+    const match = await createMatch(tournament.id, {
+      homeTeamId: ttHome.id,
+      awayTeamId: ttAway.id,
+      scheduledAt,
+      venue: "North Field",
+    });
+
+    expect(match.scheduledAt?.toISOString()).toBe(scheduledAt);
+    expect(match.slug).toMatch(/20260712/);
+  });
+
   it("creates a match from team names without pre-enrolled teams", async () => {
     const org = await createOrganization({ name: "Quick Fixture Club" });
     const teamA = await createTeam(org.id, { name: "Edgware U9", ageGroup: "U9" });
