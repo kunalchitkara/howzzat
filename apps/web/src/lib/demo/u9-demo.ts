@@ -1,4 +1,5 @@
 import { getBuiltinProfile } from "@howzzat/rules-engine";
+import { seedRulesProfileTemplates } from "@howzzat/db/seed-rules";
 import { EDGWARE_U9_ROSTER, HAYES_ROSTER } from "@/lib/demo/demo-rosters";
 import { buildMatchSquadRows, seedTeamRoster } from "@/lib/demo/seed-roster";
 import { prisma } from "@/lib/db";
@@ -14,28 +15,8 @@ const TOTAL_OVERS = 4;
 const PLAYERS_PER_SIDE = 4;
 const ROSTER_SIZE = 10;
 
-async function ensureDemoProfile() {
-  const profile = getBuiltinProfile(U9_DEMO_PROFILE_ID);
-  if (!profile) throw new Error(`${U9_DEMO_PROFILE_ID} not in rules-engine`);
-  const configJson = JSON.stringify(profile);
-  const template = await prisma.rulesProfileTemplate.upsert({
-    where: { builtinId: U9_DEMO_PROFILE_ID },
-    create: {
-      builtinId: U9_DEMO_PROFILE_ID,
-      name: profile.name,
-      description: profile.description,
-      isPublic: true,
-    },
-    update: {
-      name: profile.name,
-      description: profile.description,
-    },
-  });
-  await prisma.rulesProfileVersion.upsert({
-    where: { templateId_version: { templateId: template.id, version: 1 } },
-    create: { templateId: template.id, version: 1, configJson },
-    update: { configJson },
-  });
+async function ensureDemoProfiles() {
+  await seedRulesProfileTemplates(prisma);
 }
 
 export type U9DemoMatchResult = {
@@ -53,7 +34,7 @@ export type U9DemoMatchResult = {
 
 /** Create or fully reset the u9-live demo match (teams, rosters, squads). */
 export async function resetOrCreateU9DemoMatch(): Promise<U9DemoMatchResult> {
-  await ensureDemoProfile();
+  await ensureDemoProfiles();
   const rulesVersion = await resolveRulesVersionForTournament({
     rulesTemplateBuiltinId: U9_DEMO_PROFILE_ID,
   });

@@ -52,6 +52,7 @@ describe("iOS demo integration flow", () => {
   it("toss → 2 overs each side → extras → scorecard → finalize", async () => {
     const profile = getBuiltinProfile("demo-2-over-pairs-v1");
     expect(profile).toBeDefined();
+    expect(profile!.oversPerInnings.formula).toBe("playersPerSide");
     expect(profile!.pairOvers).toBe(2);
     expect(profile!.format).toBe("standard_innings");
 

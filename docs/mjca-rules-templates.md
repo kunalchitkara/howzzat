@@ -37,7 +37,7 @@ Each template's `league.tunable` array lists fields designers may override:
 - `startingScore` — pairs starting total (e.g. 200)
 - `wicketPenalty` — runs deducted per wicket (pairs)
 - `wide` / `noBall` — default runs and re-bowl behaviour
-- `totalOvers` — via `oversPerInnings.formula` (e.g. `fixed:20`)
+- `totalOvers` — via `oversPerInnings.formula` (`fixed:20`, `2 * playersPerSide`, or `playersPerSide` for 2 overs per player when `pairOvers` is 2)
 
 ## API examples
 
@@ -75,6 +75,14 @@ All built-in profiles (including every `mjca-*` template) are seeded from JSON i
 
 ```bash
 pnpm db:push && pnpm --filter @howzzat/db exec prisma db seed
+```
+
+Calling either demo reset endpoint also re-seeds **all** public templates (not just the demo profile):
+
+```bash
+curl -X POST http://localhost:3005/api/v1/demo/u9-match
+# or
+curl -X POST http://localhost:3005/api/v1/demo/ios-match
 ```
 
 ## Related

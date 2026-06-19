@@ -143,6 +143,9 @@ export function resolveOversPerInnings(
   if (formula === "2 * playersPerSide") {
     return 2 * playersPerSide;
   }
+  if (formula === "playersPerSide") {
+    return playersPerSide;
+  }
   if (formula.startsWith("fixed:")) {
     return Number(formula.slice("fixed:".length));
   }

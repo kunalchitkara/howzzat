@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { AGE_GROUPS } from "@/lib/age-groups";
 import { apiFetch } from "@/lib/client/api";
+import { templateOptionLabel as templateOptionLabelFromLib } from "@/lib/rules/template-labels";
 import { btn, card, Field, input } from "./ui";
 
 function AgeGroupSelect({
@@ -200,27 +201,8 @@ type RulesTemplateOption = {
   } | null;
 };
 
-function formatOversSummary(
-  config: NonNullable<RulesTemplateOption["latestVersion"]>["config"],
-) {
-  if (!config) return "";
-  const formula = config.oversPerInnings?.formula;
-  if (formula?.startsWith("fixed:")) {
-    return `${formula.slice("fixed:".length)} overs/side`;
-  }
-  if (formula === "2 * playersPerSide") {
-    const def = config.playersPerSide?.default;
-    if (def != null) return `${2 * def} overs/side (${def} players)`;
-    return "2× squad size overs/side";
-  }
-  return "";
-}
-
 function templateOptionLabel(t: RulesTemplateOption): string {
-  const cfg = t.latestVersion?.config;
-  const overs = formatOversSummary(cfg);
-  if (overs) return `${t.name} — ${overs}`;
-  return t.name;
+  return templateOptionLabelFromLib(t.name, t.latestVersion?.config);
 }
 
 function groupTemplates(templates: RulesTemplateOption[]) {

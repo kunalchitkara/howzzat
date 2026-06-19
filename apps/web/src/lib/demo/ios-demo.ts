@@ -1,4 +1,5 @@
-import { getBuiltinProfile } from "@howzzat/rules-engine";
+import { getBuiltinProfile, resolveInningsConfig } from "@howzzat/rules-engine";
+import { seedRulesProfileTemplates } from "@howzzat/db/seed-rules";
 import { EDGWARE_U9_ROSTER, HAYES_ROSTER } from "@/lib/demo/demo-rosters";
 import { buildMatchSquadRows, seedTeamRoster } from "@/lib/demo/seed-roster";
 import { prisma } from "@/lib/db";
@@ -8,25 +9,8 @@ const PROFILE_ID = "demo-2-over-pairs-v1";
 const PLAYERS_PER_SIDE = 2;
 const ROSTER_SIZE = 10;
 
-async function ensureDemoProfile() {
-  const profile = getBuiltinProfile(PROFILE_ID);
-  if (!profile) throw new Error(`${PROFILE_ID} not in rules-engine`);
-  const configJson = JSON.stringify(profile);
-  const template = await prisma.rulesProfileTemplate.upsert({
-    where: { builtinId: PROFILE_ID },
-    create: {
-      builtinId: PROFILE_ID,
-      name: profile.name,
-      description: profile.description,
-      isPublic: true,
-    },
-    update: {},
-  });
-  await prisma.rulesProfileVersion.upsert({
-    where: { templateId_version: { templateId: template.id, version: 1 } },
-    create: { templateId: template.id, version: 1, configJson },
-    update: { configJson },
-  });
+async function ensureDemoProfiles() {
+  await seedRulesProfileTemplates(prisma);
 }
 
 export type IosDemoMatchResult = {
@@ -40,7 +24,10 @@ export type IosDemoMatchResult = {
 
 /** Create or fully reset the ios-live demo match (teams, rosters, squads). */
 export async function resetOrCreateIosDemoMatch(): Promise<IosDemoMatchResult> {
-  await ensureDemoProfile();
+  await ensureDemoProfiles();
+  const profile = getBuiltinProfile(PROFILE_ID);
+  if (!profile) throw new Error(`${PROFILE_ID} not in rules-engine`);
+  const { totalOvers } = resolveInningsConfig(profile, PLAYERS_PER_SIDE);
   const rulesVersion = await resolveRulesVersionForTournament({
     rulesTemplateBuiltinId: PROFILE_ID,
   });
@@ -137,7 +124,7 @@ export async function resetOrCreateIosDemoMatch(): Promise<IosDemoMatchResult> {
         tossCallerPlayerId: null,
         squadsConfirmedAt: null,
         chaseContinuedAfterTarget: false,
-        totalOvers: 2,
+        totalOvers,
         publicSlug: "ios-live",
         scoringUserId: null,
         scoringClaimedAt: null,
@@ -150,7 +137,7 @@ export async function resetOrCreateIosDemoMatch(): Promise<IosDemoMatchResult> {
       matchId: existing.id,
       homeTeam: teamA.name,
       awayTeam: teamB.name,
-      totalOvers: 2,
+      totalOvers,
       rosterSize: ROSTER_SIZE,
       reset: true,
     };
@@ -164,7 +151,7 @@ export async function resetOrCreateIosDemoMatch(): Promise<IosDemoMatchResult> {
       matchNumber: 1,
       venue: "iOS Demo Ground",
       playersPerSide: PLAYERS_PER_SIDE,
-      totalOvers: 2,
+      totalOvers,
       publicSlug: "ios-live",
       rulesVersionId: rulesVersion.id,
       status: "SCHEDULED",
@@ -178,7 +165,7 @@ export async function resetOrCreateIosDemoMatch(): Promise<IosDemoMatchResult> {
     matchId: match.id,
     homeTeam: teamA.name,
     awayTeam: teamB.name,
-    totalOvers: 2,
+    totalOvers,
     rosterSize: ROSTER_SIZE,
     reset: false,
   };

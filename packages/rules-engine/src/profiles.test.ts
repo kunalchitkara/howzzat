@@ -76,4 +76,11 @@ describe("MJCA builtin templates", () => {
     expect(resolveInningsConfig(std, 11).totalOvers).toBe(20);
     expect(std.format).toBe("standard_innings");
   });
+
+  it("demo iOS profile uses playersPerSide formula (2 overs per player)", () => {
+    const ios = getBuiltinProfile("demo-2-over-pairs-v1")!;
+    expect(ios.oversPerInnings.formula).toBe("playersPerSide");
+    expect(resolveInningsConfig(ios, 2).totalOvers).toBe(2);
+    expect(resolveInningsConfig(ios, 2).pairCount).toBe(1);
+  });
 });
