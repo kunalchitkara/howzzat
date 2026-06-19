@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 import type { MatchScorecardView } from "@/lib/scorecard/types";
-import { buildMatchCommentary } from "@/lib/scorecard/commentary";
 import { buildMatchSummary } from "@/lib/scorecard/match-summary";
 import { BallByBallPanel } from "./BallByBallPanel";
-import { CommentaryPanel } from "./CommentaryPanel";
 import { InningsPanel } from "./InningsPanel";
 import { MatchInsightsPanel, MatchSummaryPanel } from "./MatchSummaryPanel";
 import "./scorecard.css";
 
-type ViewMode = "scorecard" | "commentary" | "bbb";
+type ViewMode = "scorecard" | "commentary";
 
 export function ScorecardView({
   data,
@@ -24,10 +22,6 @@ export function ScorecardView({
     hasBallByBall ? defaultView : "scorecard",
   );
   const summary = buildMatchSummary(data);
-  const commentary =
-    data.ballByBall && hasBallByBall
-      ? buildMatchCommentary(data.ballByBall)
-      : null;
 
   return (
     <div className="sc-wrap">
@@ -56,13 +50,6 @@ export function ScorecardView({
           >
             Commentary
           </button>
-          <button
-            type="button"
-            className={`sc-view-tab ${viewMode === "bbb" ? "active" : ""}`}
-            onClick={() => setViewMode("bbb")}
-          >
-            Ball-by-ball
-          </button>
         </nav>
       )}
 
@@ -86,11 +73,7 @@ export function ScorecardView({
         />
       )}
 
-      {viewMode === "commentary" && commentary && (
-        <CommentaryPanel commentary={commentary} />
-      )}
-
-      {viewMode === "bbb" &&
+      {viewMode === "commentary" &&
         data.ballByBall?.innings.map((bbbInn, i) => (
           <BallByBallPanel
             key={bbbInn.label}

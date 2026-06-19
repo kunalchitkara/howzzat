@@ -79,7 +79,7 @@ export function SimulatedMatchDemo({
         </form>
       </div>
       {error && <p className="sim-error">{error}</p>}
-      <ScorecardView data={scorecard} defaultView="bbb" />
+      <ScorecardView data={scorecard} defaultView="commentary" />
     </>
   );
 }

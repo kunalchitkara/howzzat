@@ -25,7 +25,7 @@ export function BallByBallPanel({
     <section className="bbb-panel">
       <div className={`sc-innings-header ${variant === "alt" ? "alt" : ""}`}>
         <span>{innings.label}</span>
-        <span className="sc-innings-score">Ball-by-ball</span>
+        <span className="sc-innings-score">Commentary</span>
       </div>
 
       <div className="bbb-list">
