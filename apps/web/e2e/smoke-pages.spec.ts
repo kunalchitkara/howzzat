@@ -51,10 +51,11 @@ test.describe("smoke — authenticated dashboard", () => {
     await expect(page.getByRole("link", { name: tournamentName })).toBeVisible();
 
     await page.getByRole("link", { name: tournamentName }).click();
+    await page.waitForURL(/\/tournaments\/[^/]+/);
     await expect(page.locator("body")).not.toContainText("Application error");
 
     const tournamentUrl = page.url();
-    expect(tournamentUrl).toMatch(/\/tournaments\//);
+    expect(tournamentUrl).toMatch(/\/tournaments\/[^/]+/);
 
     const demoReset = await request.post("/api/v1/demo/u9-match");
     expect(demoReset.status()).toBeLessThan(500);
