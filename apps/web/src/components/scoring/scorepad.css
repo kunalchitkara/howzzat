@@ -999,9 +999,19 @@ button.sp-ball-bubble.selected {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 0;
   align-items: stretch;
   max-width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.sp-quick-add-row:focus-within {
+  border-color: var(--md);
+  outline: 2px solid var(--md);
+  outline-offset: 1px;
 }
 
 .sp-roster-cols .sp-quick-add {
@@ -1034,33 +1044,39 @@ button.sp-ball-bubble.selected {
   max-height: 44px;
   min-height: 0;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: none;
+  border-radius: 0;
   font-size: 1rem;
   line-height: 1.25;
   font-family: inherit;
-  background: #fff;
+  background: transparent;
   color: var(--dk);
   box-sizing: border-box;
 }
 
 .sp-quick-add-input:focus {
-  outline: 2px solid var(--md);
-  outline-offset: 1px;
-  border-color: var(--md);
+  outline: none;
 }
 
 .sp-quick-add-input:disabled {
   opacity: 0.6;
+}
+
+.sp-quick-add-row:has(.sp-quick-add-input:disabled) {
+  opacity: 0.75;
   background: #f5f8fb;
 }
 
-/* Layout only — colours from globals `.btn.btn-primary`. */
+/* Attached combo — override globals `.btn` pill radius. */
 .sp-quick-add-btn {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   height: 44px;
   min-height: 44px;
+  margin: 0;
   padding: 0 16px;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0;
   font-size: 0.95rem;
   white-space: nowrap;
 }
@@ -1072,6 +1088,8 @@ button.sp-ball-bubble.selected {
 
   .sp-quick-add-btn {
     width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.35);
   }
 
   .sp-roster-cols .sp-quick-add-row {
@@ -1085,7 +1103,6 @@ button.sp-ball-bubble.selected {
   }
 
   .sp-roster-cols .sp-quick-add-btn {
-    width: 100%;
     min-width: auto;
   }
 }
