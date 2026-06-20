@@ -7,6 +7,7 @@ import {
   createMatch,
   recordToss,
 } from "@/lib/services/matches";
+import { getMatchScoringContext } from "@/lib/services/scoring";
 import { jsonRequest, params, readJson } from "../helpers/request";
 
 describe("match quick-add players", () => {
@@ -109,5 +110,80 @@ describe("match quick-add players", () => {
       code: "PLAYER_NAME_EXISTS",
       error: expect.stringContaining("Name already exists"),
     });
+  });
+
+  it("creates club team membership for home quick-add", async () => {
+    const match = await matchWithToss();
+
+    await addMatchPlayer(match.id, { side: "home", legalName: "Jamie" });
+
+    const membership = await prisma.teamMembership.findFirst({
+      where: {
+        active: true,
+        player: { legalName: "Jamie" },
+        team: { organizationId: fixtures.orgId },
+      },
+    });
+    expect(membership).toBeTruthy();
+
+    const matchSquad = await prisma.matchSquadPlayer.findFirst({
+      where: { matchId: match.id, playerId: membership!.playerId },
+    });
+    expect(matchSquad).toBeTruthy();
+  });
+
+  it("does not create club membership for away quick-add", async () => {
+    const match = await matchWithToss();
+
+    await addMatchPlayer(match.id, { side: "away", legalName: "Opponent Kid" });
+
+    const membership = await prisma.teamMembership.findFirst({
+      where: {
+        active: true,
+        player: { legalName: "Opponent Kid" },
+        team: { organizationId: fixtures.orgId },
+      },
+    });
+    expect(membership).toBeNull();
+
+    const matchOnly = await prisma.matchSquadPlayer.findFirst({
+      where: {
+        matchId: match.id,
+        teamId: fixtures.teamBId,
+        player: { legalName: "Opponent Kid" },
+      },
+      include: { player: true },
+    });
+    expect(matchOnly).toBeTruthy();
+  });
+
+  it("reuses existing club roster player on home quick-add", async () => {
+    const match = await matchWithToss();
+
+    await addMatchPlayer(match.id, { side: "home", legalName: "Alice" });
+
+    const players = await prisma.player.findMany({
+      where: { legalName: { equals: "Alice" } },
+    });
+    expect(players).toHaveLength(1);
+    expect(players[0]!.id).toBe(fixtures.playerIds[0]);
+  });
+
+  it("shows home quick-add player on next match roster", async () => {
+    const match1 = await matchWithToss();
+    await addMatchPlayer(match1.id, { side: "home", legalName: "Future Star" });
+
+    const match2 = await createMatch(fixtures.tournamentId, {
+      homeTeamId: fixtures.tournamentTeamAId,
+      awayTeamId: fixtures.tournamentTeamBId,
+      playersPerSide: 8,
+    });
+    await recordToss(match2.id, {
+      tossWinnerTeamId: fixtures.tournamentTeamAId,
+      electedTo: "bat",
+    });
+
+    const ctx = await getMatchScoringContext(match2.id);
+    expect(ctx.rosters.home.map((p) => p.name)).toContain("Future Star");
   });
 });

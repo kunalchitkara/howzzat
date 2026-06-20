@@ -28,8 +28,10 @@ import {
 } from "../match-slug";
 import { getRulesProfileFromVersion, resolveRulesVersionIdForCoachTournament, coachTournamentStuckOnDemoCap } from "./rules-helpers";
 import { chargeMatchAtFinalize } from "./tournament-billing";
+import { ensureClubPlayerForQuickAdd } from "./club-squad";
 import {
   findOrCreateTournamentTeamByName,
+  isExternalTeam,
   loadTournamentEnrollmentContext,
 } from "./tournaments";
 import type {
@@ -372,6 +374,25 @@ export async function setMatchSquad(matchId: string, input: SetSquadInput) {
   const match = await getMatch(matchId);
   matchId = match.id;
 
+  const rulesVersionId = await resolveRulesVersionIdForCoachTournament({
+    tournamentId: match.tournament.id,
+    tournamentSlug: match.tournament.slug,
+    rulesVersionId: match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
+  });
+  const profile = await getRulesProfileFromVersion(rulesVersionId);
+  const squadMax = profile.playersPerSide.max;
+  if (input.playerIds.length > squadMax) {
+    const teamName =
+      input.teamId === match.homeTeam.team.id
+        ? match.homeTeam.team.name
+        : match.awayTeam.team.name;
+    throw new ApiError(
+      400,
+      `${teamName} playing lineup allows up to ${squadMax} players — remove someone before adding another`,
+      "SQUAD_TOO_LARGE",
+    );
+  }
+
   const players = await prisma.player.findMany({
     where: { id: { in: input.playerIds } },
   });
@@ -444,29 +465,46 @@ export async function addMatchPlayer(matchId: string, input: AddMatchPlayerInput
     rulesVersionId: match.rulesVersionId ?? match.tournament.rulesProfileVersionId,
   });
   const profile = await getRulesProfileFromVersion(rulesVersionId);
-  const squadMax = profile.playersPerSide.max;
-  const sideCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
-  if (sideCount >= squadMax) {
-    const teamName = tournamentTeam.team.name;
-    const message = coachTournamentStuckOnDemoCap(match.tournament.slug, squadMax)
-      ? `${teamName} already has ${squadMax} players under the current demo rules cap. MJCA U9 allows up to 15 per side — refresh this page to reload tournament rules, or check the rules profile in the dashboard.`
-      : `${teamName} already has ${squadMax} players — remove someone before adding another`;
-    throw new ApiError(400, message, "SQUAD_TOO_LARGE");
+
+  const isHomeClubSide =
+    input.side === "home" && !isExternalTeam(tournamentTeam.team);
+
+  // Home quick-add extends the club roster only; playing lineup is capped at confirm/set squad.
+  if (!isHomeClubSide) {
+    const squadMax = profile.playersPerSide.max;
+    const sideCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
+    if (sideCount >= squadMax) {
+      const teamName = tournamentTeam.team.name;
+      const message = coachTournamentStuckOnDemoCap(match.tournament.slug, squadMax)
+        ? `${teamName} already has ${squadMax} players under the current demo rules cap. MJCA U9 allows up to 15 per side — refresh this page to reload tournament rules, or check the rules profile in the dashboard.`
+        : `${teamName} already has ${squadMax} players — remove someone before adding another`;
+      throw new ApiError(400, message, "SQUAD_TOO_LARGE");
+    }
+    await assertUniquePlayerNameOnMatchSide(matchId, orgTeamId, legalName);
+
+    const player = await prisma.player.create({
+      data: { legalName, displayName: legalName },
+    });
+    await prisma.matchSquadPlayer.create({
+      data: {
+        matchId,
+        playerId: player.id,
+        teamId: orgTeamId,
+        role: "player",
+      },
+    });
+    return getMatch(matchId);
   }
 
-  await assertUniquePlayerNameOnMatchSide(matchId, orgTeamId, legalName);
-
-  const player = await prisma.player.create({
-    data: { legalName, displayName: legalName },
-  });
-
-  await prisma.matchSquadPlayer.create({
-    data: {
-      matchId,
-      playerId: player.id,
-      teamId: orgTeamId,
-      role: "player",
-    },
+  const tournamentAgeGroup =
+    match.tournament.ageGroup?.trim() ||
+    profile.league?.ageGroup?.trim() ||
+    null;
+  await ensureClubPlayerForQuickAdd({
+    orgId: match.tournament.organizationId,
+    tournamentAgeGroup,
+    enrolledOrgTeam: tournamentTeam.team,
+    legalName,
   });
 
   return getMatch(matchId);

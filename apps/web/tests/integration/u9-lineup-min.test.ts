@@ -377,6 +377,39 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
     expect(ctx.rosters.home.map((p) => p.name)).toEqual(["Veer"]);
   });
 
+  it("quick-add home creates club membership visible on next match roster", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const match1 = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match1.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+    await addMatchPlayer(match1.id, { side: "home", legalName: "Club Kid" });
+
+    const membership = await prisma.teamMembership.findFirst({
+      where: {
+        teamId: fx.homeTeamId,
+        player: { legalName: "Club Kid" },
+        active: true,
+      },
+    });
+    expect(membership).toBeTruthy();
+
+    const match2 = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match2.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+    const ctx = await getMatchScoringContext(match2.id);
+    expect(ctx.rosters.home.map((p) => p.name)).toContain("Club Kid");
+  });
+
   it("loads away roster from previous matches against the same opponent", async () => {
     const fx = await seedMjcaU9Tournament();
     const priorMatch = await createMatch(fx.tournamentId, {
