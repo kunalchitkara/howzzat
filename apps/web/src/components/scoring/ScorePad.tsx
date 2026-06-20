@@ -15,7 +15,7 @@ import {
   describeLineupBlockers,
   describeSquadConfirmError,
 } from "@/lib/scoring/squad-validation";
-import { suggestOversForFormula } from "@/lib/scoring/suggest-overs";
+import { suggestLineupOvers } from "@/lib/scoring/suggest-overs";
 import {
   canRecordMoreBalls,
   hasPendingDeliveries,
@@ -190,11 +190,18 @@ export function ScorePad({
         ? lineupCount
         : Math.max(ctx.squads.home.length, ctx.squads.away.length) ||
           ctx.playersPerSide;
-    setDraftOvers(suggestOversForFormula(ctx.oversPerInningsFormula, squadSize));
+    setDraftOvers(
+      suggestLineupOvers(
+        ctx.oversPerInningsFormula,
+        squadSize,
+        ctx.pairOvers,
+      ),
+    );
   }, [
     ctx,
     ctx?.squadsConfirmed,
     ctx?.oversPerInningsFormula,
+    ctx?.pairOvers,
     ctx?.playersPerSide,
     ctx?.squads.home.length,
     ctx?.squads.away.length,
@@ -835,9 +842,10 @@ export function ScorePad({
   const squadMin = ctx.squadMin ?? 2;
   const squadMax = ctx.squadMax ?? 15;
   const lineupPlayerCount = Math.max(confirmHomeIds.length, confirmAwayIds.length);
-  const suggestedLineupOvers = suggestOversForFormula(
+  const suggestedLineupOvers = suggestLineupOvers(
     ctx.oversPerInningsFormula,
     lineupPlayerCount > 0 ? lineupPlayerCount : ctx.playersPerSide,
+    ctx.pairOvers,
   );
   const canConfirmSquads = canConfirmLineup(
     confirmHomeIds.length,
@@ -1133,8 +1141,8 @@ export function ScorePad({
             </label>
             <p className="sp-muted">
               {lineupPlayerCount > 0
-                ? `${lineupPlayerCount} players → ${suggestedLineupOvers} overs suggested. Adjust if needed.`
-                : "Pick players above — overs scale with squad size (e.g. 10 → 20)."}
+                ? `${lineupPlayerCount} players → ${suggestedLineupOvers} overs suggested (2 per player). Adjust if needed.`
+                : "Pick players above — overs scale at 2 per player (e.g. 10 → 20)."}
             </p>
           </div>
           <button
