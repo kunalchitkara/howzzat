@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: Howzzat API
+  version: 1.0.0
+  description: |
+    Core public and authenticated routes for Howzzat (Next.js `/api/v1`).
+    Full reference: docs/api.md
+servers:
+  - url: http://localhost:3005
+    description: Local dev (default port 3005)
+  - url: https://app.howzzat.uk
+    description: Production
+
+paths:
+  /api/health:
+    get:
+      summary: Service health
+      tags: [System]
+      responses:
+        "200":
+          description: OK — includes endpoint index
+
+  /api/v1/auth/me:
+    get:
+      summary: Current session user
+      tags: [Auth]
+      responses:
+        "200":
+          description: User + memberships, or null when logged out
+
+  /api/v1/organizations:
+    get:
+      summary: List organizations (scoped when session present)
+      tags: [Organizations]
+    post:
+      summary: Create organization
+      tags: [Organizations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                slug: { type: string }
+
+  /api/v1/organizations/{orgId}/tournaments:
+    post:
+      summary: Create tournament (org owner/manager)
+      tags: [Tournaments]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      security: [{ sessionCookie: [] }]
+      responses:
+        "403":
+          description: Not a member of the organization
+
+  /api/v1/tournaments/{tournamentId}/matches:
+    get:
+      summary: List fixtures
+      tags: [Matches]
+      parameters:
+        - name: tournamentId
+          in: path
+          required: true
+          schema: { type: string }
+    post:
+      summary: Schedule match (tournament manager or org admin)
+      tags: [Matches]
+      security: [{ sessionCookie: [] }]
+
+  /api/v1/matches/{matchId}/scorecard:
+    get:
+      summary: Computed scorecard + ball-by-ball
+      tags: [Scoring]
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+
+  /api/v1/matches/{matchId}/scoring:
+    get:
+      summary: Live scoring context (squads, next ball, lock state)
+      tags: [Scoring]
+
+  /api/v1/matches/{matchId}/live:
+    get:
+      summary: Lightweight live snapshot for polling
+      tags: [Scoring]
+
+  /api/v1/deliveries:
+    post:
+      summary: Record ball-by-ball delivery
+      tags: [Scoring]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inningsId, overNumber, ballInOver, strikerId, nonStrikerId, bowlerId]
+              properties:
+                clientDeliveryId:
+                  type: string
+                  format: uuid
+                  description: Idempotent retry key from scorer client
+                inningsId: { type: string }
+                overNumber: { type: integer }
+                ballInOver: { type: integer }
+                runsOffBat: { type: integer }
+                extrasRuns: { type: integer }
+
+  /api/v1/tournaments/{tournamentId}/invites:
+    post:
+      summary: Create manager invite
+      tags: [Invites]
+      security: [{ sessionCookie: [] }]
+
+  /api/v1/tournaments/{tournamentId}/invites/{inviteId}:
+    delete:
+      summary: Delete pending invite (revokes accepted manager)
+      tags: [Invites]
+      security: [{ sessionCookie: [] }]
+
+  /api/v1/tournaments/{tournamentId}/wallet/redeem-coupon:
+    post:
+      summary: Redeem platform coupon code
+      tags: [Wallet]
+      security: [{ sessionCookie: [] }]
+
+  /api/v1/demo/u9-match:
+    post:
+      summary: Reset U9 4-over demo match
+      tags: [Demo]
+      description: |
+        Local dev — no auth. Production requires ALLOW_DEMO_RESET=true or
+        X-Demo-Reset-Secret when DEMO_RESET_SECRET is set.
+      responses:
+        "403":
+          description: Demo reset forbidden (wrong secret)
+
+  /api/v1/public/orgs/{orgSlug}/tournaments/{tournamentSlug}:
+    get:
+      summary: Public tournament hub
+      tags: [Public]
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: howzzat_session

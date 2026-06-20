@@ -66,3 +66,36 @@ Preview in UI via `apps/web/src/lib/rule-changes.ts` → `previewRuleChange()`.
 ## Migration from edgeware-u9
 
 `tooling/import-edgeware/` (TODO): Google Sheet → `Delivery` rows + golden test against rules-engine.
+
+## React versions (monorepo)
+
+| App | React | Notes |
+|-----|-------|-------|
+| `apps/web` | **19.x** | Next.js 15 App Router; `@types/react` pinned via root `pnpm.overrides` |
+| `apps/mobile` | **18.3.x** | Expo SDK 52 / React Native 0.76 — not yet on React 19 |
+
+Root `package.json` overrides `@types/react` and `@types/react-dom` to 19.x so the web app and shared TS tooling resolve consistent types. Mobile keeps its own `@types/react@~18.3` in `apps/mobile/package.json`. Do not bump mobile to React 19 until Expo documents support for the target SDK.
+
+## Prisma / database config
+
+- **Today:** Prisma 6.x — `packages/db/prisma/schema.prisma` + `DATABASE_URL` in `packages/db/.env` (CLI) and `apps/web/.env.local` (Next.js).
+- **Prisma 7 path:** stub at `packages/db/prisma.config.ts` (`earlyAccess: true`). Full migration = move datasource URL to config, upgrade `prisma` + `@prisma/client`, validate Turso adapter.
+- **Production:** Turso libSQL — `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN`; validated at web startup via `apps/web/src/lib/env.ts`.
+
+## Tenant isolation (API)
+
+Mutating routes under organizations and tournaments require a signed-in user with org **OWNER/MANAGER** or **tournament manager** role:
+
+- `POST /organizations/:orgId/tournaments`
+- `POST /organizations/:orgId/teams`
+- `POST /tournaments/:id/matches`
+- `POST|GET /tournaments/:id/invites` (list/create)
+- `DELETE /tournaments/:id/invites/:inviteId`
+
+Wallet and scoring mutations use separate checks (`assertCanTopUpWallet`, `assertCanMutateScoring`). Public read routes (scorecard, public tournament hub) remain unauthenticated.
+
+Integration tests: `apps/web/tests/integration/api-gaps.test.ts` (tenant isolation).
+
+## Node.js
+
+CI pins **Node 20 LTS** (`.github/workflows/ci.yml`). Local dev: Node 20+ per root `engines`. Node 26+ may emit experimental warnings from dependencies — prefer Node 20 for parity with CI/Vercel.

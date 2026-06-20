@@ -304,7 +304,7 @@ Schema: [`packages/db/prisma/schema.prisma`](./packages/db/prisma/schema.prisma)
 
 ### Prerequisites
 
-- **Node.js** 20+
+- **Node.js** 20 LTS (CI and Vercel use Node 20; Node 26+ may show dependency warnings)
 - **pnpm** 9+ (`npm install -g pnpm` or Corepack)
 - For mobile: **Expo Go** on your phone or iOS Simulator / Android emulator
 
@@ -319,6 +319,7 @@ pnpm install
 ### Database (local SQLite)
 
 ```bash
+cp .env.example apps/web/.env.local   # or apps/web/.env.example
 cp packages/db/.env.example packages/db/.env
 pnpm db:generate
 pnpm db:push
@@ -411,7 +412,9 @@ pnpm db:studio
 
 ### Environment variables
 
-Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also `packages/db/.env` for Prisma CLI.
+Copy root [`.env.example`](./.env.example) or `apps/web/.env.example` → `apps/web/.env.local`. See also `packages/db/.env` for Prisma CLI.
+
+Production startup validates required vars via `apps/web/src/lib/env.ts` (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `NEXT_PUBLIC_APP_URL` when `NODE_ENV=production`).
 
 | Location | Variable | Purpose |
 |----------|----------|---------|
@@ -458,6 +461,8 @@ Cloudflare D1 remains an option for edge-native deploy later ([`wrangler.toml`](
 | **4** | Google Sheet import + golden tests vs Edgware M2/M4 | 🟡 Reconciliation test ✅ |
 | **5** | Live scoring (SSE / Realtime), Turso production | 🟡 Vercel + Turso live; optimistic sync ✅ |
 | **6** | Monetisation (wallet coupons, Stripe top-ups) | 🟡 Post-match billing + coupons |
+
+Mobile Phase 2 (offline queue, BACKFILL rule changes): deferred — see [docs/roadmap.md](./docs/roadmap.md).
 
 ---
 
