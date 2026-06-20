@@ -93,7 +93,7 @@ function minimalCtx(): MatchScoringContext {
 }
 
 function hydratedWithPlayers(): MatchScoringStoreState {
-  let state = hydrateFromContext(initialMatchScoringStoreState, minimalCtx());
+  const state = hydrateFromContext(initialMatchScoringStoreState, minimalCtx());
   return { ...state, strikerId: "p1", nonStrikerId: "p2", bowlerId: "p3" };
 }
 
