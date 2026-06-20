@@ -122,6 +122,47 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
     expect(scoring.body.data.rosters.away).toHaveLength(0);
   });
 
+  it("merges org U9 roster when enrolled home team has only part of the club squad", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const benchTeam = await prisma.team.create({
+      data: {
+        organizationId: (await prisma.tournament.findUniqueOrThrow({
+          where: { id: fx.tournamentId },
+          select: { organizationId: true },
+        })).organizationId,
+        name: "U9 ECC Bench",
+        slug: "u9-ecc-bench",
+        ageGroup: "U9",
+      },
+    });
+    for (const name of ["Ravi", "Sam"]) {
+      const player = await prisma.player.create({ data: { legalName: name } });
+      await prisma.teamMembership.create({
+        data: { teamId: benchTeam.id, playerId: player.id, seasonLabel: "2026" },
+      });
+    }
+
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: fx.homePlayerIds.slice(0, 2),
+      captainId: fx.homePlayerIds[0]!,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    const ctx = await getMatchScoringContext(match.id);
+    expect(ctx.rosters.home.map((p) => p.name).sort()).toEqual(
+      ["Avyaan", "Ravi", "Sam", "Taran", "Veer"],
+    );
+    expect(ctx.squads.home.map((p) => p.name).sort()).toEqual(["Taran", "Veer"]);
+  });
+
   it("loads org U9 roster for home when tournament team is external name-only", async () => {
     const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
     const template = await prisma.rulesProfileTemplate.create({

@@ -984,40 +984,46 @@ button.sp-ball-bubble.selected {
 }
 
 .sp-quick-add-label {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #888;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .sp-quick-add-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: stretch;
   max-width: 100%;
 }
 
-/* Two-column lineup grid columns are ~150–230px wide — group input + button horizontally. */
-.sp-roster-cols .sp-quick-add-row {
-  flex-direction: row;
-  gap: 6px;
+.sp-roster-cols .sp-quick-add {
+  margin-top: 8px;
+  padding-top: 8px;
 }
 
 .sp-roster-cols .sp-quick-add-input {
   flex: 1 1 0;
   min-width: 0;
-  height: 44px;
-  max-height: 44px;
+  height: 40px;
+  max-height: 40px;
 }
 
 .sp-roster-cols .sp-quick-add-btn {
   flex: 0 0 auto;
   width: auto;
-  min-width: 44px;
+  min-width: 52px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.875rem;
 }
 
 .sp-quick-add-input {

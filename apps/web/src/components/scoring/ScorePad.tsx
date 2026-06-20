@@ -1078,7 +1078,7 @@ export function ScorePad({
                         id={`sp-quick-add-${side}`}
                         type="text"
                         className="sp-quick-add-input"
-                        placeholder="Player name"
+                        placeholder="Add player…"
                         value={quickAddName[side]}
                         disabled={busy}
                         autoComplete="off"

@@ -105,16 +105,23 @@ async function rosterForTeam(
   return roster;
 }
 
-/** Club squads for the tournament age band when the enrolled team has no roster. */
+/** Club squads for the tournament age band — merged with the enrolled team roster for home side. */
 async function rosterForOrgAgeBand(
   orgId: string,
   tournamentAgeGroup: string | null,
   ageGroupCap: number | null,
   referenceDate: Date,
+  options: {
+    homeOrgTeamId: string;
+    excludeOrgTeamIds?: string[];
+    tournamentEnrolledTeamIds?: string[];
+  },
 ): Promise<ScoringPlayer[]> {
   const tournamentKey = canonicalAgeGroupKey(tournamentAgeGroup);
   if (!tournamentKey) return [];
 
+  const exclude = new Set(options.excludeOrgTeamIds ?? []);
+  const tournamentTeams = new Set(options.tournamentEnrolledTeamIds ?? []);
   const teams = await prisma.team.findMany({
     where: { organizationId: orgId },
     select: { id: true, ageGroup: true, slug: true, name: true },
@@ -124,7 +131,9 @@ async function rosterForOrgAgeBand(
   const seen = new Set<string>();
   const roster: ScoringPlayer[] = [];
   for (const team of teams) {
-    if (isExternalTeam(team)) continue;
+    if (exclude.has(team.id) || isExternalTeam(team)) continue;
+    // Other teams in this fixture's tournament (stale/opponent) are not club bench squads.
+    if (tournamentTeams.has(team.id) && team.id !== options.homeOrgTeamId) continue;
     const teamKey = teamAgeGroupKey(team);
     if (!teamKey || !ageGroupsMatch(teamKey, tournamentKey)) continue;
     const teamRoster = await rosterForTeam(team.id, ageGroupCap, referenceDate);
@@ -135,6 +144,21 @@ async function rosterForOrgAgeBand(
     }
   }
   return roster;
+}
+
+function mergeRosterPlayers(
+  base: ScoringPlayer[],
+  extra: ScoringPlayer[],
+): ScoringPlayer[] {
+  const seen = new Set(base.map((p) => p.id));
+  return [
+    ...base,
+    ...extra.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    }),
+  ];
 }
 
 function opponentSideInMatch(
@@ -253,6 +277,9 @@ async function rosterForMatchSide(options: {
   ageGroupCap: number | null;
   referenceDate: Date;
   useOrgAgeBandFallback: boolean;
+  homeOrgTeamId?: string;
+  excludeOrgTeamIds?: string[];
+  tournamentEnrolledTeamIds?: string[];
   opponentHistory?: {
     currentMatchId: string;
     opponentName: string;
@@ -263,20 +290,22 @@ async function rosterForMatchSide(options: {
     options.ageGroupCap,
     options.referenceDate,
   );
-  const external = isExternalTeam({ slug: options.orgTeamSlug });
-  const needsOrgFallback =
-    options.useOrgAgeBandFallback && (direct.length === 0 || external);
 
   let roster = direct;
-  if (needsOrgFallback) {
+  if (options.useOrgAgeBandFallback && options.homeOrgTeamId) {
     const orgRoster = await rosterForOrgAgeBand(
       options.orgId,
       options.tournamentAgeGroup,
       options.ageGroupCap,
       options.referenceDate,
+      {
+        homeOrgTeamId: options.homeOrgTeamId,
+        excludeOrgTeamIds: options.excludeOrgTeamIds,
+        tournamentEnrolledTeamIds: options.tournamentEnrolledTeamIds,
+      },
     );
     if (orgRoster.length > 0) {
-      roster = orgRoster;
+      roster = mergeRosterPlayers(direct, orgRoster);
     }
   }
 
@@ -289,15 +318,7 @@ async function rosterForMatchSide(options: {
       ageGroupCap: options.ageGroupCap,
       referenceDate: options.referenceDate,
     });
-    const seen = new Set(roster.map((p) => p.id));
-    roster = [
-      ...roster,
-      ...history.filter((p) => {
-        if (seen.has(p.id)) return false;
-        seen.add(p.id);
-        return true;
-      }),
-    ];
+    roster = mergeRosterPlayers(roster, history);
   }
 
   return roster;
@@ -352,6 +373,12 @@ export async function getMatchScoringContext(
   );
   const ageGroupCap = parseAgeGroupCap(tournamentAgeGroup);
   const referenceDate = match.scheduledAt ?? new Date();
+  const tournamentEnrolledTeamIds = (
+    await prisma.tournamentTeam.findMany({
+      where: { tournamentId: match.tournamentId },
+      select: { teamId: true },
+    })
+  ).map((entry) => entry.teamId);
 
   const homeRoster = await rosterForMatchSide({
     orgTeamId: homeTeamId,
@@ -361,6 +388,9 @@ export async function getMatchScoringContext(
     ageGroupCap,
     referenceDate,
     useOrgAgeBandFallback: true,
+    homeOrgTeamId: homeTeamId,
+    excludeOrgTeamIds: [awayTeamId],
+    tournamentEnrolledTeamIds,
   });
   const awayRoster = await rosterForMatchSide({
     orgTeamId: awayTeamId,
