@@ -1103,7 +1103,7 @@ export function ScorePad({
                         aria-label={`Add player to ${teamLabel}`}
                         onClick={() => void quickAddPlayer(side)}
                       >
-                        {quickAddBusySide === side ? "Adding…" : "Add player"}
+                        {quickAddBusySide === side ? "…" : "Add"}
                       </button>
                     </div>
                   </div>

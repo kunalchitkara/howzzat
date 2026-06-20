@@ -1001,21 +1001,23 @@ button.sp-ball-bubble.selected {
   max-width: 100%;
 }
 
-/* Two-column lineup grid columns are ~150–230px wide — stack quick-add there. */
+/* Two-column lineup grid columns are ~150–230px wide — group input + button horizontally. */
 .sp-roster-cols .sp-quick-add-row {
-  flex-direction: column;
-}
-
-.sp-roster-cols .sp-quick-add-input,
-.sp-roster-cols .sp-quick-add-btn {
-  width: 100%;
-  max-width: 100%;
+  flex-direction: row;
+  gap: 6px;
 }
 
 .sp-roster-cols .sp-quick-add-input {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
   height: 44px;
   max-height: 44px;
+}
+
+.sp-roster-cols .sp-quick-add-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 44px;
 }
 
 .sp-quick-add-input {
@@ -1064,5 +1066,20 @@ button.sp-ball-bubble.selected {
 
   .sp-quick-add-btn {
     width: 100%;
+  }
+
+  .sp-roster-cols .sp-quick-add-row {
+    flex-direction: column;
+  }
+
+  .sp-roster-cols .sp-quick-add-input,
+  .sp-roster-cols .sp-quick-add-btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .sp-roster-cols .sp-quick-add-btn {
+    width: 100%;
+    min-width: auto;
   }
 }
