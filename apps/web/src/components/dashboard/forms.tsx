@@ -937,7 +937,7 @@ export function EditTeamForm({
         <AgeGroupSelect value={ageGroup} onChange={setAgeGroup} style={input} />
       </Field>
       {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <button type="submit" disabled={busy} style={btn}>
           Save changes
         </button>
@@ -946,24 +946,46 @@ export function EditTeamForm({
             type="button"
             disabled={busy}
             onClick={() => setConfirmDelete(true)}
+            className="btn btn-secondary btn-nav"
+            title="Delete team"
+            aria-label="Delete team"
             style={{
-              ...btn,
-              background: "transparent",
-              color: "var(--red)",
-              border: "1px solid var(--red)",
+              borderRadius: 9999,
+              padding: 0,
+              fontSize: "1.15rem",
+              lineHeight: 1,
+              minWidth: 44,
+              minHeight: 44,
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Delete team
+            🗑
           </button>
         ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void remove()}
-            style={{ ...btn, background: "var(--red)" }}
-          >
-            Confirm delete
-          </button>
+          <>
+            <span style={{ color: "#666", fontSize: "0.9rem" }}>
+              Delete this team and all roster data?
+            </span>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void remove()}
+              style={{ ...btn, background: "var(--red)" }}
+            >
+              Confirm delete
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmDelete(false)}
+              style={btn}
+            >
+              Cancel
+            </button>
+          </>
         )}
       </div>
     </form>

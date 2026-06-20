@@ -10,6 +10,10 @@ import { POST as recordDeliveryRoute } from "@/app/api/v1/deliveries/route";
 import { POST as createInningsRoute } from "@/app/api/v1/matches/[matchId]/innings/route";
 import { POST as addTournamentTeam } from "@/app/api/v1/tournaments/[tournamentId]/teams/route";
 import { POST as createTeamRoute } from "@/app/api/v1/organizations/[orgId]/teams/route";
+import {
+  DELETE as deleteTeamRoute,
+  PATCH as updateTeamRoute,
+} from "@/app/api/v1/teams/[teamId]/route";
 import { prisma } from "@howzzat/db";
 import { resetDatabase, seedRulesProfile, seedTestFixtures } from "@howzzat/db/testing";
 import { createInvite } from "@/lib/services/invites";
@@ -147,6 +151,244 @@ describe("tenant isolation", () => {
   });
 });
 
+describe("teams CRUD authorization", () => {
+  beforeEach(async () => {
+    await resetDatabase(prisma);
+    await seedRulesProfile(prisma);
+  });
+
+  it("user B cannot create, update, or delete org teams (403)", async () => {
+    const ownerCookie = await loginCookie("owner-a@test.club", "Owner A");
+    const outsiderCookie = await loginCookie("outsider-b@test.club", "Outsider B");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Club A" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const createDenied = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Stolen XI", ageGroup: "U9" },
+          outsiderCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(createDenied.status).toBe(403);
+    expect(createDenied.body.code).toBe("FORBIDDEN");
+
+    const createOk = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Club A U9", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(createOk.status).toBe(201);
+    const teamId = createOk.body.data.id as string;
+
+    const patchDenied = await readJson(
+      await updateTeamRoute(
+        jsonRequest(
+          "PATCH",
+          `/api/v1/teams/${teamId}`,
+          { name: "Hacked XI" },
+          outsiderCookie,
+        ),
+        params({ teamId }),
+      ),
+    );
+    expect(patchDenied.status).toBe(403);
+
+    const deleteDenied = await readJson(
+      await deleteTeamRoute(
+        jsonRequest("DELETE", `/api/v1/teams/${teamId}`, undefined, outsiderCookie),
+        params({ teamId }),
+      ),
+    );
+    expect(deleteDenied.status).toBe(403);
+  });
+
+  it("owner can create, update, and delete team", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Team Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const createRes = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "U9 Cubs", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(createRes.status).toBe(201);
+    const teamId = createRes.body.data.id as string;
+
+    const patchRes = await readJson(
+      await updateTeamRoute(
+        jsonRequest(
+          "PATCH",
+          `/api/v1/teams/${teamId}`,
+          { name: "U10 Cubs", ageGroup: "U10" },
+          ownerCookie,
+        ),
+        params({ teamId }),
+      ),
+    );
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.data.name).toBe("U10 Cubs");
+    expect(patchRes.body.data.ageGroup).toBe("U10");
+
+    const deleteRes = await readJson(
+      await deleteTeamRoute(
+        jsonRequest("DELETE", `/api/v1/teams/${teamId}`, undefined, ownerCookie),
+        params({ teamId }),
+      ),
+    );
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.deleted).toBe(true);
+  });
+
+  it("rejects duplicate team slug in same org (409)", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Dup Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const first = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "KC Test CC Team 1" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(first.status).toBe(201);
+
+    const duplicate = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "KC Test CC Team 1" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body.code).toBe("SLUG_EXISTS");
+  });
+
+  it("blocks delete when team enrolled in tournament (400)", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Enrolled Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const teamRes = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Enrolled U9", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const teamId = teamRes.body.data.id as string;
+
+    const tourRes = await readJson(
+      await createTournamentRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          { name: "Summer Cup", rulesTemplateBuiltinId: "u9-softball-london-v1" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const tournamentId = tourRes.body.data.id as string;
+
+    await readJson(
+      await addTournamentTeam(
+        jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/teams`, { teamId }, ownerCookie),
+        params({ tournamentId }),
+      ),
+    );
+
+    const deleteRes = await readJson(
+      await deleteTeamRoute(
+        jsonRequest("DELETE", `/api/v1/teams/${teamId}`, undefined, ownerCookie),
+        params({ teamId }),
+      ),
+    );
+    expect(deleteRes.status).toBe(400);
+    expect(deleteRes.body.code).toBe("TEAM_IN_TOURNAMENT");
+  });
+
+  it("rejects create team without required name (400)", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Validate Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const res = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "X", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("VALIDATION_ERROR");
+  });
+});
+
 describe("demo reset guard (integration)", () => {
   beforeEach(async () => {
     await resetDatabase(prisma);
@@ -250,7 +492,7 @@ describe("delivery idempotency (API)", () => {
         await addPlayer(
           jsonRequest("POST", `/api/v1/teams/${teamA.body.data.id}/players`, {
             legalName: name,
-          }),
+          }, cookie),
           params({ teamId: teamA.body.data.id }),
         ),
       );

@@ -129,7 +129,7 @@ describe("Phase 1 e2e", () => {
         jsonRequest("POST", `/api/v1/teams/${teamId}/players`, {
           legalName: "Jamie",
           shirtNumber: 7,
-        }),
+        }, ownerCookie),
         params({ teamId }),
       ),
     );
@@ -142,7 +142,7 @@ describe("Phase 1 e2e", () => {
           legalName: "Jamie S",
           dateOfBirth: new Date("2017-06-01").toISOString(),
           shirtNumber: 9,
-        }),
+        }, ownerCookie),
         params({ teamId, playerId }),
       ),
     );

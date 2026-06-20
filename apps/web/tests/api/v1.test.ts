@@ -177,7 +177,7 @@ describe("API v1 integration", () => {
         await addPlayer(
           jsonRequest("POST", `/api/v1/teams/${teamId}/players`, {
             legalName: name,
-          }),
+          }, cookie),
           params({ teamId }),
         ),
       );

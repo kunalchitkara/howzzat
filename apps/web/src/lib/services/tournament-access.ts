@@ -12,6 +12,17 @@ export async function assertCanManageOrg(orgRef: string, user: AuthUser): Promis
   }
 }
 
+export async function assertCanManageTeam(teamId: string, user: AuthUser): Promise<void> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { organizationId: true },
+  });
+  if (!team) {
+    throw new ApiError(404, "Team not found", "TEAM_NOT_FOUND");
+  }
+  await assertCanManageOrg(team.organizationId, user);
+}
+
 export async function assertCanManageTournament(
   tournamentId: string,
   user: AuthUser,
