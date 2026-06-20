@@ -34,20 +34,20 @@ describe("match quick-add players", () => {
   it("rejects duplicate player names on the same match side", async () => {
     const match = await matchWithToss();
 
-    await addMatchPlayer(match.id, { side: "home", legalName: "Jamie" });
+    await addMatchPlayer(match.id, { side: "away", legalName: "Jamie" });
     await expect(
-      addMatchPlayer(match.id, { side: "home", legalName: "  jamie  " }),
+      addMatchPlayer(match.id, { side: "away", legalName: "  jamie  " }),
     ).rejects.toMatchObject({
       status: 400,
       code: "PLAYER_NAME_EXISTS",
       message: expect.stringContaining("Name already exists"),
     });
 
-    const homeSquad = await prisma.matchSquadPlayer.findMany({
-      where: { matchId: match.id, teamId: fixtures.teamAId },
+    const awaySquad = await prisma.matchSquadPlayer.findMany({
+      where: { matchId: match.id, teamId: fixtures.teamBId },
       include: { player: true },
     });
-    const jamies = homeSquad.filter(
+    const jamies = awaySquad.filter(
       (s) => s.player.legalName.toLowerCase() === "jamie",
     );
     expect(jamies).toHaveLength(1);
@@ -57,9 +57,7 @@ describe("match quick-add players", () => {
     const match = await matchWithToss();
 
     await addMatchPlayer(match.id, { side: "home", legalName: "Alex" });
-    await expect(
-      addMatchPlayer(match.id, { side: "away", legalName: "Alex" }),
-    ).resolves.toBeDefined();
+    await addMatchPlayer(match.id, { side: "away", legalName: "Alex" });
 
     const squad = await prisma.matchSquadPlayer.findMany({
       where: { matchId: match.id },
@@ -68,23 +66,21 @@ describe("match quick-add players", () => {
     const alexes = squad.filter(
       (s) => s.player.legalName.toLowerCase() === "alex",
     );
-    expect(alexes).toHaveLength(2);
+    expect(alexes).toHaveLength(1);
+
+    const players = await prisma.player.findMany({
+      where: { legalName: { equals: "Alex" } },
+    });
+    expect(players).toHaveLength(2);
   });
 
-  it("rejects duplicate against roster players already in the lineup", async () => {
+  it("rejects duplicate against players already in the away lineup", async () => {
     const match = await matchWithToss();
 
-    await prisma.matchSquadPlayer.create({
-      data: {
-        matchId: match.id,
-        playerId: fixtures.playerIds[0]!,
-        teamId: fixtures.teamAId,
-        role: "player",
-      },
-    });
+    await addMatchPlayer(match.id, { side: "away", legalName: "Alex" });
 
     await expect(
-      addMatchPlayer(match.id, { side: "home", legalName: "Alice" }),
+      addMatchPlayer(match.id, { side: "away", legalName: "Alex" }),
     ).rejects.toMatchObject({
       status: 400,
       code: "PLAYER_NAME_EXISTS",
@@ -93,12 +89,12 @@ describe("match quick-add players", () => {
 
   it("returns 400 from POST /matches/:id/players for duplicate names", async () => {
     const match = await matchWithToss();
-    await addMatchPlayer(match.id, { side: "home", legalName: "Sam" });
+    await addMatchPlayer(match.id, { side: "away", legalName: "Sam" });
 
     const res = await readJson(
       await addMatchPlayerRoute(
         jsonRequest("POST", `/api/v1/matches/${match.id}/players`, {
-          side: "home",
+          side: "away",
           legalName: "sam",
         }),
         params({ matchId: match.id }),
@@ -112,7 +108,7 @@ describe("match quick-add players", () => {
     });
   });
 
-  it("creates club team membership for home quick-add", async () => {
+  it("creates club team membership for home quick-add without adding to match lineup", async () => {
     const match = await matchWithToss();
 
     await addMatchPlayer(match.id, { side: "home", legalName: "Jamie" });
@@ -129,7 +125,7 @@ describe("match quick-add players", () => {
     const matchSquad = await prisma.matchSquadPlayer.findFirst({
       where: { matchId: match.id, playerId: membership!.playerId },
     });
-    expect(matchSquad).toBeTruthy();
+    expect(matchSquad).toBeNull();
   });
 
   it("does not create club membership for away quick-add", async () => {

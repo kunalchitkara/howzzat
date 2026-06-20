@@ -420,8 +420,6 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
       tossWinnerTeamId: fx.tournamentTeamHomeId,
       electedTo: "bat",
     });
-    await addMatchPlayer(priorMatch.id, { side: "home", legalName: "A" });
-    await addMatchPlayer(priorMatch.id, { side: "home", legalName: "B" });
     await addMatchPlayer(priorMatch.id, { side: "away", legalName: "Prior Alex" });
     await addMatchPlayer(priorMatch.id, { side: "away", legalName: "Prior Ben" });
 
@@ -441,7 +439,7 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
     ]);
   });
 
-  it("allows quick-add up to 15 players per side", async () => {
+  it("allows quick-add up to 15 players per away side", async () => {
     const fx = await seedMjcaU9Tournament();
     const match = await createMatch(fx.tournamentId, {
       homeTeamId: fx.tournamentTeamHomeId,
@@ -453,16 +451,63 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
     });
 
     for (let i = 1; i <= 15; i++) {
-      await addMatchPlayer(match.id, { side: "home", legalName: `Home ${i}` });
+      await addMatchPlayer(match.id, { side: "away", legalName: `Away ${i}` });
     }
     await expect(
-      addMatchPlayer(match.id, { side: "home", legalName: "Home 16" }),
+      addMatchPlayer(match.id, { side: "away", legalName: "Away 16" }),
     ).rejects.toMatchObject({ code: "SQUAD_TOO_LARGE" });
 
-    const homeSquad = await prisma.matchSquadPlayer.findMany({
+    const awaySquad = await prisma.matchSquadPlayer.findMany({
+      where: { matchId: match.id, teamId: fx.awayTeamId },
+    });
+    expect(awaySquad).toHaveLength(15);
+  });
+
+  it("allows 10+ club roster players while playing lineup stays capped", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const match = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: fx.homePlayerIds.slice(0, 2),
+    });
+
+    for (let i = 1; i <= 13; i++) {
+      await addMatchPlayer(match.id, { side: "home", legalName: `Bench ${i}` });
+    }
+
+    const memberships = await prisma.teamMembership.count({
+      where: { teamId: fx.homeTeamId, active: true },
+    });
+    expect(memberships).toBeGreaterThanOrEqual(16);
+
+    const lineup = await prisma.matchSquadPlayer.findMany({
       where: { matchId: match.id, teamId: fx.homeTeamId },
     });
-    expect(homeSquad).toHaveLength(15);
+    expect(lineup).toHaveLength(2);
+
+    const benchPlayers = await prisma.player.findMany({
+      where: { legalName: { startsWith: "Bench " } },
+      orderBy: { legalName: "asc" },
+    });
+    const lineupIds = [...fx.homePlayerIds, ...benchPlayers.map((p) => p.id)];
+    expect(lineupIds).toHaveLength(16);
+
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: lineupIds.slice(0, 15),
+    });
+    const lineup15 = await prisma.matchSquadPlayer.findMany({
+      where: { matchId: match.id, teamId: fx.homeTeamId },
+    });
+    expect(lineup15).toHaveLength(15);
   });
 
   it("confirms lineups with 2 players per side", async () => {
@@ -476,10 +521,12 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
       electedTo: "bat",
     });
 
-    await addMatchPlayer(match.id, { side: "home", legalName: "A" });
-    await addMatchPlayer(match.id, { side: "home", legalName: "B" });
     await addMatchPlayer(match.id, { side: "away", legalName: "C" });
     await addMatchPlayer(match.id, { side: "away", legalName: "D" });
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: fx.homePlayerIds.slice(0, 2),
+    });
 
     const confirm = await readJson(
       await confirmSquadsRoute(
@@ -505,9 +552,17 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
     });
 
     for (let i = 1; i <= 10; i++) {
-      await addMatchPlayer(match.id, { side: "home", legalName: `H${i}` });
       await addMatchPlayer(match.id, { side: "away", legalName: `A${i}` });
     }
+    const homeIds: string[] = [];
+    for (let i = 1; i <= 10; i++) {
+      await addMatchPlayer(match.id, { side: "home", legalName: `H${i}` });
+      const player = await prisma.player.findFirstOrThrow({
+        where: { legalName: `H${i}` },
+      });
+      homeIds.push(player.id);
+    }
+    await setMatchSquad(match.id, { teamId: fx.homeTeamId, playerIds: homeIds });
 
     const confirm = await readJson(
       await confirmSquadsRoute(
@@ -537,6 +592,13 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
       playerIds: fx.homePlayerIds,
     });
     await addMatchPlayer(match.id, { side: "home", legalName: "Ravi" });
+    const ravi = await prisma.player.findFirstOrThrow({
+      where: { legalName: "Ravi" },
+    });
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: [...fx.homePlayerIds, ravi.id],
+    });
 
     for (const name of ["Alex", "Ben", "Chris", "Dan"]) {
       await addMatchPlayer(match.id, { side: "away", legalName: name });
@@ -573,7 +635,10 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
       tossWinnerTeamId: fx.tournamentTeamHomeId,
       electedTo: "bat",
     });
-    await addMatchPlayer(match.id, { side: "home", legalName: "Only one" });
+    await setMatchSquad(match.id, {
+      teamId: fx.homeTeamId,
+      playerIds: [fx.homePlayerIds[0]!],
+    });
 
     const confirm = await readJson(
       await confirmSquadsRoute(

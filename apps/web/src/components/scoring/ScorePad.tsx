@@ -382,21 +382,24 @@ export function ScorePad({
         body: JSON.stringify({ side, legalName: name }),
       });
       const data = await refresh();
-      const serverIds =
-        side === "home"
-          ? data.squads.home.map((p) => p.id)
-          : data.squads.away.map((p) => p.id);
+      const squadMax = data.squadMax ?? 15;
+      const normalized = name.toLowerCase();
+
       if (side === "home") {
-        setDraftHomeIds((ids) => [...new Set([...ids, ...serverIds])]);
-        const addedId = serverIds.find((id) => !ctx.squads.home.some((p) => p.id === id));
-        if (addedId) {
-          setDraftHomeCaptainId((current) => current || addedId);
+        const added = data.rosters.home.find(
+          (p) => p.name.trim().toLowerCase() === normalized,
+        );
+        if (added && !draftHomeIds.includes(added.id) && draftHomeIds.length < squadMax) {
+          setDraftHomeIds((ids) => [...ids, added.id]);
+          setDraftHomeCaptainId((current) => current || added.id);
         }
       } else {
-        setDraftAwayIds((ids) => [...new Set([...ids, ...serverIds])]);
-        const addedId = serverIds.find((id) => !ctx.squads.away.some((p) => p.id === id));
-        if (addedId) {
-          setDraftAwayCaptainId((current) => current || addedId);
+        const added = data.squads.away.find(
+          (p) => p.name.trim().toLowerCase() === normalized,
+        );
+        if (added && !draftAwayIds.includes(added.id)) {
+          setDraftAwayIds((ids) => [...ids, added.id]);
+          setDraftAwayCaptainId((current) => current || added.id);
         }
       }
       setQuickAddName((prev) => ({ ...prev, [side]: "" }));
