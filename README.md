@@ -61,12 +61,13 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
   curl -X POST http://localhost:3005/api/v1/demo/ios-match    # 2-over mobile demo
   ```
 
-- Schema change **`clientDeliveryId`** on `Delivery` — run locally: `pnpm db:push`. Production Turso:
+- Schema deltas on production Turso — run locally: `pnpm db:push`, then:
 
   ```bash
-  turso db shell howzzat-production "ALTER TABLE Delivery ADD COLUMN clientDeliveryId TEXT;"
-  turso db shell howzzat-production "CREATE UNIQUE INDEX Delivery_clientDeliveryId_key ON Delivery(clientDeliveryId);"
+  ./scripts/apply-turso-schema-delta.sh howzzat-production
   ```
+
+  Covers `RulesProfileTemplate.isSuggested` and `Delivery.clientDeliveryId` (idempotent).
 
 **Architecture — optimistic scoring**
 
