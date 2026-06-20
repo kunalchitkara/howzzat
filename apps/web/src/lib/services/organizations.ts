@@ -29,12 +29,23 @@ export async function getOrganization(orgRef: string) {
   const org = await prisma.organization.findFirst({
     where: { OR: [{ id: orgRef }, { slug: orgRef }] },
     include: {
-      teams: true,
+      teams: {
+        orderBy: { name: "asc" },
+        include: {
+          memberships: {
+            where: { active: true },
+            select: { id: true },
+          },
+        },
+      },
       tournaments: {
         orderBy: { createdAt: "desc" },
         include: {
           rulesProfileVersion: {
             include: { template: true },
+          },
+          matches: {
+            select: { status: true },
           },
         },
       },

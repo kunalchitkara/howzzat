@@ -5,6 +5,7 @@ import { userHasOrgRole } from "@/lib/auth/request";
 import { getOrganizationForUser } from "@/lib/services/organizations";
 import { getServerUser } from "@/lib/auth/server";
 import { ApiError } from "@/lib/api/http";
+import { formatMatchStatusSummary, summarizeMatchStatuses } from "@/lib/dashboard/summaries";
 
 export default async function TournamentsPage({
   params,
@@ -57,7 +58,9 @@ export default async function TournamentsPage({
             )}
           </li>
         ) : (
-          org.tournaments.map((t) => (
+          org.tournaments.map((t) => {
+            const matchSummary = summarizeMatchStatuses(t.matches);
+            return (
             <li key={t.id} style={card}>
               <Link
                 href={`/dashboard/organizations/${orgId}/tournaments/${t.id}`}
@@ -68,6 +71,9 @@ export default async function TournamentsPage({
               <p style={{ color: "#666", fontSize: "0.9rem", marginTop: 4 }}>
                 {t.ageGroup} · {t.seasonLabel ?? "—"} ·{" "}
                 {t.rulesProfileVersion?.template?.name ?? "Rules profile"}
+              </p>
+              <p style={{ color: "#666", fontSize: "0.85rem", marginTop: 4 }}>
+                {formatMatchStatusSummary(matchSummary)}
               </p>
               {t.isPublic && (
                 <p style={{ marginTop: 10 }}>
@@ -81,7 +87,8 @@ export default async function TournamentsPage({
                 </p>
               )}
             </li>
-          ))
+            );
+          })
         )}
       </ul>
     </PageShell>

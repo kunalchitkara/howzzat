@@ -213,6 +213,23 @@ async function matchHasDeliveries(matchId: string): Promise<boolean> {
   return count > 0;
 }
 
+/** Match ids that have at least one scored delivery (for fixture cancel UX). */
+export async function listMatchIdsWithDeliveries(
+  matchIds: string[],
+): Promise<Set<string>> {
+  if (matchIds.length === 0) return new Set();
+
+  const rows = await prisma.innings.findMany({
+    where: {
+      matchId: { in: matchIds },
+      deliveries: { some: {} },
+    },
+    select: { matchId: true },
+    distinct: ["matchId"],
+  });
+  return new Set(rows.map((row) => row.matchId));
+}
+
 async function slugForRescheduledMatch(
   match: Awaited<ReturnType<typeof getMatch>>,
   scheduledAt: Date,

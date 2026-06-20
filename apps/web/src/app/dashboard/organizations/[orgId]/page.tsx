@@ -4,6 +4,11 @@ import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getOrganizationForUser } from "@/lib/services/organizations";
 import { getServerUser } from "@/lib/auth/server";
 import { ApiError } from "@/lib/api/http";
+import {
+  formatMatchStatusSummary,
+  formatPlayerCount,
+  summarizeMatchStatuses,
+} from "@/lib/dashboard/summaries";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +29,14 @@ export default async function OrganizationPage({
     throw e;
   }
 
+  const totalPlayers = org.teams.reduce(
+    (sum, team) => sum + team.memberships.length,
+    0,
+  );
+  const tournamentMatchSummary = summarizeMatchStatuses(
+    org.tournaments.flatMap((t) => t.matches),
+  );
+
   return (
     <PageShell title={org.name} subtitle={org.homeGround ?? org.slug}>
       <p style={{ marginBottom: 16 }}>
@@ -36,7 +49,9 @@ export default async function OrganizationPage({
         <Link href={`/dashboard/organizations/${org.id}/teams`} style={{ textDecoration: "none" }}>
           <div style={card}>
             <strong style={{ color: "var(--dk)" }}>Teams</strong>
-            <p style={{ color: "#666", marginTop: 4 }}>{org.teams.length} squads</p>
+            <p style={{ color: "#666", marginTop: 4 }}>
+              {org.teams.length} squads · {formatPlayerCount(totalPlayers)}
+            </p>
           </div>
         </Link>
         <Link
@@ -46,7 +61,8 @@ export default async function OrganizationPage({
           <div style={card}>
             <strong style={{ color: "var(--dk)" }}>Tournaments</strong>
             <p style={{ color: "#666", marginTop: 4 }}>
-              {org.tournaments.length} competitions
+              {org.tournaments.length} competitions ·{" "}
+              {formatMatchStatusSummary(tournamentMatchSummary)}
             </p>
           </div>
         </Link>

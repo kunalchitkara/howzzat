@@ -4,6 +4,7 @@ import { CreateTeamForm } from "@/components/dashboard/forms";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
 import { ApiError } from "@/lib/api/http";
+import { formatPlayerCount } from "@/lib/dashboard/summaries";
 
 export default async function TeamsPage({
   params,
@@ -43,6 +44,9 @@ export default async function TeamsPage({
             >
               {team.name}
             </Link>
+            <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
+              · {formatPlayerCount(team.memberships.length)}
+            </span>
             {team.ageGroup && (
               <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
                 {team.ageGroup}

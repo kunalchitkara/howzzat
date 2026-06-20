@@ -136,6 +136,8 @@ model RulesProfileTemplate {
   name        String
   description String?
   isPublic    Boolean  @default(true)
+  /// Shown as a "Suggested" badge in the rules picker (not in the option label).
+  isSuggested Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   versions RulesProfileVersion[]

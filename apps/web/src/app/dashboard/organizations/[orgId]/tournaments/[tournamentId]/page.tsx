@@ -8,12 +8,12 @@ import { InviteList } from "@/components/dashboard/InviteList";
 import { FixtureList } from "@/components/dashboard/FixtureList";
 import { TournamentBalanceSummary } from "@/components/dashboard/TournamentBalanceSummary";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
+import { listMatchIdsWithDeliveries } from "@/lib/services/matches";
 import { getTournament, dedupeTournamentTeamsByName, isExternalTeam } from "@/lib/services/tournaments";
 import { getTournamentInsights } from "@/lib/services/tournament-insights";
 import { getOrganization } from "@/lib/services/organizations";
 import { listInvites } from "@/lib/services/invites";
 import { ApiError } from "@/lib/api/http";
-import { prisma } from "@howzzat/db";
 
 export const dynamic = "force-dynamic";
 
@@ -61,17 +61,8 @@ export default async function TournamentDashboardPage({
     })),
   );
 
-  const matchesWithDeliveries = new Set(
-    (
-      await prisma.innings.findMany({
-        where: {
-          matchId: { in: tournament.matches.map((m) => m.id) },
-          deliveries: { some: {} },
-        },
-        select: { matchId: true },
-        distinct: ["matchId"],
-      })
-    ).map((row) => row.matchId),
+  const matchesWithDeliveries = await listMatchIdsWithDeliveries(
+    tournament.matches.map((m) => m.id),
   );
   const fixtureRows = tournament.matches.map((m) => ({
     id: m.id,
@@ -80,8 +71,8 @@ export default async function TournamentDashboardPage({
     scheduledAt: m.scheduledAt?.toISOString() ?? null,
     venue: m.venue,
     marginText: m.marginText,
-    homeTeamName: m.homeTeam.team.name,
-    awayTeamName: m.awayTeam.team.name,
+    homeTeamName: m.homeTeam?.team?.name ?? "TBD",
+    awayTeamName: m.awayTeam?.team?.name ?? "TBD",
     hasDeliveries: matchesWithDeliveries.has(m.id),
   }));
 

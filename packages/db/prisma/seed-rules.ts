@@ -47,6 +47,7 @@ export async function seedRulesProfileTemplates(prisma: PrismaClient) {
   for (const profile of profiles) {
     const json = JSON.stringify(profile);
     const isPublic = !profile.id.startsWith("demo-");
+    const isSuggested = profile.id === "mjca-u9-outdoor-v1";
     const template = await prisma.rulesProfileTemplate.upsert({
       where: { builtinId: profile.id },
       create: {
@@ -54,11 +55,13 @@ export async function seedRulesProfileTemplates(prisma: PrismaClient) {
         name: profile.name,
         description: profile.description,
         isPublic,
+        isSuggested,
       },
       update: {
         name: profile.name,
         description: profile.description,
         isPublic,
+        isSuggested,
       },
     });
 

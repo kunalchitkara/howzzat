@@ -193,6 +193,7 @@ type RulesTemplateOption = {
   builtinId: string | null;
   name: string;
   description: string | null;
+  isSuggested?: boolean;
   latestVersion: {
     config?: {
       description?: string;
@@ -214,6 +215,18 @@ type RulesTemplateOption = {
 function templateOptionLabel(t: RulesTemplateOption): string {
   return templateOptionLabelFromLib(t.name);
 }
+
+const suggestedBadgeStyle = {
+  display: "inline-block",
+  marginLeft: 8,
+  padding: "0.15rem 0.5rem",
+  borderRadius: 9999,
+  fontSize: "0.75rem",
+  fontWeight: 700,
+  background: "var(--gold, #f5e6a8)",
+  color: "var(--dk)",
+  verticalAlign: "middle",
+} as const;
 
 function groupTemplates(templates: RulesTemplateOption[]) {
   const coachFacing = templates.filter((t) => !isDemoRulesTemplate(t.builtinId));
@@ -273,6 +286,8 @@ export function CreateTournamentForm({
 
   const selected = coachTemplates.find((t) => t.builtinId === builtinId);
   const config = selected?.latestVersion?.config;
+  const showSuggestedBadge =
+    ageGroup.trim().toUpperCase() === "U9" && Boolean(selected?.isSuggested);
   const { u9, boys, girls, other } = groupTemplates(templates);
 
   function applyTemplateDefaults(id: string) {
@@ -367,51 +382,54 @@ export function CreateTournamentForm({
         />
       </Field>
       <Field label="Rules template">
-        <select
-          value={builtinId}
-          onChange={(e) => {
-            setBuiltinId(e.target.value);
-            applyTemplateDefaults(e.target.value);
-          }}
-          style={input}
-        >
-          {u9.length > 0 && (
-            <optgroup label="U9">
-              {u9.map((t) => (
-                <option key={t.builtinId!} value={t.builtinId!}>
-                  {templateOptionLabel(t)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {boys.length > 0 && (
-            <optgroup label="Boys & senior">
-              {boys.map((t) => (
-                <option key={t.builtinId!} value={t.builtinId!}>
-                  {templateOptionLabel(t)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {girls.length > 0 && (
-            <optgroup label="Girls">
-              {girls.map((t) => (
-                <option key={t.builtinId!} value={t.builtinId!}>
-                  {templateOptionLabel(t)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {other.length > 0 && (
-            <optgroup label="Other">
-              {other.map((t) => (
-                <option key={t.builtinId ?? t.name} value={t.builtinId ?? ""}>
-                  {templateOptionLabel(t)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <select
+            value={builtinId}
+            onChange={(e) => {
+              setBuiltinId(e.target.value);
+              applyTemplateDefaults(e.target.value);
+            }}
+            style={{ ...input, flex: "1 1 220px", marginBottom: 0 }}
+          >
+            {u9.length > 0 && (
+              <optgroup label="U9">
+                {u9.map((t) => (
+                  <option key={t.builtinId!} value={t.builtinId!}>
+                    {templateOptionLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {boys.length > 0 && (
+              <optgroup label="Boys & senior">
+                {boys.map((t) => (
+                  <option key={t.builtinId!} value={t.builtinId!}>
+                    {templateOptionLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {girls.length > 0 && (
+              <optgroup label="Girls">
+                {girls.map((t) => (
+                  <option key={t.builtinId!} value={t.builtinId!}>
+                    {templateOptionLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {other.length > 0 && (
+              <optgroup label="Other">
+                {other.map((t) => (
+                  <option key={t.builtinId ?? t.name} value={t.builtinId ?? ""}>
+                    {templateOptionLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          {showSuggestedBadge && <span style={suggestedBadgeStyle}>Suggested</span>}
+        </div>
       </Field>
       {config && (
         <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: 12 }}>

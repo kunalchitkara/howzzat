@@ -29,6 +29,7 @@ export async function listRulesTemplates(includeConfig = false) {
     builtinId: t.builtinId,
     name: t.name,
     description: t.description,
+    isSuggested: t.isSuggested,
     latestVersion: t.versions[0]
       ? {
           id: t.versions[0].id,

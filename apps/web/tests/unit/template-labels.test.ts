@@ -7,9 +7,7 @@ import {
 
 describe("rules template labels", () => {
   it("returns profile name only in dropdown labels", () => {
-    expect(templateOptionLabel("MJCA U9 Outdoor (suggested)")).toBe(
-      "MJCA U9 Outdoor (suggested)",
-    );
+    expect(templateOptionLabel("MJCA U9 Outdoor")).toBe("MJCA U9 Outdoor");
     expect(templateOptionLabel("Demo — 2 overs per player (iOS)")).toBe(
       "Demo — 2 overs per player (iOS)",
     );
