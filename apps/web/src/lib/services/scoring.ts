@@ -216,7 +216,7 @@ async function rosterFromOpponentHistory(options: {
       const opponentBatting = innings.battingTeamId === opponentTournamentTeamId;
       const opponentBowling = !opponentBatting;
       for (const delivery of innings.deliveries) {
-        const ids: string[] = [];
+        const ids: (string | null)[] = [];
         if (opponentBatting) {
           ids.push(
             delivery.strikerId,
