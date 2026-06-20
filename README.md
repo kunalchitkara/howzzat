@@ -54,12 +54,14 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
 **Dev notes**
 
 - Default port **3005** — `cd apps/web && pnpm dev --port 3005`
-- Reset demos (no auth):
+- Reset demos (local dev — no auth):
 
   ```bash
   curl -X POST http://localhost:3005/api/v1/demo/u9-match   # 4-over U9 pairs
   curl -X POST http://localhost:3005/api/v1/demo/ios-match    # 2-over mobile demo
   ```
+
+  **Production** (`app.howzzat.uk`): set `DEMO_RESET_SECRET` on Vercel and pass header `X-Demo-Reset-Secret`, or set `ALLOW_DEMO_RESET=true`. If neither is set, resets are rate-limited to 5/hour per IP.
 
 - Schema deltas on production Turso — run locally: `pnpm db:push`, then:
 
@@ -67,7 +69,7 @@ Built for **London U9/U10/U11 softball leagues** first (pairs innings, 200 start
   ./scripts/apply-turso-schema-delta.sh howzzat-production
   ```
 
-  Covers `RulesProfileTemplate.isSuggested` and `Delivery.clientDeliveryId` (idempotent).
+  Covers `RulesProfileTemplate.isSuggested` and `Delivery.clientDeliveryId` (idempotent). CI runs `tests/unit/turso-schema-delta.test.ts` to ensure `schema.prisma` includes these columns before deploy.
 
 **Architecture — optimistic scoring**
 
@@ -343,7 +345,7 @@ Open [http://localhost:3005](http://localhost:3005) (default when 3000 is busy).
 | `/demo/simulated` | Simulated full U9 match (scorecard + ball-by-ball) |
 | `/match/{matchId}/score` | Live scorer for a match |
 
-**Reset demos** (no auth):
+**Reset demos** (local dev — no auth):
 
 ```bash
 # U9 4-over pairs — Edgware U9 vs Hayes, pick 2–11 from 10 per side
@@ -352,6 +354,8 @@ curl -X POST http://localhost:3005/api/v1/demo/u9-match
 # iOS/mobile 2-over pairs demo (public slug ios-live)
 curl -X POST http://localhost:3005/api/v1/demo/ios-match
 ```
+
+Production: add `-H "X-Demo-Reset-Secret: $DEMO_RESET_SECRET"` or set `ALLOW_DEMO_RESET=true` on Vercel.
 
 | Endpoint | Description |
 |----------|-------------|
@@ -415,6 +419,7 @@ Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also
 | `apps/web/.env.local` | `DATABASE_URL` | `file:../../packages/db/prisma/dev.db` or `libsql://…` (Turso) |
 | `apps/web/.env.local` | `DATABASE_AUTH_TOKEN` | Turso auth token (production) |
 | `apps/web/.env.local` | `COUPON_ADMIN_SECRET` | Platform admin — `X-Admin-Secret` header for `POST /api/v1/admin/coupons` |
+| `apps/web/.env.local` | `DEMO_RESET_SECRET` / `ALLOW_DEMO_RESET` | Protect demo reset endpoints in production (see `.env.example`) |
 | `apps/web/.env.local` | `GOOGLE_*`, `RESEND_*`, `EMAIL_FROM` | Google OAuth, email OTP sign-in |
 | `apps/web/.env.local` | `TWILIO_*` (optional) | SMS OTP — hidden on login unless configured |
 | `apps/web/.env.local` | `STRIPE_*` | Wallet top-ups |
@@ -432,8 +437,8 @@ Copy `apps/web/.env.example` → `apps/web/.env.local` for the web app. See also
 
 **Current setup:** Next.js on **Vercel** (`app.howzzat.uk`) with **Turso** (libSQL) for production data; landing page on **Cloudflare Pages** (`howzzat.uk`). Local dev uses SQLite via the same Prisma schema.
 
-1. **Database** — Turso: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN` on Vercel. `apps/web/src/lib/db.ts` switches adapter automatically.
-2. **App** — import `apps/web` in Vercel; set env vars from `apps/web/.env.example`.
+1. **Database** — Turso: `DATABASE_URL=libsql://…` + `DATABASE_AUTH_TOKEN` on Vercel. `apps/web/src/lib/db.ts` switches adapter automatically. After changing `schema.prisma`, run `./scripts/apply-turso-schema-delta.sh howzzat-production` (CI validates column coverage).
+2. **App** — import `apps/web` in Vercel; set env vars from `apps/web/.env.example`. Pushes to `main` run tests in GitHub Actions, then `vercel deploy --prod` when `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets are configured.
 3. **Landing** — `pnpm landing:deploy` (Wrangler Pages).
 
 Step-by-step DNS, Stripe webhooks, and email routing: [`docs/cloudflare-setup.md`](./docs/cloudflare-setup.md).

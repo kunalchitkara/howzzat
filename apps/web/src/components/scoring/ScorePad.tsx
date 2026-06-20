@@ -18,7 +18,9 @@ import {
 import { suggestOversForFormula, suggestOversForSquad } from "@/lib/scoring/suggest-overs";
 import {
   canRecordMoreBalls,
+  hasFailedDeliveries,
   hasPendingDeliveries,
+  hasUnsyncedDeliveries,
   hydrateFromContext,
   initialMatchScoringStoreState,
   recordBallLocally,
@@ -838,8 +840,10 @@ export function ScorePad({
       : scoringStore.syncStatus === "saved"
         ? "Saved"
         : scoringStore.syncStatus === "error"
-          ? "Sync error"
+          ? "Sync error — tap to retry"
           : null;
+  const syncBlocked =
+    hasUnsyncedDeliveries(scoringStore) || scoringStore.syncStatus === "saving";
 
   if (!ctx) {
     return (
@@ -897,6 +901,7 @@ export function ScorePad({
             <button
               type="button"
               className={`sp-sync-status sp-sync-${scoringStore.syncStatus}`}
+              title={scoringStore.syncError ?? undefined}
               onClick={() => {
                 if (scoringStore.syncStatus === "error") scheduleFlush(true);
               }}
@@ -1230,7 +1235,7 @@ export function ScorePad({
           <button
             type="button"
             className="sp-btn primary"
-            disabled={busy}
+            disabled={busy || syncBlocked}
             onClick={finalizeMatch}
           >
             Finalize match

@@ -44,3 +44,8 @@ apps/web/.e2e-db.db
 
 # Reference archive (separate git repo)
 edgeware-u9/
+
+# Playwright / local artifacts
+apps/web/test-results/
+**/tsconfig.tsbuildinfo
+**/1active

@@ -35,6 +35,9 @@ jobs:
       - name: Check forbidden direct DB imports
         run: bash scripts/check-no-direct-db-imports.sh
 
+      - name: Validate Turso schema delta coverage
+        run: pnpm --filter @howzzat/web exec vitest run tests/unit/turso-schema-delta.test.ts
+
       - name: Unit and integration tests
         run: pnpm test:api
 
@@ -45,3 +48,30 @@ jobs:
         run: pnpm --filter @howzzat/web exec playwright test e2e/smoke-pages.spec.ts
         env:
           CI: true
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel production
+        run: pnpm exec vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

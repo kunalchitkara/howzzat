@@ -484,6 +484,14 @@ export function hasPendingDeliveries(state: MatchScoringStoreState): boolean {
   );
 }
 
+export function hasFailedDeliveries(state: MatchScoringStoreState): boolean {
+  return state.pendingQueue.some((p) => p.status === "failed");
+}
+
+export function hasUnsyncedDeliveries(state: MatchScoringStoreState): boolean {
+  return hasPendingDeliveries(state) || hasFailedDeliveries(state);
+}
+
 export function canRecordMoreBalls(
   state: MatchScoringStoreState,
 ): { ok: true } | { ok: false; reason: string } {

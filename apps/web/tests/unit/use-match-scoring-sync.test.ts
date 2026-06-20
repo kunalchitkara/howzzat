@@ -155,4 +155,29 @@ describe("use-match-scoring-sync", () => {
     expect(store.pendingQueue).toHaveLength(0);
     expect(store.syncStatus).toBe("saved");
   });
+
+  it("retries failed deliveries and surfaces error when sync keeps failing", async () => {
+    const store = hydratedWithPlayers();
+    const { state: enqueued, clientDeliveryId } = recordBallLocally(store, {
+      runsOffBat: 4,
+      isLegalBall: true,
+    });
+
+    const storeRef = { current: enqueued };
+    let current = enqueued;
+    const setStore: Dispatch<SetStateAction<MatchScoringStoreState>> = (action) => {
+      current = typeof action === "function" ? action(current) : action;
+      storeRef.current = current;
+    };
+
+    vi.mocked(apiFetch).mockRejectedValueOnce(new Error("network down"));
+    await flushScoringQueue(storeRef, setStore, { storeOverride: enqueued });
+    expect(current.syncStatus).toBe("error");
+    expect(current.pendingQueue[0]?.status).toBe("failed");
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(mockAck(clientDeliveryId));
+    await flushScoringQueue(storeRef, setStore);
+    expect(current.pendingQueue).toHaveLength(0);
+    expect(current.syncStatus).toBe("saved");
+  });
 });

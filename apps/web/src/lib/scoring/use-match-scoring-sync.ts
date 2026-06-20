@@ -5,7 +5,9 @@ import { apiFetch } from "@/lib/client/api";
 import type { RecordDeliveryResponse } from "@/lib/scoring/delivery-response";
 import {
   applyServerAck,
+  hasFailedDeliveries,
   hasPendingDeliveries,
+  hasUnsyncedDeliveries,
   markDeliveryFailed,
   markDeliveryInflight,
   type MatchScoringStoreState,
@@ -31,10 +33,27 @@ export async function flushScoringQueue(
 
   while (true) {
     const current = storeRef.current;
-    const next = current.pendingQueue.find((p) => p.status === "pending");
+    const next = current.pendingQueue.find(
+      (p) => p.status === "pending" || p.status === "failed",
+    );
     if (!next) break;
 
-    const inflight = markDeliveryInflight(current, next.clientDeliveryId);
+    if (next.status === "failed") {
+      const reset = {
+        ...current,
+        pendingQueue: current.pendingQueue.map((p) =>
+          p.clientDeliveryId === next.clientDeliveryId
+            ? { ...p, status: "pending" as const, error: undefined }
+            : p,
+        ),
+        syncStatus: "saving" as const,
+        syncError: null,
+      };
+      storeRef.current = reset;
+      setStore(reset);
+    }
+
+    const inflight = markDeliveryInflight(storeRef.current, next.clientDeliveryId);
     storeRef.current = inflight;
     setStore(inflight);
 
@@ -56,6 +75,11 @@ export async function flushScoringQueue(
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
+      console.warn(
+        "[scoring-sync] delivery failed",
+        next.clientDeliveryId,
+        message,
+      );
       setStore((s) => {
         const failed = markDeliveryFailed(s, next.clientDeliveryId, message);
         storeRef.current = failed;
@@ -124,11 +148,17 @@ export function useMatchScoringSync(
       await new Promise((r) => setTimeout(r, 50));
       await flushPending();
     }
+    if (hasFailedDeliveries(storeRef.current)) {
+      throw new Error(
+        storeRef.current.syncError ??
+          "Some scores failed to sync — tap Sync error to retry",
+      );
+    }
   }, [flushPending]);
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasPendingDeliveries(storeRef.current)) {
+      if (hasUnsyncedDeliveries(storeRef.current)) {
         e.preventDefault();
         e.returnValue = "";
       }
