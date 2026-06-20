@@ -1,5 +1,26 @@
 import { ApiError } from "../api/http";
+import { userHasOrgRole } from "../auth/request";
+import type { AuthUser } from "../auth/session";
 import { prisma } from "../db";
+import { resolveOrganizationId } from "./organizations";
+import { getTournament } from "./tournaments";
+
+export async function assertCanManageOrg(orgRef: string, user: AuthUser): Promise<void> {
+  const orgId = await resolveOrganizationId(orgRef);
+  if (!userHasOrgRole(user, orgId, ["OWNER", "MANAGER"])) {
+    throw new ApiError(403, "Insufficient permissions", "FORBIDDEN");
+  }
+}
+
+export async function assertCanManageTournament(
+  tournamentId: string,
+  user: AuthUser,
+): Promise<void> {
+  const tournament = await getTournament(tournamentId);
+  if (await isTournamentManager(tournamentId, user.id)) return;
+  if (userHasOrgRole(user, tournament.organizationId, ["OWNER", "MANAGER"])) return;
+  throw new ApiError(403, "Insufficient permissions", "FORBIDDEN");
+}
 
 export async function isTournamentManager(
   tournamentId: string,

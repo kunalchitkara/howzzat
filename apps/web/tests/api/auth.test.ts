@@ -240,11 +240,28 @@ describe("Auth API", () => {
       kind: "MANAGER",
     });
 
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", { email: "owner@test.club" }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+    await prisma.orgMembership.create({
+      data: {
+        organizationId: fixtures.orgId,
+        userId: loginRes.body.data.id as string,
+        role: "OWNER",
+      },
+    });
+
     const deleteRes = await readJson(
       await deleteInviteRoute(
         jsonRequest(
           "DELETE",
           `/api/v1/tournaments/${fixtures.tournamentId}/invites/${invite.id}`,
+          undefined,
+          cookie,
         ),
         params({ tournamentId: fixtures.tournamentId, inviteId: invite.id }),
       ),
@@ -299,11 +316,30 @@ describe("Auth API", () => {
     });
     expect(managerBefore).not.toBeNull();
 
+    const ownerLogin = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", { email: "orgowner@test.club" }),
+        emptyParams(),
+      ),
+    );
+    const ownerCookie = ownerLogin.cookies.find((c) =>
+      c.startsWith(`${SESSION_COOKIE}=`),
+    )!;
+    await prisma.orgMembership.create({
+      data: {
+        organizationId: fixtures.orgId,
+        userId: ownerLogin.body.data.id as string,
+        role: "OWNER",
+      },
+    });
+
     const deleteRes = await readJson(
       await deleteInviteRoute(
         jsonRequest(
           "DELETE",
           `/api/v1/tournaments/${fixtures.tournamentId}/invites/${invite.id}`,
+          undefined,
+          ownerCookie,
         ),
         params({ tournamentId: fixtures.tournamentId, inviteId: invite.id }),
       ),

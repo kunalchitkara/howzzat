@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as login } from "@/app/api/v1/auth/login/route";
 import { GET as me } from "@/app/api/v1/auth/me/route";
-import { GET as listOrgs, POST as createOrg } from "@/app/api/v1/organizations/route";
+import { POST as createOrg } from "@/app/api/v1/organizations/route";
 import {
   POST as createTournamentRoute,
 } from "@/app/api/v1/organizations/[orgId]/tournaments/route";
@@ -67,10 +67,12 @@ describe("Phase 1 e2e", () => {
 
     const teamRes = await readJson(
       await createTeamRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/teams`, {
-          name: "U9 Lions",
-          ageGroup: "U9",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "U9 Lions", ageGroup: "U9" },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -79,10 +81,15 @@ describe("Phase 1 e2e", () => {
 
     const tourRes = await readJson(
       await createTournamentRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/tournaments`, {
-          name: "Summer League",
-          rulesTemplateBuiltinId: "u9-softball-london-v1",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          {
+            name: "Summer League",
+            rulesTemplateBuiltinId: "u9-softball-london-v1",
+          },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -91,9 +98,12 @@ describe("Phase 1 e2e", () => {
 
     const awayRes = await readJson(
       await createTeamRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/teams`, {
-          name: "U9 Tigers",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "U9 Tigers" },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -142,10 +152,12 @@ describe("Phase 1 e2e", () => {
 
     const inviteRes = await readJson(
       await createInviteRoute(
-        jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/invites`, {
-          email: "manager@phase1.club",
-          kind: "MANAGER",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/invites`,
+          { email: "manager@phase1.club", kind: "MANAGER" },
+          ownerCookie,
+        ),
         params({ tournamentId }),
       ),
     );
@@ -194,11 +206,16 @@ describe("Phase 1 e2e", () => {
 
     const matchRes = await readJson(
       await createMatchRoute(
-        jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/matches`, {
-          homeTeamId: ttHome.body.data.id,
-          awayTeamId: ttAway.body.data.id,
-          venue: "Main Ground",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          {
+            homeTeamId: ttHome.body.data.id,
+            awayTeamId: ttAway.body.data.id,
+            venue: "Main Ground",
+          },
+          ownerCookie,
+        ),
         params({ tournamentId }),
       ),
     );
@@ -264,7 +281,12 @@ describe("Phase 1 e2e", () => {
 
     const teamRes = await readJson(
       await createTeamRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/teams`, { name: "U9 Lions" }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "U9 Lions" },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -272,10 +294,15 @@ describe("Phase 1 e2e", () => {
 
     const tourRes = await readJson(
       await createTournamentRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/tournaments`, {
-          name: "Dup Cup",
-          rulesTemplateBuiltinId: "u9-softball-london-v1",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          {
+            name: "Dup Cup",
+            rulesTemplateBuiltinId: "u9-softball-london-v1",
+          },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -322,10 +349,15 @@ describe("Phase 1 e2e", () => {
 
     const tourRes = await readJson(
       await createTournamentRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/tournaments`, {
-          name: "Test Cup",
-          rulesTemplateBuiltinId: "u9-softball-london-v1",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          {
+            name: "Test Cup",
+            rulesTemplateBuiltinId: "u9-softball-london-v1",
+          },
+          ownerCookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -333,10 +365,12 @@ describe("Phase 1 e2e", () => {
 
     const inviteRes = await readJson(
       await createInviteRoute(
-        jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/invites`, {
-          email: "manager@phase1.club",
-          kind: "MANAGER",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/invites`,
+          { email: "manager@phase1.club", kind: "MANAGER" },
+          ownerCookie,
+        ),
         params({ tournamentId }),
       ),
     );

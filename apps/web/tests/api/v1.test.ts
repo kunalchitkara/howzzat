@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { GET as listOrgs, POST as createOrg } from "@/app/api/v1/organizations/route";
 import { GET as getOrg } from "@/app/api/v1/organizations/[orgId]/route";
 import {
-  GET as listTournaments,
   POST as createTournamentRoute,
 } from "@/app/api/v1/organizations/[orgId]/tournaments/route";
 import { POST as createTeamRoute } from "@/app/api/v1/organizations/[orgId]/teams/route";
@@ -114,27 +113,38 @@ describe("API v1 integration", () => {
 
     const teamARes = await readJson(
       await createTeamRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/teams`, {
-          name: "Home Team",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Home Team" },
+          cookie,
+        ),
         params({ orgId }),
       ),
     );
     const teamBRes = await readJson(
       await createTeamRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/teams`, {
-          name: "Away Team",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Away Team" },
+          cookie,
+        ),
         params({ orgId }),
       ),
     );
 
     const tourRes = await readJson(
       await createTournamentRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/tournaments`, {
-          name: "Flow Tournament",
-          rulesTemplateBuiltinId: "u9-softball-london-v1",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          {
+            name: "Flow Tournament",
+            rulesTemplateBuiltinId: "u9-softball-london-v1",
+          },
+          cookie,
+        ),
         params({ orgId }),
       ),
     );
@@ -176,10 +186,15 @@ describe("API v1 integration", () => {
 
     const matchRes = await readJson(
       await createMatchRoute(
-        jsonRequest("POST", `/api/v1/tournaments/${tournamentId}/matches`, {
-          homeTeamId: ttA.body.data.id,
-          awayTeamId: ttB.body.data.id,
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          {
+            homeTeamId: ttA.body.data.id,
+            awayTeamId: ttB.body.data.id,
+          },
+          cookie,
+        ),
         params({ tournamentId }),
       ),
     );
@@ -234,12 +249,25 @@ describe("API v1 integration", () => {
   });
 
   it("GET public tournament by slug", async () => {
+    const loginRes = await readResponse(
+      await login(
+        jsonRequest("POST", "/api/v1/auth/login", {
+          email: "public-owner@test.club",
+          name: "Public Owner",
+        }),
+        emptyParams(),
+      ),
+    );
+    const cookie = loginRes.cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+
     const orgRes = await readJson(
       await createOrg(
-        jsonRequest("POST", "/api/v1/organizations", {
-          name: "Public Club",
-          slug: "public-club",
-        }),
+        jsonRequest(
+          "POST",
+          "/api/v1/organizations",
+          { name: "Public Club", slug: "public-club" },
+          cookie,
+        ),
         emptyParams(),
       ),
     );
@@ -247,12 +275,17 @@ describe("API v1 integration", () => {
 
     await readJson(
       await createTournamentRoute(
-        jsonRequest("POST", `/api/v1/organizations/${orgId}/tournaments`, {
-          name: "Public T",
-          slug: "public-t",
-          isPublic: true,
-          rulesTemplateBuiltinId: "u9-softball-london-v1",
-        }),
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          {
+            name: "Public T",
+            slug: "public-t",
+            isPublic: true,
+            rulesTemplateBuiltinId: "u9-softball-london-v1",
+          },
+          cookie,
+        ),
         params({ orgId }),
       ),
     );
