@@ -3,7 +3,8 @@ import { AddPlayerForm, EditTeamForm } from "@/components/dashboard/forms";
 import { PlayerList } from "@/components/dashboard/PlayerList";
 import { BtnLink, PageShell } from "@/components/dashboard/ui";
 import { getOrganization } from "@/lib/services/organizations";
-import { prisma } from "@/lib/db";
+import { getTeam } from "@/lib/services/teams";
+import { ApiError } from "@/lib/api/http";
 
 export const dynamic = "force-dynamic";
 
@@ -14,18 +15,14 @@ export default async function TeamPage({
 }) {
   const { orgId, teamId } = await params;
   const org = await getOrganization(orgId);
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
-    include: {
-      organization: true,
-      memberships: {
-        where: { active: true },
-        include: { player: true },
-        orderBy: { shirtNumber: "asc" },
-      },
-    },
-  });
-  if (!team || team.organizationId !== org.id) notFound();
+  let team;
+  try {
+    team = await getTeam(teamId);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) notFound();
+    throw e;
+  }
+  if (team.organizationId !== org.id) notFound();
 
   return (
     <PageShell title={team.name} subtitle={`${team.organization.name} roster`}>

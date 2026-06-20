@@ -1,6 +1,7 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { slugify } from "../api/slug";
+import { rulesProfileVersionWithTemplate } from "./rules-template-select";
 import type { createOrganizationSchema } from "../validations";
 import type { z } from "zod";
 
@@ -41,9 +42,7 @@ export async function getOrganization(orgRef: string) {
       tournaments: {
         orderBy: { createdAt: "desc" },
         include: {
-          rulesProfileVersion: {
-            include: { template: true },
-          },
+          rulesProfileVersion: rulesProfileVersionWithTemplate,
           matches: {
             select: { status: true },
           },

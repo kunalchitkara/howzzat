@@ -19,6 +19,7 @@ import { buildRecordDeliveryResponse } from "@/lib/scoring/build-delivery-respon
 import type { RecordDeliveryResponse } from "@/lib/scoring/delivery-response";
 import { deliveryToEvent } from "./match-utils";
 import { prisma } from "../db";
+import { rulesProfileVersionWithTemplate } from "./rules-template-select";
 import { ApiError } from "../api/http";
 import {
   allocateUniqueMatchSlug,
@@ -82,7 +83,7 @@ async function assertUniquePlayerNameOnMatchSide(
 
 const matchInclude = {
   tournament: {
-    include: { rulesProfileVersion: { include: { template: true } } },
+    include: { rulesProfileVersion: rulesProfileVersionWithTemplate },
   },
   homeTeam: { include: { team: true } },
   awayTeam: { include: { team: true } },

@@ -2,6 +2,7 @@ import type { RulesProfile } from "@howzzat/rules-engine";
 import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
+import { rulesProfileVersionWithTemplate } from "./rules-template-select";
 
 const DEMO_TOURNAMENT_SLUGS = new Set(["ios-demo", "u9-demo"]);
 
@@ -18,7 +19,7 @@ export async function getRulesProfileFromVersion(
 ): Promise<RulesProfile> {
   const version = await prisma.rulesProfileVersion.findUnique({
     where: { id: versionId },
-    include: { template: true },
+    ...rulesProfileVersionWithTemplate,
   });
   if (!version) {
     throw new ApiError(404, "Rules profile version not found", "RULES_NOT_FOUND");
@@ -49,7 +50,7 @@ export async function resolveRulesVersionIdForCoachTournament(input: {
 
   const version = await prisma.rulesProfileVersion.findUnique({
     where: { id: input.rulesVersionId },
-    include: { template: true },
+    ...rulesProfileVersionWithTemplate,
   });
   const builtinId = version?.template.builtinId;
   if (!builtinId?.startsWith("demo-")) {

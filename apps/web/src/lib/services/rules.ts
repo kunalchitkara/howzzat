@@ -7,6 +7,11 @@ import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { slugify } from "../api/slug";
 import { parseRulesConfig } from "./rules-helpers";
+import {
+  RULES_TEMPLATE_SELECT,
+  isRulesTemplateSuggested,
+  rulesProfileVersionWithTemplate,
+} from "./rules-template-select";
 import type { cloneRulesProfileSchema } from "../validations";
 import type { z } from "zod";
 
@@ -16,10 +21,17 @@ export async function listRulesTemplates(includeConfig = false) {
   const templates = await prisma.rulesProfileTemplate.findMany({
     where: { isPublic: true },
     orderBy: { name: "asc" },
-    include: {
+    select: {
+      ...RULES_TEMPLATE_SELECT,
       versions: {
         orderBy: { version: "desc" },
         take: 1,
+        select: {
+          id: true,
+          version: true,
+          label: true,
+          configJson: true,
+        },
       },
     },
   });
@@ -29,7 +41,7 @@ export async function listRulesTemplates(includeConfig = false) {
     builtinId: t.builtinId,
     name: t.name,
     description: t.description,
-    isSuggested: t.isSuggested,
+    isSuggested: isRulesTemplateSuggested(t),
     latestVersion: t.versions[0]
       ? {
           id: t.versions[0].id,
@@ -46,7 +58,7 @@ export async function listRulesTemplates(includeConfig = false) {
 export async function getRulesVersion(versionId: string) {
   const version = await prisma.rulesProfileVersion.findUnique({
     where: { id: versionId },
-    include: { template: true },
+    ...rulesProfileVersionWithTemplate,
   });
   if (!version) {
     throw new ApiError(404, "Rules version not found", "RULES_NOT_FOUND");
@@ -116,7 +128,7 @@ export async function cloneRulesProfile(input: CloneInput) {
       label: input.label ?? `v${nextVersion}`,
       configJson: JSON.stringify({ ...merged, version: nextVersion }),
     },
-    include: { template: true },
+    ...rulesProfileVersionWithTemplate,
   });
 
   return {

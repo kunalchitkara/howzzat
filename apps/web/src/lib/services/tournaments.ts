@@ -3,6 +3,7 @@ import { ApiError } from "../api/http";
 import { randomToken, slugify, uniqueSlug } from "../api/slug";
 import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
 import { resolveOrganizationId } from "./organizations";
+import { rulesProfileVersionWithTemplate } from "./rules-template-select";
 import type { createTournamentSchema } from "../validations";
 import type { z } from "zod";
 
@@ -148,7 +149,7 @@ export async function listTournaments(orgRef: string) {
     where: { organizationId: orgId },
     orderBy: { createdAt: "desc" },
     include: {
-      rulesProfileVersion: { include: { template: true } },
+      rulesProfileVersion: rulesProfileVersionWithTemplate,
       _count: { select: { teams: true, matches: true } },
     },
   });
@@ -160,7 +161,7 @@ export async function listTournamentsForUser(userId: string) {
     orderBy: { createdAt: "desc" },
     include: {
       organization: { select: { id: true, name: true, slug: true } },
-      rulesProfileVersion: { include: { template: true } },
+      rulesProfileVersion: rulesProfileVersionWithTemplate,
       _count: { select: { teams: true, matches: true } },
     },
   });
@@ -171,7 +172,7 @@ export async function getTournament(tournamentId: string) {
     where: { id: tournamentId },
     include: {
       organization: true,
-      rulesProfileVersion: { include: { template: true } },
+      rulesProfileVersion: rulesProfileVersionWithTemplate,
       rulesBindings: {
         orderBy: { effectiveFrom: "asc" },
         include: { rulesProfileVersion: true },
@@ -216,7 +217,7 @@ export async function getTournamentBySlug(orgSlug: string, tournamentSlug: strin
     },
     include: {
       organization: true,
-      rulesProfileVersion: { include: { template: true } },
+      rulesProfileVersion: rulesProfileVersionWithTemplate,
       teams: { include: { team: true } },
       matches: {
         where: { isOfficial: true },
@@ -299,7 +300,7 @@ export async function createTournament(orgRef: string, input: CreateTournamentIn
       },
     },
     include: {
-      rulesProfileVersion: { include: { template: true } },
+      rulesProfileVersion: rulesProfileVersionWithTemplate,
     },
   });
 
