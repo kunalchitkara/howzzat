@@ -142,6 +142,7 @@ export async function applyTournamentRuleChange(
   if (!toVersionId && input.overrides) {
     const cloned = await cloneRulesProfile({
       templateId: tournament.rulesProfileVersion.templateId,
+      baseVersionId: fromVersionId,
       overrides: input.overrides,
     });
     toVersionId = cloned.id;
@@ -180,20 +181,28 @@ export async function applyTournamentRuleChange(
     for (const match of matches) {
       for (const innings of match.innings) {
         const events = innings.deliveries.map(deliveryToEvent);
-        const config = resolveInningsConfig(toProfile, match.playersPerSide);
-        const state = replayInnings(toProfile, {
-          playersPerSide: config.playersPerSide,
-          totalOvers: config.totalOvers,
-        }, events);
+        const config = resolveInningsConfig(fromProfile, match.playersPerSide);
+        const { newTotals } = applyRuleChange(
+          events,
+          {
+            playersPerSide: config.playersPerSide,
+            totalOvers: config.totalOvers,
+          },
+          fromProfile,
+          toProfile,
+          0,
+          "BACKFILL",
+        );
 
         await prisma.innings.update({
           where: { id: innings.id },
           data: {
             rulesVersionId: toVersionId,
-            totalRuns: state.totalRuns,
-            wickets: state.wickets,
-            batRuns: state.batRuns,
-            netRuns: state.batRuns - toProfile.wicketPenalty * state.wickets,
+            totalRuns: newTotals.totalRuns,
+            wickets: newTotals.wickets,
+            batRuns: newTotals.batRuns,
+            netRuns:
+              newTotals.batRuns - toProfile.wicketPenalty * newTotals.wickets,
           },
         });
 

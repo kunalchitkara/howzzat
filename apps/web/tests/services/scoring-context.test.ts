@@ -48,7 +48,8 @@ describe("scoring context service", () => {
     const ctx = await getMatchScoringContext(match.id);
     expect(ctx.canStartInnings?.inningsNumber).toBe(1);
     expect(ctx.canStartInnings?.battingTeamId).toBe(fixtures.tournamentTeamAId);
-    expect(ctx.totalOvers).toBe(16);
+    // Home squad has 4 players from fixtures; overs follow lineup count (2 × players).
+    expect(ctx.totalOvers).toBe(8);
     expect(ctx.squads.home.length).toBeGreaterThan(0);
   });
 

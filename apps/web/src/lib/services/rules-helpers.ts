@@ -1,5 +1,5 @@
 import type { RulesProfile } from "@howzzat/rules-engine";
-import { getBuiltinProfile } from "@howzzat/rules-engine";
+import { getBuiltinProfile, mergeProfile } from "@howzzat/rules-engine";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { rulesProfileVersionWithTemplate } from "./rules-template-select";
@@ -29,7 +29,7 @@ export async function getRulesProfileFromVersion(
   if (builtinId) {
     const builtin = getBuiltinProfile(builtinId);
     if (builtin) {
-      return { ...builtin, version: stored.version ?? builtin.version };
+      return mergeProfile(builtin, stored);
     }
   }
   return stored;

@@ -565,6 +565,52 @@ export function ScorePad({
     }
   }
 
+  function shuffleIds(ids: string[]): string[] {
+    const copy = [...ids];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+    }
+    return copy;
+  }
+
+  function randomiseSide(side: "home" | "away") {
+    if (!ctx) return;
+    const squadMinCount = ctx.squadMin ?? 2;
+    const squadMaxCount = ctx.squadMax ?? 15;
+    const roster = ctx.rosters[side];
+    if (roster.length === 0) {
+      if (side === "home") {
+        setDraftHomeIds([]);
+        setDraftHomeCaptainId("");
+      } else {
+        setDraftAwayIds([]);
+        setDraftAwayCaptainId("");
+      }
+      return;
+    }
+    const picks = shuffleIds(roster.map((p) => p.id)).slice(
+      0,
+      Math.min(squadMinCount, squadMaxCount, roster.length),
+    );
+    if (side === "home") {
+      setDraftHomeIds(picks);
+      if (draftHomeCaptainId && !picks.includes(draftHomeCaptainId)) {
+        setDraftHomeCaptainId("");
+      }
+    } else {
+      setDraftAwayIds(picks);
+      if (draftAwayCaptainId && !picks.includes(draftAwayCaptainId)) {
+        setDraftAwayCaptainId("");
+      }
+    }
+  }
+
+  function randomiseLineups() {
+    randomiseSide("home");
+    randomiseSide("away");
+  }
+
   async function saveToss() {
     if (!tossWinnerId) {
       setError("Select which team won the toss");
@@ -962,7 +1008,17 @@ export function ScorePad({
         ctx.status !== "COMPLETED" &&
         ctx.scoringLock.canScore && (
         <section className="sp-card sp-roster">
-          <h2>2. Match lineups</h2>
+          <div className="sp-section-head">
+            <h2>2. Match lineups</h2>
+            <button
+              type="button"
+              className="sp-btn sp-btn-pill"
+              disabled={busy}
+              onClick={randomiseLineups}
+            >
+              Randomise
+            </button>
+          </div>
           <p className="sp-muted">
             Pick players from your roster or type a name to add quickly — opponent
             names can be added right here.

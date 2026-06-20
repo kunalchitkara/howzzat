@@ -182,6 +182,7 @@ export const createDeliverySchema = z.object({
 
 export const cloneRulesProfileSchema = z.object({
   templateId: z.string().cuid().optional(),
+  baseVersionId: z.string().cuid().optional(),
   builtinId: z.string().optional(),
   name: z.string().min(2).max(120).optional(),
   overrides: z.record(z.unknown()).optional(),

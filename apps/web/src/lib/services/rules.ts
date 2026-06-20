@@ -70,6 +70,16 @@ export async function getRulesVersion(versionId: string) {
 }
 
 async function resolveBaseProfile(input: CloneInput): Promise<RulesProfile> {
+  if (input.baseVersionId) {
+    const version = await prisma.rulesProfileVersion.findUnique({
+      where: { id: input.baseVersionId },
+    });
+    if (!version) {
+      throw new ApiError(404, "Rules version not found", "RULES_NOT_FOUND");
+    }
+    return parseRulesConfig(version.configJson);
+  }
+
   if (input.builtinId) {
     const builtin = getBuiltinProfile(input.builtinId);
     if (!builtin) {

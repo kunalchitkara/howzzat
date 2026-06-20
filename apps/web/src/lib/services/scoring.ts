@@ -32,6 +32,7 @@ import {
   resolveRulesVersionIdForCoachTournament,
 } from "./rules-helpers";
 import { prisma } from "../db";
+import { isExternalTeam } from "./tournaments";
 
 type MembershipWithPlayer = {
   player: {
@@ -62,6 +63,14 @@ function mapPlayer(
   };
 }
 
+function ageGroupsMatch(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  if (!a?.trim() || !b?.trim()) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 async function rosterForTeam(
   teamId: string,
   ageGroupCap: number | null,
@@ -80,6 +89,62 @@ async function rosterForTeam(
     roster.push(mapPlayer(m.player, teamId, ageGroupCap, referenceDate));
   }
   return roster;
+}
+
+/** Club squads for the tournament age band when the enrolled team has no roster. */
+async function rosterForOrgAgeBand(
+  orgId: string,
+  tournamentAgeGroup: string | null,
+  ageGroupCap: number | null,
+  referenceDate: Date,
+): Promise<ScoringPlayer[]> {
+  if (!tournamentAgeGroup?.trim()) return [];
+
+  const teams = await prisma.team.findMany({
+    where: { organizationId: orgId },
+    select: { id: true, ageGroup: true, slug: true },
+    orderBy: { name: "asc" },
+  });
+
+  const seen = new Set<string>();
+  const roster: ScoringPlayer[] = [];
+  for (const team of teams) {
+    if (isExternalTeam(team)) continue;
+    if (!ageGroupsMatch(team.ageGroup, tournamentAgeGroup)) continue;
+    const teamRoster = await rosterForTeam(team.id, ageGroupCap, referenceDate);
+    for (const player of teamRoster) {
+      if (seen.has(player.id)) continue;
+      seen.add(player.id);
+      roster.push(player);
+    }
+  }
+  return roster;
+}
+
+async function rosterForMatchSide(options: {
+  orgTeamId: string;
+  orgTeamSlug: string;
+  orgId: string;
+  tournamentAgeGroup: string | null;
+  ageGroupCap: number | null;
+  referenceDate: Date;
+  useOrgAgeBandFallback: boolean;
+}): Promise<ScoringPlayer[]> {
+  const direct = await rosterForTeam(
+    options.orgTeamId,
+    options.ageGroupCap,
+    options.referenceDate,
+  );
+  if (direct.length > 0 || !options.useOrgAgeBandFallback) {
+    return direct;
+  }
+
+  return rosterForOrgAgeBand(
+    options.orgId,
+    options.tournamentAgeGroup,
+    options.ageGroupCap,
+    options.referenceDate,
+  );
 }
 
 function squadPlayers(
@@ -128,8 +193,25 @@ export async function getMatchScoringContext(
   const ageGroupCap = parseAgeGroupCap(match.tournament.ageGroup);
   const referenceDate = match.scheduledAt ?? new Date();
 
-  const homeRoster = await rosterForTeam(homeTeamId, ageGroupCap, referenceDate);
-  const awayRoster = await rosterForTeam(awayTeamId, ageGroupCap, referenceDate);
+  const tournamentAgeGroup = match.tournament.ageGroup;
+  const homeRoster = await rosterForMatchSide({
+    orgTeamId: homeTeamId,
+    orgTeamSlug: match.homeTeam.team.slug,
+    orgId,
+    tournamentAgeGroup,
+    ageGroupCap,
+    referenceDate,
+    useOrgAgeBandFallback: true,
+  });
+  const awayRoster = await rosterForMatchSide({
+    orgTeamId: awayTeamId,
+    orgTeamSlug: match.awayTeam.team.slug,
+    orgId,
+    tournamentAgeGroup,
+    ageGroupCap,
+    referenceDate,
+    useOrgAgeBandFallback: false,
+  });
 
   const homeSquad = squadPlayers(
     match.squad,
