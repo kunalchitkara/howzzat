@@ -45,8 +45,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @howzzat/web exec playwright install chromium --with-deps
 
-      - name: Smoke page tests (Playwright)
-        run: pnpm --filter @howzzat/web exec playwright test e2e/smoke-pages.spec.ts
+      - name: E2E coach flow and smoke (Playwright)
+        run: pnpm --filter @howzzat/web exec playwright test e2e/coach-flow.spec.ts e2e/smoke-pages.spec.ts
         env:
           CI: true
 
