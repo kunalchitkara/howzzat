@@ -30,6 +30,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm db:generate
 
+      - name: Build workspace packages
+        run: pnpm --filter @howzzat/rules-engine build
+
       - name: Check forbidden direct DB imports
         run: bash scripts/check-no-direct-db-imports.sh
 
