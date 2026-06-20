@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { apiFetch } from "@/lib/client/api";
 import type { RecordDeliveryResponse } from "@/lib/scoring/delivery-response";
 import {

@@ -1,7 +1,6 @@
 import {
   finalizeInnings,
   replayInnings,
-  resolveInningsConfig,
 } from "@howzzat/rules-engine";
 import {
   countLegalBalls,

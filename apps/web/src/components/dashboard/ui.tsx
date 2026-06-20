@@ -1,5 +1,3 @@
-// React 19 types conflict across workspace packages — layout helpers only.
-// @ts-nocheck
 import Link from "next/link";
 import type { ComponentProps, CSSProperties, PropsWithChildren } from "react";
 

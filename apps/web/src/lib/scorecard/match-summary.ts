@@ -1,10 +1,4 @@
-import type {
-  BatterRow,
-  BowlerRow,
-  InningsScorecardView,
-  MatchScorecardView,
-  PartnershipRow,
-} from "./types";
+import type { BatterRow, BowlerRow, InningsScorecardView, MatchScorecardView } from "./types";
 
 export interface MatchSummaryHighlight {
   label: string;

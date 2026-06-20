@@ -1,9 +1,4 @@
-import {
-  finalizeInnings,
-  replayInnings,
-  type DeliveryEvent,
-  type RulesProfile,
-} from "@howzzat/rules-engine";
+import { finalizeInnings, replayInnings, type RulesProfile } from "@howzzat/rules-engine";
 import {
   countLegalBalls,
   deliveryEndedOver,

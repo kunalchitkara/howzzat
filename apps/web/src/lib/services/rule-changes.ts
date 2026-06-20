@@ -1,7 +1,6 @@
 import {
   applyRuleChange,
   mergeProfile,
-  replayInnings,
   resolveInningsConfig,
   type DeliveryEvent,
   type RulesProfile,

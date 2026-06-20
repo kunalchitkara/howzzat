@@ -15,10 +15,9 @@ import {
   describeLineupBlockers,
   describeSquadConfirmError,
 } from "@/lib/scoring/squad-validation";
-import { suggestOversForFormula, suggestOversForSquad } from "@/lib/scoring/suggest-overs";
+import { suggestOversForFormula } from "@/lib/scoring/suggest-overs";
 import {
   canRecordMoreBalls,
-  hasFailedDeliveries,
   hasPendingDeliveries,
   hasUnsyncedDeliveries,
   hydrateFromContext,
@@ -339,36 +338,6 @@ export function ScorePad({
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return null;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveSquads() {
-    if (!ctx) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await api(`/api/v1/matches/${matchId}/squad`, {
-        method: "POST",
-        body: JSON.stringify({
-          teamId: ctx.homeTeam.teamId,
-          playerIds: draftHomeIds,
-          captainId: draftHomeCaptainId || undefined,
-        }),
-      });
-      await api(`/api/v1/matches/${matchId}/squad`, {
-        method: "POST",
-        body: JSON.stringify({
-          teamId: ctx.awayTeam.teamId,
-          playerIds: draftAwayIds,
-          captainId: draftAwayCaptainId || undefined,
-        }),
-      });
-      const data = await refresh();
-      syncDraftFromServer(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }

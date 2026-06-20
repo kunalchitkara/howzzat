@@ -15,9 +15,9 @@ export default async function TournamentWalletPage({
 }) {
   const { orgId, tournamentId } = await params;
   let tournament;
-  let org;
+  let _org;
   try {
-    [tournament, org] = await Promise.all([
+    [tournament, _org] = await Promise.all([
       getTournament(tournamentId),
       getOrganization(orgId),
     ]);

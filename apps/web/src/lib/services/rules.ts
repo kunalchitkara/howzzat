@@ -5,7 +5,6 @@ import {
 } from "@howzzat/rules-engine";
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
-import { slugify } from "../api/slug";
 import { parseRulesConfig } from "./rules-helpers";
 import {
   RULES_TEMPLATE_SELECT,
