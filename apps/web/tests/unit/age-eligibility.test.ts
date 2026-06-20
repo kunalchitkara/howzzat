@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ageGroupsMatch,
   ageOnDate,
+  canonicalAgeGroupKey,
   formatPlayerAge,
   isOverAgeGroup,
   parseAgeGroupCap,
@@ -11,6 +13,13 @@ describe("age eligibility", () => {
     expect(parseAgeGroupCap("U9")).toBe(9);
     expect(parseAgeGroupCap("Girls U11")).toBe(11);
     expect(parseAgeGroupCap("Summer")).toBeNull();
+  });
+
+  it("matches age bands with canonical keys", () => {
+    expect(canonicalAgeGroupKey("Girls U9")).toBe("U9");
+    expect(canonicalAgeGroupKey("Main U9")).toBe("U9");
+    expect(ageGroupsMatch("U9", "Girls U9")).toBe(true);
+    expect(ageGroupsMatch("U9", null)).toBe(false);
   });
 
   it("formats compact age labels for roster display", () => {

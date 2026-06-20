@@ -1075,11 +1075,14 @@ export function ScorePad({
                     ))}
                   </ul>
                   <p className="sp-roster-sub">Roster</p>
-                  {available.length === 0 ? (
+                  {roster.length === 0 ? (
                     <p className="sp-muted sp-roster-empty">
-                      No club roster yet — add {squadMin} {squadMin === 1 ? "player" : "players"}{" "}
-                      using Add player below.
+                      {side === "home"
+                        ? `No club roster yet — add ${squadMin} ${squadMin === 1 ? "player" : "players"} using Add player below.`
+                        : `No previous opponent players — add ${squadMin} ${squadMin === 1 ? "player" : "players"} using Add player below.`}
                     </p>
+                  ) : available.length === 0 ? (
+                    <p className="sp-muted sp-roster-empty">All roster players selected.</p>
                   ) : (
                   <ul className="sp-roster-list">
                     {available.map((p) => (

@@ -4,6 +4,7 @@ import { resetDatabase } from "@howzzat/db/testing";
 import { getBuiltinProfile } from "@howzzat/rules-engine";
 import { GET as getScoring } from "@/app/api/v1/matches/[matchId]/scoring/route";
 import { POST as confirmSquadsRoute } from "@/app/api/v1/matches/[matchId]/squad/confirm/route";
+import { getMatchScoringContext } from "@/lib/services/scoring";
 import { addNamedTeamToTournament } from "@/lib/services/tournaments";
 import {
   addMatchPlayer,
@@ -195,6 +196,175 @@ describe("U9 MJCA lineup limits (2–15 players)", () => {
       ["Avyaan", "Taran", "Veer"],
     );
     expect(scoring.body.data.rosters.away).toHaveLength(0);
+  });
+
+  it("loads org U9 roster when tournament ageGroup is null but rules profile is U9", async () => {
+    const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
+    const template = await prisma.rulesProfileTemplate.create({
+      data: {
+        builtinId: profile.id,
+        name: profile.name,
+        description: profile.description,
+        isPublic: true,
+      },
+    });
+    const rulesVersion = await prisma.rulesProfileVersion.create({
+      data: {
+        templateId: template.id,
+        version: 1,
+        configJson: JSON.stringify(profile),
+        label: "v1",
+      },
+    });
+
+    const org = await prisma.organization.create({
+      data: { name: "ECC", slug: "ecc-null-agegroup-lineup-test" },
+    });
+    const mainU9 = await prisma.team.create({
+      data: {
+        organizationId: org.id,
+        name: "Main U9",
+        slug: "main-u9-null-age",
+        ageGroup: "U9",
+      },
+    });
+    const tournament = await prisma.tournament.create({
+      data: {
+        organizationId: org.id,
+        name: "Test ECC U9",
+        slug: "test-ecc-u9-null-agegroup",
+        ageGroup: null,
+        rulesProfileVersionId: rulesVersion.id,
+        isPublic: true,
+        rulesBindings: { create: { rulesProfileVersionId: rulesVersion.id } },
+      },
+    });
+
+    for (const name of ["Veer", "Taran"]) {
+      const player = await prisma.player.create({ data: { legalName: name } });
+      await prisma.teamMembership.create({
+        data: { teamId: mainU9.id, playerId: player.id, seasonLabel: "2026" },
+      });
+    }
+
+    const ttHome = await addNamedTeamToTournament(tournament.id, "Test ECC U9");
+    const ttAway = await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+
+    const match = await createMatch(tournament.id, {
+      homeTeamId: ttHome.id,
+      awayTeamId: ttAway.id,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: ttHome.id,
+      electedTo: "bat",
+    });
+
+    const scoring = await readJson(
+      await getScoring(
+        jsonRequest("GET", `/api/v1/matches/${match.id}/scoring`),
+        params({ matchId: match.id }),
+      ),
+    );
+
+    expect(scoring.status).toBe(200);
+    expect(scoring.body.data.tournamentAgeGroup).toBe("U9");
+    expect(scoring.body.data.rosters.home.map((p: { name: string }) => p.name).sort()).toEqual(
+      ["Taran", "Veer"],
+    );
+  });
+
+  it("loads org U9 roster when squad team ageGroup is null but name includes U9", async () => {
+    const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
+    const template = await prisma.rulesProfileTemplate.create({
+      data: {
+        builtinId: profile.id,
+        name: profile.name,
+        description: profile.description,
+        isPublic: true,
+      },
+    });
+    const rulesVersion = await prisma.rulesProfileVersion.create({
+      data: {
+        templateId: template.id,
+        version: 1,
+        configJson: JSON.stringify(profile),
+        label: "v1",
+      },
+    });
+
+    const org = await prisma.organization.create({
+      data: { name: "ECC", slug: "ecc-team-name-age-test" },
+    });
+    const mainU9 = await prisma.team.create({
+      data: {
+        organizationId: org.id,
+        name: "Main U9",
+        slug: "main-u9-no-age-field",
+        ageGroup: null,
+      },
+    });
+    const tournament = await prisma.tournament.create({
+      data: {
+        organizationId: org.id,
+        name: "Test ECC U9",
+        slug: "test-ecc-u9-team-name-age",
+        ageGroup: "U9",
+        rulesProfileVersionId: rulesVersion.id,
+        isPublic: true,
+        rulesBindings: { create: { rulesProfileVersionId: rulesVersion.id } },
+      },
+    });
+
+    const player = await prisma.player.create({ data: { legalName: "Veer" } });
+    await prisma.teamMembership.create({
+      data: { teamId: mainU9.id, playerId: player.id, seasonLabel: "2026" },
+    });
+
+    const ttHome = await addNamedTeamToTournament(tournament.id, "Test ECC U9");
+    const ttAway = await addNamedTeamToTournament(tournament.id, "Test Hayes U9");
+
+    const match = await createMatch(tournament.id, {
+      homeTeamId: ttHome.id,
+      awayTeamId: ttAway.id,
+    });
+    await recordToss(match.id, {
+      tossWinnerTeamId: ttHome.id,
+      electedTo: "bat",
+    });
+
+    const ctx = await getMatchScoringContext(match.id);
+    expect(ctx.rosters.home.map((p) => p.name)).toEqual(["Veer"]);
+  });
+
+  it("loads away roster from previous matches against the same opponent", async () => {
+    const fx = await seedMjcaU9Tournament();
+    const priorMatch = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(priorMatch.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+    await addMatchPlayer(priorMatch.id, { side: "home", legalName: "A" });
+    await addMatchPlayer(priorMatch.id, { side: "home", legalName: "B" });
+    await addMatchPlayer(priorMatch.id, { side: "away", legalName: "Prior Alex" });
+    await addMatchPlayer(priorMatch.id, { side: "away", legalName: "Prior Ben" });
+
+    const rematch = await createMatch(fx.tournamentId, {
+      homeTeamId: fx.tournamentTeamHomeId,
+      awayTeamId: fx.tournamentTeamAwayId,
+    });
+    await recordToss(rematch.id, {
+      tossWinnerTeamId: fx.tournamentTeamHomeId,
+      electedTo: "bat",
+    });
+
+    const ctx = await getMatchScoringContext(rematch.id);
+    expect(ctx.rosters.away.map((p) => p.name).sort()).toEqual([
+      "Prior Alex",
+      "Prior Ben",
+    ]);
   });
 
   it("allows quick-add up to 15 players per side", async () => {

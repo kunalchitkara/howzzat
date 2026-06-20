@@ -7,6 +7,27 @@ export function parseAgeGroupCap(
   return match ? Number(match[1]) : null;
 }
 
+/** Canonical key for age-band matching, e.g. "U9" from "Girls U9" or "u9". */
+export function canonicalAgeGroupKey(
+  ageGroup: string | null | undefined,
+): string | null {
+  if (!ageGroup?.trim()) return null;
+  const cap = parseAgeGroupCap(ageGroup);
+  if (cap != null) return `U${cap}`;
+  return ageGroup.trim().toLowerCase();
+}
+
+/** True when two age labels refer to the same band (e.g. U9 vs Girls U9). */
+export function ageGroupsMatch(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const ka = canonicalAgeGroupKey(a);
+  const kb = canonicalAgeGroupKey(b);
+  if (!ka || !kb) return false;
+  return ka === kb;
+}
+
 export function ageOnDate(dateOfBirth: Date, on: Date): number {
   let age = on.getFullYear() - dateOfBirth.getFullYear();
   const monthDiff = on.getMonth() - dateOfBirth.getMonth();
