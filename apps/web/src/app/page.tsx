@@ -114,8 +114,8 @@ export default async function HomePage() {
           </p>
           <div className="btn-group">
             <BtnLink href="/login">Sign in or sign up</BtnLink>
-            <BtnLink href="/orgs/edgware-cc/tournaments/u9-2026" variant="secondary">
-              See a public tournament
+            <BtnLink href="/demo/u9-score" variant="secondary">
+              Open U9 scoring demo
             </BtnLink>
           </div>
         </section>
