@@ -45,4 +45,24 @@ describe("resolveInningsConfigForBatting", () => {
     const cfg = resolveInningsConfigForBatting(profile, match, "tt-home");
     expect(cfg.totalOvers).toBe(20);
   });
+
+  it("falls back to nearest valid pair config for odd squad counts", () => {
+    const profile = getBuiltinProfile("mjca-u9-outdoor-v1")!;
+    const match = {
+      homeTeamId: "tt-home",
+      awayTeamId: "tt-away",
+      homeTeam: { team: { id: "team-home" } },
+      awayTeam: { team: { id: "team-away" } },
+      playersPerSide: 8,
+      squad: [
+        { teamId: "team-home" },
+        { teamId: "team-home" },
+        { teamId: "team-home" },
+      ],
+    };
+
+    const cfg = resolveInningsConfigForBatting(profile, match, "tt-home");
+    expect(cfg.playersPerSide).toBe(4);
+    expect(cfg.totalOvers).toBe(8);
+  });
 });

@@ -31,7 +31,40 @@ export function resolveInningsConfigForBatting(
   const orgTeamId = orgTeamIdForBatting(match, battingTournamentTeamId);
   const squadCount = match.squad.filter((s) => s.teamId === orgTeamId).length;
   const playing = squadCount > 0 ? squadCount : match.playersPerSide;
-  const base = resolveInningsConfig(profile, playing);
+  const candidates = [
+    playing,
+    match.playersPerSide,
+    profile.playersPerSide.default,
+    profile.playersPerSide.min,
+  ];
+  const seen = new Set<number>();
+  let base:
+    | ReturnType<typeof resolveInningsConfig>
+    | null = null;
+
+  for (const count of candidates) {
+    for (const candidate of [count, count + 1, count - 1]) {
+      if (!Number.isFinite(candidate)) continue;
+      const clamped = Math.min(
+        profile.playersPerSide.max,
+        Math.max(profile.playersPerSide.min, Math.trunc(candidate)),
+      );
+      if (seen.has(clamped)) continue;
+      seen.add(clamped);
+      try {
+        base = resolveInningsConfig(profile, clamped);
+        break;
+      } catch {
+        // Keep trying nearby player-count candidates.
+      }
+    }
+    if (base) break;
+  }
+  if (!base) {
+    // Final fallback preserves previous behavior and surfaces real config errors.
+    base = resolveInningsConfig(profile, playing);
+  }
+
   if (match.totalOvers != null && match.totalOvers > 0) {
     return { ...base, totalOvers: match.totalOvers };
   }
