@@ -37,6 +37,19 @@ EXPO_PUBLIC_API_URL=http://localhost:3005 pnpm dev:mobile
 
 See [`apps/mobile/.maestro/README.md`](../apps/mobile/.maestro/README.md) for simulator setup.
 
+## Authenticated Audit Harness
+
+Use this when generating end-to-end audit evidence so auth-gated rows are not marked as blocked.
+
+```bash
+# Covers anonymous + authenticated dashboard journeys by creating a fresh user.
+pnpm --filter @howzzat/web exec playwright test e2e/smoke-pages.spec.ts
+```
+
+Notes:
+- The smoke spec self-registers a unique account (`registerWithPassword`) so no static test credentials are needed.
+- Include this run as a required stage in audit evidence capture before publishing reports.
+
 ## Coverage
 
 ### `@howzzat/rules-engine` (~36 tests)

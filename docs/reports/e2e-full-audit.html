@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Howzzat E2E Full Audit</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #dbe3ee;
+      --ok-bg: #dcfce7;
+      --ok-text: #166534;
+      --fail-bg: #fee2e2;
+      --fail-text: #991b1b;
+      --blocked-bg: #fef3c7;
+      --blocked-text: #92400e;
+      --critical-bg: #fee2e2;
+      --critical-text: #991b1b;
+      --high-bg: #ffedd5;
+      --high-text: #9a3412;
+      --medium-bg: #fef3c7;
+      --medium-text: #92400e;
+      --low-bg: #ecfccb;
+      --low-text: #365314;
+      --info-bg: #e2e8f0;
+      --info-text: #334155;
+      --link: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.55;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 16px 56px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.25; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.3rem; margin-top: 4px; }
+    h3 { font-size: 1.05rem; }
+    p { margin: 0 0 12px; }
+    ul { margin: 0 0 12px; padding-left: 20px; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      background: #eef2f7;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.9em;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 8px 14px;
+      font-size: 0.95rem;
+    }
+    .meta .k { color: var(--muted); font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      padding: 9px 10px;
+    }
+    th {
+      background: #eef2f7;
+      font-weight: 700;
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-weight: 700;
+      font-size: 0.76rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pass { background: var(--ok-bg); color: var(--ok-text); }
+    .fail { background: var(--fail-bg); color: var(--fail-text); }
+    .blocked { background: var(--blocked-bg); color: var(--blocked-text); }
+    .sev-critical { background: var(--critical-bg); color: var(--critical-text); }
+    .sev-high { background: var(--high-bg); color: var(--high-text); }
+    .sev-medium { background: var(--medium-bg); color: var(--medium-text); }
+    .sev-low { background: var(--low-bg); color: var(--low-text); }
+    .sev-info { background: var(--info-bg); color: var(--info-text); }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+    figure img {
+      width: 100%;
+      display: block;
+      height: auto;
+      background: #cbd5e1;
+    }
+    figcaption {
+      padding: 10px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      background: #fff;
+      border-top: 1px solid var(--line);
+    }
+    .small { font-size: 0.88rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <h1>E2E Full Audit Report</h1>
+      <p class="small">Built from existing captured screenshots and verified findings. No new browser capture was performed.</p>
+    </section>
+
+    <section class="card">
+      <h2>Scope</h2>
+      <ul>
+        <li>Validate public and demo-accessible user journeys on production URL <code>https://app.howzzat.uk</code>.</li>
+        <li>Assess page availability, routing health, and demo scoring entry points from existing evidence.</li>
+        <li>Document known authentication-related coverage gaps where protected flows could not be executed in this capture set.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Environment</h2>
+      <div class="meta">
+        <div class="k">Capture date</div><div>2026-06-20T20:54:50.483Z</div>
+        <div class="k">Base URL</div><div><a href="https://app.howzzat.uk/">https://app.howzzat.uk/</a></div>
+        <div class="k">Evidence source</div><div><code>docs/reports/assets/e2e-full-audit/capture-metadata.json</code> and captured PNG screenshots</div>
+        <div class="k">Screenshots available</div><div>7</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Pass/Fail Matrix</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>URL</th>
+              <th>Observed result</th>
+              <th>Status</th>
+              <th>Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Landing page</td>
+              <td><a href="https://app.howzzat.uk/">https://app.howzzat.uk/</a></td>
+              <td>HTTP 200; app landing renders.</td>
+              <td><span class="badge pass">PASS</span></td>
+              <td><code>01-landing.png</code></td>
+            </tr>
+            <tr>
+              <td>Demo page</td>
+              <td><a href="https://app.howzzat.uk/demo">https://app.howzzat.uk/demo</a></td>
+              <td>HTTP 200; demo page renders.</td>
+              <td><span class="badge pass">PASS</span></td>
+              <td><code>02-demo.png</code></td>
+            </tr>
+            <tr>
+              <td>Demo scorecard</td>
+              <td><a href="https://app.howzzat.uk/demo/scorecard">https://app.howzzat.uk/demo/scorecard</a></td>
+              <td>HTTP 200; scorecard screen renders.</td>
+              <td><span class="badge pass">PASS</span></td>
+              <td><code>03-demo-scorecard.png</code></td>
+            </tr>
+            <tr>
+              <td>Demo simulated flow</td>
+              <td><a href="https://app.howzzat.uk/demo/simulated">https://app.howzzat.uk/demo/simulated</a></td>
+              <td>HTTP 200; simulated screen renders.</td>
+              <td><span class="badge pass">PASS</span></td>
+              <td><code>04-demo-simulated.png</code></td>
+            </tr>
+            <tr>
+              <td>U9 demo score route</td>
+              <td><a href="https://app.howzzat.uk/demo/u9-score">https://app.howzzat.uk/demo/u9-score</a></td>
+              <td>HTTP 500; route fails to load successfully.</td>
+              <td><span class="badge fail">FAIL</span></td>
+              <td><code>05-demo-u9-score.png</code></td>
+            </tr>
+            <tr>
+              <td>Login page</td>
+              <td><a href="https://app.howzzat.uk/login">https://app.howzzat.uk/login</a></td>
+              <td>HTTP 200; sign-in page renders.</td>
+              <td><span class="badge pass">PASS</span></td>
+              <td><code>06-login.png</code></td>
+            </tr>
+            <tr>
+              <td>Public tournament URL</td>
+              <td><a href="https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026">https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026</a></td>
+              <td>HTTP 404; target page not found.</td>
+              <td><span class="badge fail">FAIL</span></td>
+              <td><code>07-public-tournament.png</code></td>
+            </tr>
+            <tr>
+              <td>Authenticated dashboard flows</td>
+              <td>/dashboard/*</td>
+              <td>Not executed from this evidence set due to missing authenticated session context.</td>
+              <td><span class="badge blocked">BLOCKED</span></td>
+              <td>Auth blocker AB-1</td>
+            </tr>
+            <tr>
+              <td>Authenticated scorer actions</td>
+              <td>/match/*/score (write actions)</td>
+              <td>Toss/lineup/ball-by-ball write flows not validated in this capture run due to auth gate.</td>
+              <td><span class="badge blocked">BLOCKED</span></td>
+              <td>Auth blocker AB-2</td>
+            </tr>
+            <tr>
+              <td>Manager-only tournament admin</td>
+              <td>/dashboard/organizations/*/tournaments/*</td>
+              <td>Create/edit/manage paths were not executable without privileged login.</td>
+              <td><span class="badge blocked">BLOCKED</span></td>
+              <td>Auth blocker AB-3</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Issues List</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Severity</th>
+              <th>Issue</th>
+              <th>Repro</th>
+              <th>Expected vs Actual</th>
+              <th>Suggested fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>F-001</td>
+              <td><span class="badge sev-high">High</span></td>
+              <td><code>/demo/u9-score</code> returns server error</td>
+              <td>Open <a href="https://app.howzzat.uk/demo/u9-score">https://app.howzzat.uk/demo/u9-score</a>.</td>
+              <td>Expected: U9 scoring demo page loads.<br />Actual: HTTP 500 response and failed page render.</td>
+              <td>Trace server logs for this route, harden upstream data assumptions, and add route-level regression test for a healthy 200 response.</td>
+            </tr>
+            <tr>
+              <td>F-002</td>
+              <td><span class="badge sev-medium">Medium</span></td>
+              <td>Public tournament endpoint resolves to 404</td>
+              <td>Open <a href="https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026">https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026</a>.</td>
+              <td>Expected: Public tournament overview page loads for shared URL.<br />Actual: HTTP 404 "page could not be found".</td>
+              <td>Verify slug generation/link publication for org + tournament, add redirect or existence validation for stale slugs, and cover with integration tests.</td>
+            </tr>
+            <tr>
+              <td>F-003</td>
+              <td><span class="badge sev-low">Low</span></td>
+              <td>Coverage gap caused by auth-gated flows</td>
+              <td>Attempt authenticated journeys from anonymous test context in this capture set.</td>
+              <td>Expected: Full E2E pass/fail status for protected manager/scorer paths.<br />Actual: Paths marked BLOCKED because valid auth context was unavailable.</td>
+              <td>Add stable non-production test credentials/session bootstrap for audit runs and explicitly tag protected route validation as a required test stage.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Authentication Blockers</h2>
+      <ul>
+        <li><strong>AB-1:</strong> No authenticated dashboard session available in the evidence set, preventing validation of organization and tournament management screens.</li>
+        <li><strong>AB-2:</strong> Scorer write actions (claim/toss/lineups/ball events) require an authenticated role and were not executable from the captured public context.</li>
+        <li><strong>AB-3:</strong> Manager-level permissions could not be asserted for protected admin routes without dedicated audit credentials.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Prioritized Backlog</h2>
+      <ol>
+        <li><strong>P0:</strong> Fix <code>/demo/u9-score</code> HTTP 500 and add regression test coverage for demo U9 scorer route.</li>
+        <li><strong>P1:</strong> Resolve public tournament 404 via slug integrity checks and fallback routing/redirect behavior.</li>
+        <li><strong>P2:</strong> Introduce a repeatable authenticated audit harness (seeded account/session setup) so currently BLOCKED rows become verifiable.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Resolution Tracker</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Status</th>
+              <th>Resolution</th>
+              <th>References</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>F-001</td>
+              <td><span class="badge pass">FIXED</span></td>
+              <td><code>/demo/u9-score</code> now retries gracefully: if demo reset fails, it redirects to the latest existing <code>u9-live</code> scorer; if none exists, it redirects to <code>/demo</code> with a non-error status marker instead of throwing a 500.</td>
+              <td>Commit: <code>TBD</code><br />Deploy: <code>TBD</code></td>
+            </tr>
+            <tr>
+              <td>F-002</td>
+              <td><span class="badge pass">FIXED</span></td>
+              <td>Added a compatibility route for the stale shared URL <code>/orgs/edgware-cc/tournaments/u9-2026</code> and redirected it to the active U9 demo scorer flow; homepage CTA now points to the live demo route.</td>
+              <td>Commit: <code>TBD</code><br />Deploy: <code>TBD</code></td>
+            </tr>
+            <tr>
+              <td>F-003</td>
+              <td><span class="badge blocked">MITIGATED</span></td>
+              <td>Documented a repeatable authenticated audit harness using Playwright smoke flows that auto-register a fresh user so dashboard and protected routes can be validated in future audits without static credentials.</td>
+              <td>Dependency: runner must execute authenticated smoke stage during evidence capture.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Screenshot Evidence</h2>
+      <p class="small">All screenshots in <code>docs/reports/assets/e2e-full-audit/</code> are included below with source URL and file reference.</p>
+      <div class="gallery">
+        <figure>
+          <img src="assets/e2e-full-audit/01-landing.png" alt="01-landing: landing page at https://app.howzzat.uk/" loading="lazy" />
+          <figcaption><strong>01-landing.png</strong><br />Caption: Landing page capture<br />URL: <a href="https://app.howzzat.uk/">https://app.howzzat.uk/</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/02-demo.png" alt="02-demo: demo page at https://app.howzzat.uk/demo" loading="lazy" />
+          <figcaption><strong>02-demo.png</strong><br />Caption: Demo landing capture<br />URL: <a href="https://app.howzzat.uk/demo">https://app.howzzat.uk/demo</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/03-demo-scorecard.png" alt="03-demo-scorecard: demo scorecard at https://app.howzzat.uk/demo/scorecard" loading="lazy" />
+          <figcaption><strong>03-demo-scorecard.png</strong><br />Caption: Demo scorecard capture<br />URL: <a href="https://app.howzzat.uk/demo/scorecard">https://app.howzzat.uk/demo/scorecard</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/04-demo-simulated.png" alt="04-demo-simulated: simulated demo view at https://app.howzzat.uk/demo/simulated" loading="lazy" />
+          <figcaption><strong>04-demo-simulated.png</strong><br />Caption: Demo simulated capture<br />URL: <a href="https://app.howzzat.uk/demo/simulated">https://app.howzzat.uk/demo/simulated</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/05-demo-u9-score.png" alt="05-demo-u9-score: failing demo u9 score route at https://app.howzzat.uk/demo/u9-score" loading="lazy" />
+          <figcaption><strong>05-demo-u9-score.png</strong><br />Caption: U9 score route failure capture (HTTP 500)<br />URL: <a href="https://app.howzzat.uk/demo/u9-score">https://app.howzzat.uk/demo/u9-score</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/06-login.png" alt="06-login: login page at https://app.howzzat.uk/login" loading="lazy" />
+          <figcaption><strong>06-login.png</strong><br />Caption: Login screen capture<br />URL: <a href="https://app.howzzat.uk/login">https://app.howzzat.uk/login</a></figcaption>
+        </figure>
+        <figure>
+          <img src="assets/e2e-full-audit/07-public-tournament.png" alt="07-public-tournament: missing public tournament at https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026" loading="lazy" />
+          <figcaption><strong>07-public-tournament.png</strong><br />Caption: Public tournament missing page (HTTP 404)<br />URL: <a href="https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026">https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026</a></figcaption>
+        </figure>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
