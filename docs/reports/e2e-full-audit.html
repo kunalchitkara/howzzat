@@ -327,19 +327,19 @@
               <td>F-001</td>
               <td><span class="badge pass">FIXED</span></td>
               <td><code>/demo/u9-score</code> now retries gracefully: if demo reset fails, it redirects to the latest existing <code>u9-live</code> scorer; if none exists, it redirects to <code>/demo</code> with a non-error status marker instead of throwing a 500.</td>
-              <td>Commit: <code>TBD</code><br />Deploy: <code>TBD</code></td>
+              <td>Commit: <code>e07ab7a</code><br />Deploy: <code>dpl_7SdwgfuGt44KCtcnUfqZZ525qaib</code> (<a href="https://app.howzzat.uk/demo/u9-score">verified</a>)</td>
             </tr>
             <tr>
               <td>F-002</td>
               <td><span class="badge pass">FIXED</span></td>
               <td>Added a compatibility route for the stale shared URL <code>/orgs/edgware-cc/tournaments/u9-2026</code> and redirected it to the active U9 demo scorer flow; homepage CTA now points to the live demo route.</td>
-              <td>Commit: <code>TBD</code><br />Deploy: <code>TBD</code></td>
+              <td>Commit: <code>e07ab7a</code><br />Deploy: <code>dpl_7SdwgfuGt44KCtcnUfqZZ525qaib</code> (<a href="https://app.howzzat.uk/orgs/edgware-cc/tournaments/u9-2026">verified</a>)</td>
             </tr>
             <tr>
               <td>F-003</td>
               <td><span class="badge blocked">MITIGATED</span></td>
               <td>Documented a repeatable authenticated audit harness using Playwright smoke flows that auto-register a fresh user so dashboard and protected routes can be validated in future audits without static credentials.</td>
-              <td>Dependency: runner must execute authenticated smoke stage during evidence capture.</td>
+              <td>Commit: <code>5fda7a7</code><br />Dependency: runner must execute authenticated smoke stage during evidence capture.</td>
             </tr>
           </tbody>
         </table>
