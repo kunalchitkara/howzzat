@@ -878,6 +878,101 @@ export function EditPlayerForm({
   );
 }
 
+export function TeamDeleteAction({
+  orgId,
+  teamId,
+  teamName,
+  compact = false,
+}: {
+  orgId: string;
+  teamId: string;
+  teamName: string;
+  compact?: boolean;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/teams/${teamId}`, { method: "DELETE" });
+      setConfirmDelete(false);
+      router.push(`/dashboard/organizations/${orgId}/teams`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete team");
+      setConfirmDelete(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      {error && <p style={{ color: "var(--red)", marginBottom: 12 }}>{error}</p>}
+      {!confirmDelete ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setConfirmDelete(true)}
+          className="btn btn-secondary btn-nav"
+          aria-label={`Delete ${teamName}`}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            borderRadius: 9999,
+            padding: compact ? "8px 12px" : "9px 14px",
+            fontSize: compact ? "0.85rem" : "0.9rem",
+            fontWeight: 700,
+          }}
+        >
+          <span aria-hidden>🗑</span>
+          Delete
+        </button>
+      ) : (
+        <div
+          style={{
+            marginTop: 10,
+            border: "1px solid #f0c2c2",
+            background: "#fff5f5",
+            borderRadius: 10,
+            padding: 10,
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ color: "#7a1f1f", fontSize: "0.9rem" }}>
+            Delete "{teamName}"? This cannot be undone.
+          </span>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void remove()}
+            style={{ ...btn, background: "var(--red)", padding: "8px 14px" }}
+            aria-label={`Confirm delete ${teamName}`}
+          >
+            Confirm delete
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmDelete(false)}
+            style={{ ...btn, padding: "8px 14px" }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EditTeamForm({
   orgId,
   teamId,
@@ -894,7 +989,6 @@ export function EditTeamForm({
   const [ageGroup, setAgeGroup] = useState(initialAgeGroup ?? "U9");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -913,21 +1007,6 @@ export function EditTeamForm({
     }
   }
 
-  async function remove() {
-    setBusy(true);
-    setError(null);
-    try {
-      await apiFetch(`/api/v1/teams/${teamId}`, { method: "DELETE" });
-      router.push(`/dashboard/organizations/${orgId}/teams`);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete team");
-      setConfirmDelete(false);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <form style={card} onSubmit={save}>
       <Field label="Team name">
@@ -941,52 +1020,7 @@ export function EditTeamForm({
         <button type="submit" disabled={busy} style={btn}>
           Save changes
         </button>
-        {!confirmDelete ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setConfirmDelete(true)}
-            className="btn btn-secondary btn-nav"
-            title="Delete team"
-            aria-label="Delete team"
-            style={{
-              borderRadius: 9999,
-              padding: 0,
-              fontSize: "1.15rem",
-              lineHeight: 1,
-              minWidth: 44,
-              minHeight: 44,
-              flexShrink: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            🗑
-          </button>
-        ) : (
-          <>
-            <span style={{ color: "#666", fontSize: "0.9rem" }}>
-              Delete this team and all roster data?
-            </span>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void remove()}
-              style={{ ...btn, background: "var(--red)" }}
-            >
-              Confirm delete
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setConfirmDelete(false)}
-              style={btn}
-            >
-              Cancel
-            </button>
-          </>
-        )}
+        <TeamDeleteAction orgId={orgId} teamId={teamId} teamName={name || initialName} />
       </div>
     </form>
   );

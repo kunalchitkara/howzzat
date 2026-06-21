@@ -269,6 +269,51 @@ describe("teams CRUD authorization", () => {
     expect(deleteRes.body.data.deleted).toBe(true);
   });
 
+  it("manager can delete team", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+    const managerCookie = await loginCookie("manager@test.club", "Manager");
+    const managerId = (
+      await prisma.user.findUniqueOrThrow({ where: { email: "manager@test.club" } })
+    ).id;
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Manager Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+    await prisma.orgMembership.create({
+      data: {
+        organizationId: orgId,
+        userId: managerId,
+        role: "MANAGER",
+      },
+    });
+
+    const createRes = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Manager XI", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const teamId = createRes.body.data.id as string;
+
+    const deleteRes = await readJson(
+      await deleteTeamRoute(
+        jsonRequest("DELETE", `/api/v1/teams/${teamId}`, undefined, managerCookie),
+        params({ teamId }),
+      ),
+    );
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.deleted).toBe(true);
+  });
+
   it("rejects duplicate team slug in same org (409)", async () => {
     const ownerCookie = await loginCookie("owner@test.club", "Owner");
 
@@ -360,6 +405,105 @@ describe("teams CRUD authorization", () => {
     );
     expect(deleteRes.status).toBe(400);
     expect(deleteRes.body.code).toBe("TEAM_IN_TOURNAMENT");
+  });
+
+  it("blocks delete when team has scheduled matches (400)", async () => {
+    const ownerCookie = await loginCookie("owner@test.club", "Owner");
+
+    const orgRes = await readJson(
+      await createOrgRoute(
+        jsonRequest("POST", "/api/v1/organizations", { name: "Fixture Club" }, ownerCookie),
+        emptyParams(),
+      ),
+    );
+    const orgId = orgRes.body.data.id as string;
+
+    const homeRes = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Home U9", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const homeTeamId = homeRes.body.data.id as string;
+
+    const awayRes = await readJson(
+      await createTeamRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/teams`,
+          { name: "Away U9", ageGroup: "U9" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const awayTeamId = awayRes.body.data.id as string;
+
+    const tourRes = await readJson(
+      await createTournamentRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/organizations/${orgId}/tournaments`,
+          { name: "Fixtures Cup", rulesTemplateBuiltinId: "u9-softball-london-v1" },
+          ownerCookie,
+        ),
+        params({ orgId }),
+      ),
+    );
+    const tournamentId = tourRes.body.data.id as string;
+
+    const homeEntryRes = await readJson(
+      await addTournamentTeam(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/teams`,
+          { teamId: homeTeamId },
+          ownerCookie,
+        ),
+        params({ tournamentId }),
+      ),
+    );
+    const awayEntryRes = await readJson(
+      await addTournamentTeam(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/teams`,
+          { teamId: awayTeamId },
+          ownerCookie,
+        ),
+        params({ tournamentId }),
+      ),
+    );
+
+    await readJson(
+      await createMatchRoute(
+        jsonRequest(
+          "POST",
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          {
+            homeTeamId: homeEntryRes.body.data.id,
+            awayTeamId: awayEntryRes.body.data.id,
+            venue: "Main Ground",
+          },
+          ownerCookie,
+        ),
+        params({ tournamentId }),
+      ),
+    );
+
+    const deleteRes = await readJson(
+      await deleteTeamRoute(
+        jsonRequest("DELETE", `/api/v1/teams/${homeTeamId}`, undefined, ownerCookie),
+        params({ teamId: homeTeamId }),
+      ),
+    );
+    expect(deleteRes.status).toBe(400);
+    expect(deleteRes.body.code).toBe("TEAM_HAS_MATCHES");
   });
 
   it("rejects create team without required name (400)", async () => {

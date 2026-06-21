@@ -465,6 +465,45 @@ describe("teams and tournaments service", () => {
     });
   });
 
+  it("blocks delete for teams enrolled in tournaments", async () => {
+    const org = await createOrganization({ name: "Blocked Delete Club" });
+    const team = await createTeam(org.id, { name: "U9 Sharks", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Spring Cup",
+      rulesProfileVersionId: version.id,
+    });
+    await addTeamToTournament(tournament.id, team.id);
+
+    await expect(deleteTeam(team.id)).rejects.toMatchObject({
+      status: 400,
+      code: "TEAM_IN_TOURNAMENT",
+    });
+  });
+
+  it("blocks delete for teams with scheduled matches", async () => {
+    const org = await createOrganization({ name: "Fixture Block Club" });
+    const homeTeam = await createTeam(org.id, { name: "U9 Falcons", ageGroup: "U9" });
+    const awayTeam = await createTeam(org.id, { name: "U9 Hawks", ageGroup: "U9" });
+    const { version } = await seedRulesProfile(prisma);
+    const tournament = await createTournament(org.id, {
+      name: "Summer League",
+      rulesProfileVersionId: version.id,
+    });
+    const homeEntry = await addTeamToTournament(tournament.id, homeTeam.id);
+    const awayEntry = await addTeamToTournament(tournament.id, awayTeam.id);
+    await createMatch(tournament.id, {
+      homeTeamId: homeEntry.id,
+      awayTeamId: awayEntry.id,
+      venue: "Main Ground",
+    });
+
+    await expect(deleteTeam(homeTeam.id)).rejects.toMatchObject({
+      status: 400,
+      code: "TEAM_HAS_MATCHES",
+    });
+  });
+
   it("reuses the same player across tournaments via team membership", async () => {
     const org = await createOrganization({ name: "Reuse Club" });
     const team = await createTeam(org.id, { name: "U9 Lions", ageGroup: "U9" });

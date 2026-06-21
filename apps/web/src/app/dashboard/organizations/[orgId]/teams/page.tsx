@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CreateTeamForm } from "@/components/dashboard/forms";
+import { CreateTeamForm, TeamDeleteAction } from "@/components/dashboard/forms";
 import { BtnLink, PageShell, card } from "@/components/dashboard/ui";
 import { userHasOrgRole } from "@/lib/auth/request";
 import { getServerUser } from "@/lib/auth/server";
@@ -62,20 +62,34 @@ export default async function TeamsPage({
         ) : (
           org.teams.map((team) => (
             <li key={team.id} style={card}>
-              <Link
-                href={`/dashboard/organizations/${orgId}/teams/${team.id}`}
-                style={{ fontWeight: 700, color: "var(--dk)" }}
+              <div
+                style={{ display: "flex", gap: 12, justifyContent: "space-between", flexWrap: "wrap" }}
               >
-                {team.name}
-              </Link>
-              <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
-                · {formatPlayerCount(team.memberships.length)}
-              </span>
-              {team.ageGroup && (
-                <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
-                  {team.ageGroup}
-                </span>
-              )}
+                <div>
+                  <Link
+                    href={`/dashboard/organizations/${orgId}/teams/${team.id}`}
+                    style={{ fontWeight: 700, color: "var(--dk)" }}
+                  >
+                    {team.name}
+                  </Link>
+                  <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
+                    · {formatPlayerCount(team.memberships.length)}
+                  </span>
+                  {team.ageGroup && (
+                    <span style={{ color: "#666", marginLeft: 8, fontSize: "0.9rem" }}>
+                      {team.ageGroup}
+                    </span>
+                  )}
+                </div>
+                {canManageTeams && (
+                  <TeamDeleteAction
+                    orgId={orgId}
+                    teamId={team.id}
+                    teamName={team.name}
+                    compact
+                  />
+                )}
+              </div>
             </li>
           ))
         )}

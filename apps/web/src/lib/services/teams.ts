@@ -202,11 +202,14 @@ export async function updateTeam(teamId: string, input: UpdateTeamInput) {
 }
 
 export async function deleteTeam(teamId: string) {
-  await getTeam(teamId);
+  const team = await getTeam(teamId);
 
   const tournamentEntry = await prisma.tournamentTeam.findFirst({
     where: { teamId },
     include: {
+      tournament: {
+        select: { name: true },
+      },
       _count: { select: { homeMatches: true, awayMatches: true } },
     },
   });
@@ -216,13 +219,13 @@ export async function deleteTeam(teamId: string) {
     if (matchCount > 0) {
       throw new ApiError(
         400,
-        "Remove scheduled matches for this team before deleting",
+        `${team.name} is in ${matchCount} scheduled ${matchCount === 1 ? "match" : "matches"}. Remove those fixtures first, then delete the team.`,
         "TEAM_HAS_MATCHES",
       );
     }
     throw new ApiError(
       400,
-      "Remove this team from tournaments before deleting",
+      `${team.name} is currently in tournament "${tournamentEntry.tournament.name}". Remove it from the tournament first, then delete the team.`,
       "TEAM_IN_TOURNAMENT",
     );
   }
