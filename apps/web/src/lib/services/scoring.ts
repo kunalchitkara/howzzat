@@ -191,82 +191,98 @@ async function rosterFromOpponentHistory(options: {
   ageGroupCap: number | null;
   referenceDate: Date;
 }): Promise<ScoringPlayer[]> {
-  const pastMatches = await prisma.match.findMany({
-    where: {
-      id: { not: options.currentMatchId },
-      tournament: { organizationId: options.orgId },
-    },
-    include: {
-      homeTeam: { include: { team: true } },
-      awayTeam: { include: { team: true } },
-      squad: { include: { player: true } },
-      innings: { include: { deliveries: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 40,
-  });
+  try {
+    const pastMatches = await prisma.match.findMany({
+      where: {
+        id: { not: options.currentMatchId },
+        tournament: { organizationId: options.orgId },
+      },
+      include: {
+        homeTeam: { include: { team: true } },
+        awayTeam: { include: { team: true } },
+        // Keep this relation shallow to tolerate legacy rows referencing removed players.
+        squad: { select: { playerId: true, teamId: true } },
+        innings: { include: { deliveries: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 40,
+    });
 
-  const seen = new Set<string>();
-  const roster: ScoringPlayer[] = [];
-  const playerIdsFromDeliveries = new Set<string>();
+    const seen = new Set<string>();
+    const roster: ScoringPlayer[] = [];
+    const playerIdsFromSquads = new Set<string>();
+    const playerIdsFromDeliveries = new Set<string>();
 
-  const addPlayer = (player: MembershipWithPlayer["player"], teamId: string) => {
-    if (seen.has(player.id)) return;
-    seen.add(player.id);
-    roster.push(mapPlayer(player, teamId, options.ageGroupCap, options.referenceDate));
-  };
+    const addPlayer = (player: MembershipWithPlayer["player"], teamId: string) => {
+      if (seen.has(player.id)) return;
+      seen.add(player.id);
+      roster.push(mapPlayer(player, teamId, options.ageGroupCap, options.referenceDate));
+    };
 
-  for (const past of pastMatches) {
-    const side = opponentSideInMatch(
-      past.homeTeam,
-      past.awayTeam,
-      options.opponentOrgTeamId,
-      options.opponentName,
-    );
-    if (!side) continue;
+    for (const past of pastMatches) {
+      const side = opponentSideInMatch(
+        past.homeTeam,
+        past.awayTeam,
+        options.opponentOrgTeamId,
+        options.opponentName,
+      );
+      if (!side) continue;
 
-    const opponentOrgId =
-      side === "home" ? past.homeTeam.teamId : past.awayTeam.teamId;
-    const opponentTournamentTeamId =
-      side === "home" ? past.homeTeamId : past.awayTeamId;
+      const opponentOrgId =
+        side === "home" ? past.homeTeam.teamId : past.awayTeam.teamId;
+      const opponentTournamentTeamId =
+        side === "home" ? past.homeTeamId : past.awayTeamId;
 
-    for (const squadPlayer of past.squad) {
-      if (squadPlayer.teamId !== opponentOrgId) continue;
-      addPlayer(squadPlayer.player, opponentOrgId);
-    }
+      for (const squadPlayer of past.squad) {
+        if (squadPlayer.teamId !== opponentOrgId) continue;
+        playerIdsFromSquads.add(squadPlayer.playerId);
+      }
 
-    for (const innings of past.innings) {
-      const opponentBatting = innings.battingTeamId === opponentTournamentTeamId;
-      const opponentBowling = !opponentBatting;
-      for (const delivery of innings.deliveries) {
-        const ids: (string | null)[] = [];
-        if (opponentBatting) {
-          ids.push(
-            delivery.strikerId,
-            delivery.nonStrikerId,
-            delivery.dismissedBatsmanId,
-          );
-        }
-        if (opponentBowling) {
-          ids.push(delivery.bowlerId, delivery.fielderId);
-        }
-        for (const id of ids) {
-          if (id) playerIdsFromDeliveries.add(id);
+      for (const innings of past.innings) {
+        const opponentBatting = innings.battingTeamId === opponentTournamentTeamId;
+        const opponentBowling = !opponentBatting;
+        for (const delivery of innings.deliveries) {
+          const ids: (string | null)[] = [];
+          if (opponentBatting) {
+            ids.push(
+              delivery.strikerId,
+              delivery.nonStrikerId,
+              delivery.dismissedBatsmanId,
+            );
+          }
+          if (opponentBowling) {
+            ids.push(delivery.bowlerId, delivery.fielderId);
+          }
+          for (const id of ids) {
+            if (id) playerIdsFromDeliveries.add(id);
+          }
         }
       }
     }
-  }
 
-  if (playerIdsFromDeliveries.size > 0) {
-    const deliveryPlayers = await prisma.player.findMany({
-      where: { id: { in: [...playerIdsFromDeliveries] } },
-    });
-    for (const player of deliveryPlayers) {
-      addPlayer(player, options.opponentOrgTeamId);
+    const playerIds = [...new Set([
+      ...playerIdsFromSquads,
+      ...playerIdsFromDeliveries,
+    ])];
+    if (playerIds.length > 0) {
+      const players = await prisma.player.findMany({
+        where: { id: { in: playerIds } },
+      });
+      for (const player of players) {
+        addPlayer(player, options.opponentOrgTeamId);
+      }
     }
-  }
 
-  return roster;
+    return roster;
+  } catch (error) {
+    // Opponent-history suggestions are best-effort; never fail scorer page render.
+    console.error("opponent history roster lookup failed", {
+      matchId: options.currentMatchId,
+      orgId: options.orgId,
+      error,
+    });
+    return [];
+  }
 }
 
 async function rosterForMatchSide(options: {

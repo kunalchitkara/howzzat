@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@howzzat/db";
 import { resetDatabase, seedTestFixtures } from "@howzzat/db/testing";
 import {
@@ -121,5 +121,22 @@ describe("scoring context service", () => {
     expect(ctx.innings[0]?.displayOvers).toBe("0.1");
     expect(ctx.innings[0]?.bowlerLocked).toBe(true);
     expect(ctx.innings[0]?.lockedBowlerId).toBe(bowler);
+  });
+
+  it("does not crash when opponent history lookup fails", async () => {
+    const match = await createMatch(fixtures.tournamentId, {
+      homeTeamId: fixtures.tournamentTeamAId,
+      awayTeamId: fixtures.tournamentTeamBId,
+      playersPerSide: 8,
+    });
+
+    const historySpy = vi
+      .spyOn(prisma.match, "findMany")
+      .mockRejectedValueOnce(new Error("history query failed"));
+
+    await expect(getMatchScoringContext(match.id)).resolves.toMatchObject({
+      matchId: match.id,
+    });
+    historySpy.mockRestore();
   });
 });
