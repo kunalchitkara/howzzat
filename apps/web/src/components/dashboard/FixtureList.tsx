@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/client/api";
 import { dateInputValue, formatFixtureDate } from "@/lib/format-date";
-import { matchPublicRef } from "@/lib/match-slug";
+import { matchScorecardPath, matchScorerPath } from "@/lib/match-slug";
 import { BtnLink, card, input } from "./ui";
 
 type FixtureRow = {
@@ -214,14 +214,14 @@ export function FixtureList({ fixtures }: { fixtures: FixtureRow[] }) {
                     </button>
                   )}
                   <BtnLink
-                    href={`/match/${matchPublicRef(fixture)}`}
+                    href={matchScorecardPath(fixture)}
                     variant="secondary"
                     className="btn-nav"
                   >
                     Scorecard
                   </BtnLink>
                   <BtnLink
-                    href={`/match/${matchPublicRef(fixture)}/score`}
+                    href={matchScorerPath(fixture)}
                     className="btn-nav"
                   >
                     Score

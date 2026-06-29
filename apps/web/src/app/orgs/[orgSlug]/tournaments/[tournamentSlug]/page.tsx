@@ -27,6 +27,10 @@ export default async function PublicTournamentPage({
 
   const org = tournament.organization;
 
+  const clubTeamIds = tournament.teams
+    .filter((tt) => tt.team.organizationId === org.id)
+    .map((tt) => tt.id);
+
   return (
     <main style={{ background: "#eef2f7", minHeight: "100vh" }}>
       <TournamentHub
@@ -39,6 +43,7 @@ export default async function PublicTournamentPage({
           id: tt.id,
           name: tt.team.name,
         }))}
+        clubTeamIds={clubTeamIds}
         insights={insights}
       />
     </main>

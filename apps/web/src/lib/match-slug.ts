@@ -62,6 +62,16 @@ export function matchPublicRef(match: { id: string; slug: string | null }): stri
   return match.slug ?? match.id;
 }
 
+/** Public scorecard page for spectators. */
+export function matchScorecardPath(match: { id: string; slug: string | null }): string {
+  return `/match/${matchPublicRef(match)}`;
+}
+
+/** Scorer pad for authorized users. */
+export function matchScorerPath(match: { id: string; slug: string | null }): string {
+  return `${matchScorecardPath(match)}/score`;
+}
+
 export function isCuid(ref: string): boolean {
   return /^c[a-z0-9]{20,}$/i.test(ref);
 }
