@@ -1,5 +1,5 @@
 import type { MatchStatus, PrismaClient } from "@prisma/client";
-import { seedRulesProfileTemplates } from "./seed-rules.js";
+import { seedRulesProfileTemplates } from "@howzzat/db/seed-rules";
 
 export const EDGWARE_CC_ORG_SLUG = "edgware-cc";
 export const EDGWARE_U9_2026_SLUG = "u9-2026";
