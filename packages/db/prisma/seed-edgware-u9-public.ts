@@ -1,5 +1,4 @@
 import type { MatchStatus, PrismaClient } from "@prisma/client";
-import { seedRulesProfileTemplates } from "@howzzat/db/seed-rules";
 
 export const EDGWARE_CC_ORG_SLUG = "edgware-cc";
 export const EDGWARE_U9_2026_SLUG = "u9-2026";
@@ -184,17 +183,6 @@ async function seedEdgwareRoster(
 
 /** Idempotently ensure the public Edgware U9 Summer 2026 hub exists with season fixtures. */
 export async function ensurePublicEdgwareU92026(prisma: PrismaClient): Promise<void> {
-  await seedRulesProfileTemplates(prisma);
-
-  const template = await prisma.rulesProfileTemplate.findUnique({
-    where: { builtinId: "u9-softball-london-v1" },
-    include: { versions: { where: { version: 1 } } },
-  });
-  const rulesVersion = template?.versions[0];
-  if (!rulesVersion) {
-    throw new Error("u9-softball-london-v1 rules profile not seeded");
-  }
-
   const existingTournament = await prisma.tournament.findFirst({
     where: {
       slug: EDGWARE_U9_2026_SLUG,
@@ -211,6 +199,18 @@ export async function ensurePublicEdgwareU92026(prisma: PrismaClient): Promise<v
       },
     });
     if (fixtureCount >= FIXTURES.length) return;
+  }
+
+  const rulesVersion = await prisma.rulesProfileVersion.findFirst({
+    where: {
+      template: { builtinId: "u9-softball-london-v1" },
+      version: 1,
+    },
+  });
+  if (!rulesVersion) {
+    throw new Error(
+      "u9-softball-london-v1 rules profile not seeded — run pnpm --filter @howzzat/db exec prisma db seed",
+    );
   }
 
   const org = await prisma.organization.upsert({
