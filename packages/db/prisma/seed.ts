@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ensurePublicEdgwareU92026 } from "./seed-edgware-u9-public.js";
 import { seedRulesProfileTemplates } from "./seed-rules.js";
 
 const prisma = new PrismaClient();
@@ -22,21 +23,10 @@ async function main() {
     update: { name: "Demo Manager" },
   });
 
-  const org = await prisma.organization.upsert({
+  await ensurePublicEdgwareU92026(prisma);
+
+  const org = await prisma.organization.findUniqueOrThrow({
     where: { slug: "edgware-cc" },
-    create: {
-      name: "Edgware Cricket Club",
-      slug: "edgware-cc",
-      description: "Demo organization for Howzzat development",
-      homeGround: "Canons High School (HA8 6AN)",
-      memberships: {
-        create: {
-          userId: demoManager.id,
-          role: "OWNER",
-        },
-      },
-    },
-    update: {},
   });
 
   await prisma.orgMembership.upsert({
@@ -54,103 +44,30 @@ async function main() {
     update: { role: "OWNER" },
   });
 
-  const team = await prisma.team.upsert({
-    where: {
-      organizationId_slug: { organizationId: org.id, slug: "u9-softball" },
-    },
-    create: {
-      organizationId: org.id,
-      name: "Edgware U9 Softball",
-      slug: "u9-softball",
-      ageGroup: "U9",
-      homeGround: "Canons High School",
-    },
-    update: {},
-  });
-
-  const tournament = await prisma.tournament.upsert({
+  const tournament = await prisma.tournament.findUniqueOrThrow({
     where: {
       organizationId_slug: { organizationId: org.id, slug: "u9-2026" },
     },
-    create: {
-      organizationId: org.id,
-      name: "U9 Softball Summer 2026",
-      slug: "u9-2026",
-      ageGroup: "U9",
-      seasonLabel: "Summer 2026",
-      rulesProfileVersionId: rulesVersion.id,
-      isPublic: true,
-      rulesBindings: {
-        create: {
-          rulesProfileVersionId: rulesVersion.id,
-          notes: "Seed binding",
-        },
-      },
-    },
-    update: {},
   });
 
-  await prisma.tournamentTeam.upsert({
+  const team = await prisma.team.findUniqueOrThrow({
     where: {
-      tournamentId_teamId: { tournamentId: tournament.id, teamId: team.id },
+      organizationId_slug: { organizationId: org.id, slug: "u9-softball" },
     },
-    create: {
-      tournamentId: tournament.id,
-      teamId: team.id,
-      publicSlug: "edgware",
-    },
-    update: {},
   });
-
-  const playerNames = ["Ariyan", "Krish", "Veer", "Avyaan", "Qaim", "Kaiyan", "Aanya", "Taran"];
-  for (let i = 0; i < playerNames.length; i++) {
-    const name = playerNames[i]!;
-    const existing = await prisma.player.findFirst({
-      where: { legalName: name },
-    });
-    const player =
-      existing ??
-      (await prisma.player.create({
-        data: { legalName: name, displayName: name },
-      }));
-
-    await prisma.teamMembership.upsert({
-      where: {
-        teamId_playerId_seasonLabel: {
-          teamId: team.id,
-          playerId: player.id,
-          seasonLabel: "2026",
-        },
-      },
-      create: {
-        teamId: team.id,
-        playerId: player.id,
-        shirtNumber: i + 1,
-        seasonLabel: "2026",
-      },
-      update: {},
-    });
-  }
 
   console.log("Seeded demo org: edgware-cc / tournament: u9-2026");
 
-  const edgwareTt = await prisma.tournamentTeam.findUnique({
+  const edgwareTt = await prisma.tournamentTeam.findUniqueOrThrow({
     where: {
       tournamentId_teamId: { tournamentId: tournament.id, teamId: team.id },
     },
   });
 
-  const hayesTeam = await prisma.team.upsert({
+  const hayesTeam = await prisma.team.findUniqueOrThrow({
     where: {
       organizationId_slug: { organizationId: org.id, slug: "hayes-u9" },
     },
-    create: {
-      organizationId: org.id,
-      name: "Hayes U9",
-      slug: "hayes-u9",
-      ageGroup: "U9",
-    },
-    update: {},
   });
 
   const hayesNames = [
@@ -193,67 +110,68 @@ async function main() {
     });
   }
 
-  const hayesTt = await prisma.tournamentTeam.upsert({
+  const hayesTt = await prisma.tournamentTeam.findUniqueOrThrow({
     where: {
       tournamentId_teamId: { tournamentId: tournament.id, teamId: hayesTeam.id },
     },
-    create: {
-      tournamentId: tournament.id,
-      teamId: hayesTeam.id,
-      publicSlug: "hayes",
-    },
-    update: {},
   });
 
-  if (edgwareTt && hayesTt) {
-    const existingMatch = await prisma.match.findFirst({
-      where: { tournamentId: tournament.id, publicSlug: "demo-score" },
-    });
+  const existingMatch = await prisma.match.findFirst({
+    where: { tournamentId: tournament.id, publicSlug: "demo-score" },
+  });
 
-    const demoMatch =
-      existingMatch ??
-      (await prisma.match.create({
-        data: {
-          tournamentId: tournament.id,
-          homeTeamId: hayesTt.id,
-          awayTeamId: edgwareTt.id,
-          matchNumber: 99,
-          venue: "Canons High School (demo)",
-          playersPerSide: 8,
-          publicSlug: "demo-score",
-          rulesVersionId: rulesVersion.id,
-        },
-      }));
+  const demoMatch =
+    existingMatch ??
+    (await prisma.match.create({
+      data: {
+        tournamentId: tournament.id,
+        homeTeamId: hayesTt.id,
+        awayTeamId: edgwareTt.id,
+        matchNumber: 99,
+        venue: "Canons High School (demo)",
+        playersPerSide: 8,
+        publicSlug: "demo-score",
+        rulesVersionId: rulesVersion.id,
+      },
+    }));
 
-    const edgwarePlayerIds: string[] = [];
-    for (const name of playerNames) {
-      const p = await prisma.player.findFirst({ where: { legalName: name } });
-      if (p) edgwarePlayerIds.push(p.id);
-    }
-
-    await prisma.matchSquadPlayer.deleteMany({ where: { matchId: demoMatch.id } });
-    await prisma.matchSquadPlayer.createMany({
-      data: [
-        ...hayesPlayerIds.map((playerId) => ({
-          matchId: demoMatch.id,
-          playerId,
-          teamId: hayesTeam.id,
-        })),
-        ...edgwarePlayerIds.map((playerId) => ({
-          matchId: demoMatch.id,
-          playerId,
-          teamId: team.id,
-        })),
-      ],
-    });
-
-    await prisma.match.update({
-      where: { id: demoMatch.id },
-      data: { squadsConfirmedAt: new Date() },
-    });
-
-    console.log(`Demo scoring match: ${demoMatch.id} (public slug: demo-score)`);
+  const edgwarePlayerIds: string[] = [];
+  for (const name of [
+    "Ariyan",
+    "Krish",
+    "Veer",
+    "Avyaan",
+    "Qaim",
+    "Kaiyan",
+    "Aanya",
+    "Taran",
+  ]) {
+    const p = await prisma.player.findFirst({ where: { legalName: name } });
+    if (p) edgwarePlayerIds.push(p.id);
   }
+
+  await prisma.matchSquadPlayer.deleteMany({ where: { matchId: demoMatch.id } });
+  await prisma.matchSquadPlayer.createMany({
+    data: [
+      ...hayesPlayerIds.map((playerId) => ({
+        matchId: demoMatch.id,
+        playerId,
+        teamId: hayesTeam.id,
+      })),
+      ...edgwarePlayerIds.map((playerId) => ({
+        matchId: demoMatch.id,
+        playerId,
+        teamId: team.id,
+      })),
+    ],
+  });
+
+  await prisma.match.update({
+    where: { id: demoMatch.id },
+    data: { squadsConfirmedAt: new Date() },
+  });
+
+  console.log(`Demo scoring match: ${demoMatch.id} (public slug: demo-score)`);
 }
 
 main()

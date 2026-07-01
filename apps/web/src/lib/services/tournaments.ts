@@ -1,6 +1,10 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
 import { randomToken, slugify, uniqueSlug } from "../api/slug";
+import {
+  ensurePublicEdgwareU92026,
+  isEdgwarePublicU92026,
+} from "@howzzat/db/seed-edgware-u9-public";
 import { cloneRulesProfile, resolveRulesVersionForTournament } from "./rules";
 import { resolveOrganizationId } from "./organizations";
 import { rulesProfileVersionWithTemplate } from "./rules-template-select";
@@ -205,6 +209,10 @@ export async function getTournament(tournamentId: string) {
 }
 
 export async function getTournamentBySlug(orgSlug: string, tournamentSlug: string) {
+  if (isEdgwarePublicU92026(orgSlug, tournamentSlug)) {
+    await ensurePublicEdgwareU92026(prisma);
+  }
+
   const org = await prisma.organization.findUnique({ where: { slug: orgSlug } });
   if (!org) throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
 

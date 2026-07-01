@@ -1,5 +1,9 @@
 import { prisma } from "../db";
 import { ApiError } from "../api/http";
+import {
+  ensurePublicEdgwareU92026,
+  isEdgwarePublicU92026,
+} from "@howzzat/db/seed-edgware-u9-public";
 import { aggregateInningsFromDeliveries } from "@/lib/scorecard/aggregate";
 import type { PlayerInfo } from "@/lib/scorecard/types";
 import {
@@ -168,6 +172,10 @@ export async function getPublicTournamentInsights(
   orgSlug: string,
   tournamentSlug: string,
 ): Promise<TournamentInsights & { tournamentName: string; orgName: string }> {
+  if (isEdgwarePublicU92026(orgSlug, tournamentSlug)) {
+    await ensurePublicEdgwareU92026(prisma);
+  }
+
   const org = await prisma.organization.findUnique({ where: { slug: orgSlug } });
   if (!org) throw new ApiError(404, "Organization not found", "ORG_NOT_FOUND");
 
