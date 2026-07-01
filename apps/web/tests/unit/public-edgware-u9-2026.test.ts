@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@howzzat/db";
-import { resetDatabase } from "@howzzat/db/testing";
+import { resetDatabase, seedRulesProfile } from "@howzzat/db/testing";
 import {
   EDGWARE_CC_ORG_SLUG,
   EDGWARE_U9_2026_SLUG,
@@ -14,6 +14,7 @@ import { getPublicTournamentInsights } from "@/lib/services/tournament-insights"
 describe("public Edgware U9 2026 hub seed", () => {
   beforeEach(async () => {
     await resetDatabase(prisma);
+    await seedRulesProfile(prisma);
   });
 
   it("identifies the canonical public hub slug pair", () => {
